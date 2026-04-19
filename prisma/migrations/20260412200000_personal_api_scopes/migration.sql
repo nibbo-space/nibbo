@@ -1,0 +1,3 @@
+ALTER TABLE "User" ADD COLUMN "personalApiEnabled" BOOLEAN NOT NULL DEFAULT false;
+
+ALTER TABLE "McpReadToken" ADD COLUMN "scopes" TEXT[] NOT NULL DEFAULT ARRAY['mcp.read']::TEXT[];

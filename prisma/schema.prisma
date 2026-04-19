@@ -1,0 +1,733 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
+}
+
+// --- AUTH ---
+
+model Account {
+  id                String  @id @default(cuid())
+  userId            String
+  type              String
+  provider          String
+  providerAccountId String
+  refresh_token     String? @db.Text
+  access_token      String? @db.Text
+  expires_at        Int?
+  token_type        String?
+  scope             String?
+  id_token          String? @db.Text
+  session_state     String?
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([provider, providerAccountId])
+}
+
+model Session {
+  id           String   @id @default(cuid())
+  sessionToken String   @unique
+  userId       String
+  expires      DateTime
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model User {
+  id            String    @id @default(cuid())
+  name          String?
+  email         String?   @unique
+  emailVerified DateTime?
+  image         String?
+  color         String    @default("#f43f5e")
+  emoji         String    @default("🌸")
+  familyId      String?
+  familyRole    FamilyRole @default(MEMBER)
+  onboardingCompletedAt DateTime?
+  niboWelcomeCompletedAt DateTime?
+  displayCurrency String  @default("USD")
+  timeZone        String  @default("Europe/Kyiv")
+  ollamaApiKeyEnc String?
+  ollamaModel     String?
+  personalApiEnabled Boolean @default(false)
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  family        Family?         @relation(fields: [familyId], references: [id])
+  accounts      Account[]
+  sessions      Session[]
+  tasks         Task[]          @relation("TaskAssignee")
+  createdTasks  Task[]          @relation("TaskCreator")
+  events        Event[]         @relation("EventAssignee")
+  mealCooks     MealPlan[]      @relation("MealCook")
+  notes         Note[]
+  expenses      Expense[]
+  incomes       Income[]
+  ownedSubscriptions FamilySubscription[] @relation("SubscriptionOwner")
+  subscriptionMembers FamilySubscriptionMember[]
+  shoppingItems ShoppingItem[]
+  ownedTaskBoards TaskBoard[] @relation("TaskBoardOwner")
+  ownedShoppingLists ShoppingList[] @relation("ShoppingListOwner")
+  watchItems    WatchItem[]
+  sentInvites   FamilyInvitation[] @relation("FamilyInviteSender")
+  adminProfile  Admin?
+  mcpReadTokens McpReadToken[]
+  achievementUnlocks   UserAchievementUnlock[]
+  achievementCounters  UserAchievementCounter[]
+  familyBattles        FamilyBattle[] @relation("FamilyBattlePlayer")
+  pushSubscriptions    PushSubscription[]
+  medications          Medication[]
+  googleCalendarSyncFamilies Family[] @relation("GoogleCalendarSyncUser")
+  blogPosts                 BlogPost[]
+}
+
+model BlogPost {
+  id          String    @id @default(cuid())
+  slug        String    @unique
+  titleUk     String
+  titleEn     String
+  excerptUk   String?   @db.Text
+  excerptEn   String?   @db.Text
+  bodyUk      String    @db.Text
+  bodyEn      String    @db.Text
+  coverImageUrl String?
+  published   Boolean   @default(false)
+  publishedAt DateTime?
+  authorId    String
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  author User @relation(fields: [authorId], references: [id], onDelete: Cascade)
+
+  @@index([published, publishedAt])
+}
+
+model PushSubscription {
+  id        String   @id @default(cuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  endpoint  String   @unique
+  p256dh    String
+  auth      String
+  locale    String   @default("uk")
+  userAgent String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([userId])
+}
+
+enum FamilyBattleStatus {
+  IN_PROGRESS
+  COMPLETED
+}
+
+enum FamilyBattleOutcome {
+  WIN
+  LOSS
+}
+
+model FamilyBattle {
+  id                 String               @id @default(cuid())
+  playerUserId       String
+  playerFamilyId     String
+  opponentFamilyId   String
+  playerMaxLives      Int
+  opponentMaxLives   Int
+  status             FamilyBattleStatus   @default(IN_PROGRESS)
+  outcome            FamilyBattleOutcome?
+  xpAwarded          Boolean              @default(false)
+  startedAt          DateTime             @default(now())
+  completedAt        DateTime?
+
+  playerUser User @relation("FamilyBattlePlayer", fields: [playerUserId], references: [id], onDelete: Cascade)
+
+  @@index([playerUserId, status])
+  @@index([playerFamilyId, startedAt])
+}
+
+model McpReadToken {
+  id        String    @id @default(cuid())
+  userId    String
+  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  tokenHash String    @unique
+  scopes    String[]  @default(["mcp.read"])
+  createdAt DateTime  @default(now())
+  revokedAt DateTime?
+
+  @@index([userId, revokedAt])
+}
+
+model VerificationToken {
+  identifier String
+  token      String   @unique
+  expires    DateTime
+
+  @@unique([identifier, token])
+}
+
+model Family {
+  id          String   @id @default(cuid())
+  name        String
+  shareInLeaderboard Boolean @default(false)
+  shareWatchingFeed Boolean @default(false)
+  disabledAppModules String[] @default([])
+  modulesSetupCompletedAt DateTime?
+  googleCalendarSyncEnabled Boolean @default(false)
+  googleCalendarId          String   @default("primary")
+  googleCalendarSyncUserId  String?
+  googleCalendarLastSyncAt  DateTime?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  members           User[]
+  googleCalendarSyncUser User? @relation("GoogleCalendarSyncUser", fields: [googleCalendarSyncUserId], references: [id], onDelete: SetNull)
+  invitations       FamilyInvitation[]
+  taskBoards        TaskBoard[]
+  events            Event[]
+  recipes           Recipe[]
+  mealPlans         MealPlan[]
+  notes             Note[]
+  noteCategories    NoteCategory[]
+  expenseCategories ExpenseCategory[]
+  expenses          Expense[]
+  incomes           Income[]
+  credits           Credit[]
+  subscriptions     FamilySubscription[]
+  shoppingLists     ShoppingList[]
+  watchItems          WatchItem[]
+  achievementUnlocks FamilyAchievementUnlock[]
+  medications         Medication[]
+}
+
+model FamilyAchievementUnlock {
+  id              String   @id @default(cuid())
+  familyId        String
+  achievementId   String
+  unlockedAt      DateTime @default(now())
+  family          Family   @relation(fields: [familyId], references: [id], onDelete: Cascade)
+
+  @@unique([familyId, achievementId])
+  @@index([familyId])
+}
+
+model UserAchievementUnlock {
+  id              String   @id @default(cuid())
+  userId          String
+  achievementId   String
+  unlockedAt      DateTime @default(now())
+  user            User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, achievementId])
+  @@index([userId])
+}
+
+model UserAchievementCounter {
+  id        String   @id @default(cuid())
+  userId    String
+  key       String
+  value     Int      @default(0)
+  updatedAt DateTime @updatedAt
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, key])
+  @@index([userId])
+}
+
+model FamilyInvitation {
+  id          String   @id @default(cuid())
+  email       String
+  familyId    String
+  invitedById String
+  createdAt   DateTime @default(now())
+  acceptedAt  DateTime?
+
+  family    Family @relation(fields: [familyId], references: [id], onDelete: Cascade)
+  invitedBy User   @relation("FamilyInviteSender", fields: [invitedById], references: [id], onDelete: Cascade)
+
+  @@unique([familyId, email])
+}
+
+enum FamilyRole {
+  OWNER
+  MEMBER
+}
+
+// --- TASKS ---
+
+model TaskBoard {
+  id          String   @id @default(cuid())
+  name        String
+  description String?
+  emoji       String   @default("📋")
+  color       String   @default("#f43f5e")
+  order       Int      @default(0)
+  familyId    String?
+  isPrivate   Boolean  @default(false)
+  ownerUserId String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  family    Family?      @relation(fields: [familyId], references: [id], onDelete: Cascade)
+  owner     User?        @relation("TaskBoardOwner", fields: [ownerUserId], references: [id], onDelete: SetNull)
+  columns TaskColumn[]
+
+  @@index([familyId, isPrivate])
+}
+
+model TaskColumn {
+  id        String   @id @default(cuid())
+  name      String
+  emoji     String   @default("📝")
+  color     String   @default("#e7e5e4")
+  order     Int      @default(0)
+  boardId   String
+  createdAt DateTime @default(now())
+
+  board TaskBoard @relation(fields: [boardId], references: [id], onDelete: Cascade)
+  tasks Task[]
+}
+
+model Task {
+  id             String     @id @default(cuid())
+  title          String
+  description    String?
+  priority       Priority   @default(MEDIUM)
+  dueDate        DateTime?
+  completed      Boolean    @default(false)
+  completedAt    DateTime?
+  order          Int        @default(0)
+  columnId       String
+  assigneeId     String?
+  assigneeSeenAt DateTime?
+  creatorId      String
+  isPrivate      Boolean    @default(false)
+  labels         String[]
+  reminderCadenceDays    Int?
+  reminderWindowStartMin Int?
+  reminderWindowEndMin   Int?
+  reminderAnchorYmd      String?
+  reminderLastFiredYmd   String?
+  createdAt      DateTime   @default(now())
+  updatedAt      DateTime   @updatedAt
+
+  column   TaskColumn @relation(fields: [columnId], references: [id], onDelete: Cascade)
+  assignee User?      @relation("TaskAssignee", fields: [assigneeId], references: [id])
+  creator  User       @relation("TaskCreator", fields: [creatorId], references: [id])
+
+  @@index([columnId, isPrivate])
+  @@index([assigneeId, completed, reminderCadenceDays])
+}
+
+enum Priority {
+  LOW
+  MEDIUM
+  HIGH
+  URGENT
+}
+
+enum MedicationScheduleMode {
+  DAILY_TIMES
+  INTERVAL_DAYS
+}
+
+model Medication {
+  id                     String                   @id @default(cuid())
+  userId                 String
+  familyId               String
+  name                   String
+  notes                  String?
+  scheduleMode           MedicationScheduleMode
+  dailySlotMinutes       Int[]                    @default([])
+  slotToleranceMin       Int                      @default(45)
+  intervalDays           Int?
+  intervalAnchorYmd      String?
+  intervalWindowStartMin Int?
+  intervalWindowEndMin   Int?
+  intervalLastFiredYmd   String?
+  lastDailyPushJson      Json?
+  createdAt              DateTime                 @default(now())
+  updatedAt              DateTime                 @updatedAt
+
+  user    User                 @relation(fields: [userId], references: [id], onDelete: Cascade)
+  family  Family               @relation(fields: [familyId], references: [id], onDelete: Cascade)
+  intakes MedicationIntake[]
+
+  @@index([userId, familyId])
+}
+
+model MedicationIntake {
+  id           String    @id @default(cuid())
+  medicationId String
+  dateYmd      String
+  slotIndex    Int       @default(0)
+  taken        Boolean   @default(false)
+  takenAt      DateTime?
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+
+  medication Medication @relation(fields: [medicationId], references: [id], onDelete: Cascade)
+
+  @@unique([medicationId, dateYmd, slotIndex])
+  @@index([medicationId, dateYmd])
+}
+
+// --- CALENDAR ---
+
+model Event {
+  id          String    @id @default(cuid())
+  title       String
+  description String?
+  emoji       String    @default("📅")
+  color       String    @default("#8b5cf6")
+  startDate   DateTime
+  endDate     DateTime
+  allDay      Boolean   @default(false)
+  weeklyRepeat Boolean  @default(false)
+  weeklyDay    Int?
+  location    String?
+  assigneeId  String?
+  subscriptionId String?
+  googleEventId String? @unique
+  familyId    String?
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  family   Family? @relation(fields: [familyId], references: [id], onDelete: Cascade)
+  assignee User? @relation("EventAssignee", fields: [assigneeId], references: [id])
+  subscription FamilySubscription? @relation(fields: [subscriptionId], references: [id], onDelete: SetNull)
+}
+
+// --- MEAL PLANNER ---
+
+model Recipe {
+  id          String   @id @default(cuid())
+  name        String
+  description String?
+  emoji       String   @default("🍽️")
+  prepTime    Int?
+  cookTime    Int?
+  servings    Int      @default(4)
+  category    String   @default("Обід")
+  calories    Int?
+  imageUrl    String?
+  familyId    String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  family      Family?      @relation(fields: [familyId], references: [id], onDelete: Cascade)
+  ingredients Ingredient[]
+  mealPlans   MealPlan[]
+}
+
+model RecipeMarket {
+  id          String                   @id @default(cuid())
+  name        String
+  description String?
+  emoji       String                   @default("🍽️")
+  prepTime    Int?
+  cookTime    Int?
+  servings    Int                      @default(4)
+  category    String                   @default("Обід")
+  calories    Int?
+  imageUrl    String?
+  createdById String?
+  createdAt   DateTime                 @default(now())
+  updatedAt   DateTime                 @updatedAt
+
+  createdBy   Admin?                   @relation(fields: [createdById], references: [id], onDelete: SetNull)
+  ingredients RecipeMarketIngredient[]
+}
+
+model RecipeMarketIngredient {
+  id             String       @id @default(cuid())
+  name           String
+  amount         String
+  unit           String?
+  recipeMarketId String
+
+  recipeMarket   RecipeMarket @relation(fields: [recipeMarketId], references: [id], onDelete: Cascade)
+}
+
+model Admin {
+  id        String         @id @default(cuid())
+  userId    String         @unique
+  createdAt DateTime       @default(now())
+
+  user      User           @relation(fields: [userId], references: [id], onDelete: Cascade)
+  markets   RecipeMarket[]
+}
+
+model Ingredient {
+  id       String  @id @default(cuid())
+  name     String
+  amount   String
+  unit     String?
+  recipeId String
+
+  recipe Recipe @relation(fields: [recipeId], references: [id], onDelete: Cascade)
+}
+
+model MealPlan {
+  id       String   @id @default(cuid())
+  date     DateTime
+  mealType MealType
+  recipeId String?
+  cookId   String?
+  note     String?
+  portionCount Float @default(1)
+  eaterIds String[] @default([])
+  familyId String?
+  createdAt DateTime @default(now())
+
+  family Family? @relation(fields: [familyId], references: [id], onDelete: Cascade)
+  recipe Recipe? @relation(fields: [recipeId], references: [id])
+  cook   User?   @relation("MealCook", fields: [cookId], references: [id])
+}
+
+enum MealType {
+  BREAKFAST
+  LUNCH
+  DINNER
+  SNACK
+}
+
+// --- NOTES ---
+
+model Note {
+  id        String   @id @default(cuid())
+  title     String
+  content   String   @db.Text
+  emoji     String   @default("📓")
+  color     String   @default("#faf3e0")
+  pinned    Boolean  @default(false)
+  authorId  String
+  familyId  String?
+  categoryId String?
+  tags      String[]
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  family   Family?        @relation(fields: [familyId], references: [id], onDelete: Cascade)
+  author   User          @relation(fields: [authorId], references: [id])
+  category NoteCategory? @relation(fields: [categoryId], references: [id], onDelete: SetNull)
+}
+
+model NoteCategory {
+  id        String         @id @default(cuid())
+  name      String
+  emoji     String         @default("📂")
+  color     String         @default("#f5f3ff")
+  parentId  String?
+  familyId  String?
+  createdAt DateTime       @default(now())
+  updatedAt DateTime       @updatedAt
+
+  family   Family?        @relation(fields: [familyId], references: [id], onDelete: Cascade)
+  parent   NoteCategory?   @relation("NoteCategoryTree", fields: [parentId], references: [id], onDelete: SetNull)
+  children NoteCategory[]  @relation("NoteCategoryTree")
+  notes    Note[]
+}
+
+// --- BUDGET ---
+
+model ExpenseCategory {
+  id        String    @id @default(cuid())
+  name      String
+  emoji     String    @default("💰")
+  color     String    @default("#4ade80")
+  budget    Float?
+  sortOrder Int       @default(0)
+  familyId  String?
+  family    Family?   @relation(fields: [familyId], references: [id], onDelete: Cascade)
+  expenses  Expense[]
+
+  @@index([familyId, sortOrder])
+}
+
+model Expense {
+  id          String   @id @default(cuid())
+  title       String
+  amount      Float
+  date        DateTime @default(now())
+  categoryId  String?
+  userId      String
+  familyId    String?
+  note        String?
+  createdAt   DateTime @default(now())
+
+  family   Family?          @relation(fields: [familyId], references: [id], onDelete: Cascade)
+  category ExpenseCategory? @relation(fields: [categoryId], references: [id])
+  user     User             @relation(fields: [userId], references: [id])
+}
+
+model Income {
+  id        String   @id @default(cuid())
+  title     String
+  amount    Float
+  date      DateTime @default(now())
+  userId    String
+  familyId  String?
+  note      String?
+  createdAt DateTime @default(now())
+
+  family Family? @relation(fields: [familyId], references: [id], onDelete: Cascade)
+  user   User    @relation(fields: [userId], references: [id])
+}
+
+model Credit {
+  id            String       @id @default(cuid())
+  title         String
+  bank          CreditBank
+  bankOtherName String?
+  monthlyAmount Float
+  paymentDay    Int
+  lastPaidAt    DateTime?
+  status        CreditStatus @default(ACTIVE)
+  note          String?
+  familyId      String
+  createdAt     DateTime     @default(now())
+  updatedAt     DateTime     @updatedAt
+
+  family Family @relation(fields: [familyId], references: [id], onDelete: Cascade)
+}
+
+model FamilySubscription {
+  id              String                 @id @default(cuid())
+  title           String
+  category        String?
+  billingCycle    SubscriptionBillingCycle
+  amount          Float
+  currency        String                 @default("UAH")
+  nextBillingDate DateTime
+  trialEndsAt     DateTime?
+  status          SubscriptionStatus     @default(ACTIVE)
+  note            String?
+  familyId        String
+  ownerUserId     String?
+  createdAt       DateTime               @default(now())
+  updatedAt       DateTime               @updatedAt
+
+  family          Family                 @relation(fields: [familyId], references: [id], onDelete: Cascade)
+  ownerUser       User?                  @relation("SubscriptionOwner", fields: [ownerUserId], references: [id], onDelete: SetNull)
+  members         FamilySubscriptionMember[]
+  events          Event[]
+}
+
+model FamilySubscriptionMember {
+  id             String             @id @default(cuid())
+  subscriptionId String
+  userId         String
+  role           SubscriptionMemberRole @default(USER)
+  createdAt      DateTime           @default(now())
+
+  subscription   FamilySubscription @relation(fields: [subscriptionId], references: [id], onDelete: Cascade)
+  user           User               @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([subscriptionId, userId])
+}
+
+enum SubscriptionBillingCycle {
+  MONTHLY
+  YEARLY
+}
+
+enum SubscriptionStatus {
+  ACTIVE
+  PAUSED
+  CANCELLED
+}
+
+enum SubscriptionMemberRole {
+  USER
+  PAYER
+}
+
+enum CreditBank {
+  MONOBANK
+  PRIVATBANK
+  PUMB
+  OTHER
+}
+
+enum CreditStatus {
+  ACTIVE
+  CLOSED
+}
+
+// --- SHOPPING ---
+
+model ShoppingList {
+  id             String   @id @default(cuid())
+  name           String
+  emoji          String   @default("🛒")
+  sortOrder      Int      @default(0)
+  categoryOrder  String[] @default([])
+  familyId       String?
+  isPrivate      Boolean  @default(false)
+  ownerUserId    String?
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  family Family? @relation(fields: [familyId], references: [id], onDelete: Cascade)
+  owner  User?   @relation("ShoppingListOwner", fields: [ownerUserId], references: [id], onDelete: SetNull)
+  items ShoppingItem[]
+
+  @@index([familyId, sortOrder])
+}
+
+model ShoppingItem {
+  id         String   @id @default(cuid())
+  name       String
+  quantity   String?
+  unit       String?
+  checked    Boolean  @default(false)
+  category   String?
+  listId     String
+  addedById  String
+  isPrivate  Boolean  @default(false)
+  createdAt  DateTime @default(now())
+
+  list    ShoppingList @relation(fields: [listId], references: [id], onDelete: Cascade)
+  addedBy User         @relation(fields: [addedById], references: [id])
+}
+
+enum WatchMediaType {
+  MOVIE
+  TV
+}
+
+enum WatchStatus {
+  WATCHING
+  PAUSED
+  FINISHED
+  DROPPED
+}
+
+model WatchItem {
+  id          String         @id @default(cuid())
+  familyId    String
+  userId      String
+  provider    String         @default("tmdb")
+  externalId  String
+  mediaType   WatchMediaType
+  title       String
+  posterPath  String?
+  status      WatchStatus    @default(WATCHING)
+  season      Int?
+  startedAt   DateTime       @default(now())
+  completedAt DateTime?
+  createdAt   DateTime       @default(now())
+  updatedAt   DateTime       @updatedAt
+
+  family Family @relation(fields: [familyId], references: [id], onDelete: Cascade)
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([familyId, provider, externalId])
+  @@index([familyId, status])
+  @@index([familyId, updatedAt])
+}

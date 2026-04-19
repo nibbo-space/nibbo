@@ -1,0 +1,29 @@
+---
+title: Architecture
+description: How Nibbo is structured — browser vs integrations, families, and data paths.
+---
+
+## Families
+
+- Every user belongs to a **family**. Shared entities (task boards, events, notes, shopping lists, …) are tied to `familyId`.
+- API handlers always resolve the caller’s family before reading or writing shared data.
+
+## Two ways to authenticate
+
+| Context | Mechanism | Typical use |
+| ------- | --------- | ----------- |
+| Human in the browser | **NextAuth session** (cookies) | Web UI |
+| Script, MCP server, mobile bridge | **Bearer token** from profile keys (`McpReadToken` in the database; only a **hash** is stored) | Automation |
+
+Integration routes **do not** use your browser cookies. You must send `Authorization: Bearer …` as described in [Authentication](/docs/guides/authentication).
+
+## Two read channels over HTTP
+
+Both return the same JSON shapes for a given `{resource}`; they differ in **auth rules** and whether writes exist elsewhere.
+
+| Channel | Path | Notes |
+| ------- | ---- | ----- |
+| MCP read | `GET /api/mcp/read/{resource}` | Scope `mcp.read`; does **not** require `personalApiEnabled`. Optional env tokens. |
+| REST v1 read | `GET /api/v1/read/{resource}` | Scope `v1.read`; requires `personalApiEnabled`. Writes live under `/api/v1/…` with other scopes. |
+
+Next: [Authentication](/docs/guides/authentication) → then [REST API v1](/docs/reference/rest-v1) or [MCP read](/docs/reference/mcp-read).

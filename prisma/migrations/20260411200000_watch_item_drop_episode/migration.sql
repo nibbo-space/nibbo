@@ -1,0 +1,1 @@
+ALTER TABLE "WatchItem" DROP COLUMN IF EXISTS "episode";

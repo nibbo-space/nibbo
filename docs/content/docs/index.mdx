@@ -1,0 +1,40 @@
+---
+title: Overview
+description: Nibbo integration documentation — who it is for and how to navigate it.
+---
+
+Nibbo is a **family home CRM** ([nibbo.space](https://nibbo.space)): shared tasks, calendar, notes, shopping, budget, subscriptions, and more. Everything important is scoped to a **family** so only members of that household see the data.
+
+This site documents **machine-facing HTTP APIs** only: how to authenticate, which URLs to call, and what they return. It does not replace in-app help for end users.
+
+## Who should read this
+
+| Audience | Start here |
+| -------- | ------------ |
+| Developers building scripts, dashboards, or bridges | [Authentication](/docs/guides/authentication), then [REST API v1](/docs/reference/rest-v1) or [MCP read](/docs/reference/mcp-read) |
+| Operators wiring server-side tools (e.g. env-based tokens) | [Authentication](/docs/guides/authentication) → env `NIBBO_MCP_READ_TOKENS` on [MCP read](/docs/reference/mcp-read) |
+| Anyone needing the mental model of the app | [Architecture](/docs/guides/architecture) |
+
+## How this documentation is organized
+
+| Section | Contents |
+| ------- | -------- |
+| **Guides** | [Architecture](/docs/guides/architecture) — how the app, sessions, and tokens fit together. [Authentication](/docs/guides/authentication) — profile toggle, scopes, creating and revoking keys. |
+| **API reference** | [REST API v1](/docs/reference/rest-v1) — Bearer endpoints under `/api/v1`. [MCP (HTTP read)](/docs/reference/mcp-read) — read-only `/api/mcp/read/...` and optional env tokens. |
+
+## Stack (for context)
+
+- **Next.js** (App Router), **Prisma**, **PostgreSQL**
+- **NextAuth** — browser sessions use cookies; integrations use **Bearer** tokens issued from the profile
+
+Source code lives on GitHub: [BostonLeeK/nibbo](https://github.com/BostonLeeK/nibbo).
+
+## Base URL for examples
+
+`BASE_URL` is the **origin** of the Nibbo deployment (scheme + host, no path). Production: **`https://nibbo.space`**. Local dev is often `http://localhost:3000`.
+
+```bash
+export BASE_URL=https://nibbo.space
+```
+
+Replace `YOUR_TOKEN` in snippets with a real key from your profile. Keys are shown **once** when created — store them in a secret manager or env file, not in git.

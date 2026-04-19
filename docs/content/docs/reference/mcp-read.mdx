@@ -1,0 +1,62 @@
+---
+title: MCP (HTTP read)
+description: Read-only family data at GET /api/mcp/read/{resource}.
+---
+
+Use this when you only need **read** access (Cursor MCP, cron jobs, ETL). There are **no** write methods on this path.
+
+**Base:** `GET {BASE_URL}/api/mcp/read/{resource}` (e.g. `https://nibbo.space/api/mcp/read/tasks`).
+
+## Resources
+
+Same `resource` names as [REST v1 read](/docs/reference/rest-v1): `tasks`, `events`, `shopping`, `notes`, `task_stats`.
+
+For **`events`**, optional query: `from`, `to` (ISO dates).
+
+## Authorization
+
+```http
+Authorization: Bearer <token>
+```
+
+### Option A — Profile key (recommended)
+
+Create a token with mode **`mcp_read`** (or any mode that includes scope **`mcp.read`**) via `POST /api/users/me/mcp-tokens`. See [Authentication](/docs/guides/authentication).
+
+`personalApiEnabled` is **not** required for MCP read.
+
+### Option B — Server env `NIBBO_MCP_READ_TOKENS`
+
+Comma-separated entries, each `userId|plainSecret`:
+
+```text
+clxxxxxxxx|your-long-secret,anotherUserId|anotherSecret
+```
+
+The Bearer value must **exactly** match the configured secret (constant-time compare). Intended for controlled environments.
+
+If this env is unset, only **database** tokens are accepted.
+
+---
+
+## MCP read vs REST v1 read
+
+| | MCP | REST v1 read |
+| - | --- | ------------ |
+| Path | `/api/mcp/read/...` | `/api/v1/read/...` |
+| Scope | `mcp.read` | `v1.read` |
+| Needs `personalApiEnabled` | No | Yes |
+| Writes | Not on this route | Use `/api/v1/tasks` / `/api/v1/notes` |
+
+---
+
+## curl
+
+```bash
+export BASE_URL=https://nibbo.space
+curl -sS -H "Authorization: Bearer YOUR_TOKEN" "$BASE_URL/api/mcp/read/tasks"
+```
+
+```bash
+curl -sS -H "Authorization: Bearer YOUR_TOKEN" "$BASE_URL/api/mcp/read/task_stats"
+```

@@ -1,0 +1,76 @@
+---
+title: Authentication
+description: Profile API toggle, token scopes, and how to create and revoke integration keys.
+---
+
+Integration APIs use **Bearer tokens** created in the Nibbo app (**Profile**). The plaintext secret is returned **only at creation time**; the server keeps **SHA-256** hashes.
+
+## 1. Decide what you need
+
+| Goal | What to enable |
+| ---- | ---------------- |
+| Read-only family data over HTTP (MCP, scripts) | Create a key with mode **`mcp_read`** — works without the REST toggle. |
+| Call **`/api/v1/*`** (profile, reads, task/note writes) | Turn on **HTTP REST API** in the profile, then create a key with mode **`v1_read`** or **`v1_read_write`**. |
+
+## 2. Turn on HTTP REST API (only for `/api/v1`)
+
+In **Profile**, enable **HTTP REST API** (`personalApiEnabled`), or call while logged in:
+
+```http
+PATCH /api/users/me
+Content-Type: application/json
+
+{ "personalApiEnabled": true }
+```
+
+While this flag is **off**:
+
+- you can still create **`mcp_read`** keys;
+- every **`/api/v1/*`** request with a Bearer token returns **401**, even if a token exists.
+
+## 3. Scopes on each token
+
+| Scope | Allows |
+| ----- | ------ |
+| `mcp.read` | `GET /api/mcp/read/...` |
+| `v1.read` | `GET /api/v1/me`, `GET /api/v1/read/...` (requires `personalApiEnabled`) |
+| `v1.tasks.write` | `PATCH /api/v1/tasks/{id}` |
+| `v1.notes.write` | `PATCH` / `DELETE /api/v1/notes/{id}` |
+
+## 4. Create a key (session required)
+
+```http
+POST /api/users/me/mcp-tokens
+Content-Type: application/json
+
+{ "mode": "mcp_read" }
+```
+
+Allowed `mode` values:
+
+| `mode` | Scopes granted |
+| ------ | ---------------- |
+| `mcp_read` | `mcp.read` |
+| `v1_read` | `mcp.read`, `v1.read` |
+| `v1_read_write` | `mcp.read`, `v1.read`, `v1.tasks.write`, `v1.notes.write` |
+
+`v1_read` and `v1_read_write` return **403** if `personalApiEnabled` is false.
+
+The JSON response includes `token` **once** — copy it immediately.
+
+## 5. List or revoke keys
+
+| Action | Request |
+| ------ | ------- |
+| List active keys | `GET /api/users/me/mcp-tokens` |
+| Revoke | `DELETE /api/users/me/mcp-tokens/{id}` |
+
+## 6. Use the token
+
+Send on every integration request:
+
+```http
+Authorization: Bearer <paste_token_here>
+```
+
+Then follow [REST API v1](/docs/reference/rest-v1) or [MCP read](/docs/reference/mcp-read).

@@ -1,0 +1,22 @@
+ALTER TABLE "Note" ADD COLUMN "categoryId" TEXT;
+
+CREATE TABLE "NoteCategory" (
+  "id" TEXT NOT NULL,
+  "name" TEXT NOT NULL,
+  "emoji" TEXT NOT NULL DEFAULT '📂',
+  "color" TEXT NOT NULL DEFAULT '#f5f3ff',
+  "parentId" TEXT,
+  "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  "updatedAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  CONSTRAINT "NoteCategory_pkey" PRIMARY KEY ("id")
+);
+
+ALTER TABLE "Note"
+ADD CONSTRAINT "Note_categoryId_fkey"
+FOREIGN KEY ("categoryId") REFERENCES "NoteCategory"("id")
+ON DELETE SET NULL ON UPDATE CASCADE;
+
+ALTER TABLE "NoteCategory"
+ADD CONSTRAINT "NoteCategory_parentId_fkey"
+FOREIGN KEY ("parentId") REFERENCES "NoteCategory"("id")
+ON DELETE SET NULL ON UPDATE CASCADE;

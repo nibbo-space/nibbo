@@ -1,0 +1,132 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    --background: 40 60% 98%;
+    --foreground: 24 10% 20%;
+    --card: 0 0% 100%;
+    --card-foreground: 24 10% 20%;
+    --primary: 346 77% 60%;
+    --primary-foreground: 0 0% 100%;
+    --secondary: 40 50% 95%;
+    --secondary-foreground: 24 10% 30%;
+    --muted: 40 30% 93%;
+    --muted-foreground: 24 10% 50%;
+    --accent: 271 60% 65%;
+    --accent-foreground: 0 0% 100%;
+    --border: 40 20% 88%;
+    --input: 40 20% 88%;
+    --ring: 346 77% 60%;
+    --radius: 0.75rem;
+  }
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+  html {
+    @apply relative m-0 block min-h-dvh w-full max-w-none bg-cream-50 p-0;
+  }
+  body {
+    @apply relative m-0 block min-h-dvh w-full max-w-none bg-transparent p-0 text-foreground;
+    font-feature-settings: "rlig" 1, "calt" 1;
+  }
+
+  h1,
+  h2,
+  h3,
+  h4,
+  h5,
+  h6 {
+    @apply font-display tracking-tight;
+  }
+}
+
+@layer utilities {
+  @media (hover: none) and (pointer: coarse) {
+    input:not([type="checkbox"]):not([type="radio"]):not([type="range"]):not([type="color"]),
+    textarea,
+    select {
+      font-size: 1rem !important;
+    }
+  }
+
+  .text-balance {
+    text-wrap: balance;
+  }
+
+  .scrollbar-hide {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+  }
+
+  .scrollbar-hide::-webkit-scrollbar {
+    display: none;
+  }
+
+  .glass {
+    background: rgba(255, 255, 255, 0.8);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+  }
+
+  .calendar-cozy-card {
+    position: relative;
+    overflow: hidden;
+    isolation: isolate;
+  }
+
+  .calendar-cozy-card::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    background-image: var(--calendar-cozy-bg);
+    background-size: cover;
+    background-position: center;
+    background-attachment: fixed;
+    background-repeat: no-repeat;
+    opacity: 0.42;
+    transition: opacity 0.18s ease;
+    mask-image: linear-gradient(to bottom, rgba(0, 0, 0, 0.96), rgba(0, 0, 0, 0.72));
+    -webkit-mask-image: linear-gradient(to bottom, rgba(0, 0, 0, 0.96), rgba(0, 0, 0, 0.72));
+    pointer-events: none;
+    z-index: 0;
+  }
+
+  .calendar-cozy-card-hover:hover::before {
+    content: none;
+  }
+
+  .calendar-cozy-card > * {
+    position: relative;
+    z-index: 1;
+  }
+}
+
+/* Custom scrollbar */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #d6d3d1;
+  border-radius: 100px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #a8a29e;
+}
+
+/* Focus styles */
+:focus-visible {
+  outline: 2px solid hsl(var(--ring));
+  outline-offset: 2px;
+}

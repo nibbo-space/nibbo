@@ -1,0 +1,12 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" role="img" aria-label="Nibbo favicon">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#fb7185"/>
+      <stop offset="100%" stop-color="#a78bfa"/>
+    </linearGradient>
+  </defs>
+  <rect width="64" height="64" rx="16" fill="url(#bg)"/>
+  <path d="M16 45V19h8l16 16V19h8v26h-8L24 29v16z" fill="#ffffff"/>
+  <circle cx="50" cy="14" r="6" fill="#ffffff"/>
+  <circle cx="50" cy="14" r="2.6" fill="#fb7185"/>
+</svg>

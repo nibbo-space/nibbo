@@ -1,0 +1,4 @@
+CREATE TYPE "FamilyRole" AS ENUM ('OWNER', 'MEMBER');
+
+ALTER TABLE "User"
+ADD COLUMN "familyRole" "FamilyRole" NOT NULL DEFAULT 'MEMBER';

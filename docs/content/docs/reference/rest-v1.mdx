@@ -1,0 +1,89 @@
+---
+title: REST API v1
+description: Bearer-authenticated endpoints under /api/v1.
+---
+
+All paths below are rooted at **`{BASE_URL}/api/v1`** (production: `https://nibbo.space/api/v1`).
+
+## Prerequisites
+
+Bearer token with the right **scopes**, user has a **family**, and **`personalApiEnabled`** is **true**. Otherwise responses are **401** (or **404** when a resource is not in your family).
+
+```http
+Authorization: Bearer <plain_token>
+```
+
+---
+
+## Read endpoints
+
+### `GET /api/v1/me`
+
+- **Scope:** `v1.read`
+- **Returns:** Profile fields (`id`, `name`, `email`, `image`, `color`, `emoji`, `familyId`, `displayCurrency`, `timeZone`, `personalApiEnabled`, `ollamaModel`, `ollamaKeyConfigured`). No raw Ollama secret.
+
+### `GET /api/v1/read/{resource}`
+
+- **Scope:** `v1.read`
+- **`resource`:** one of `tasks`, `events`, `shopping`, `notes`, `task_stats`
+- **Query (events only):** `from`, `to` — ISO dates; filters `startDate` / `endDate` accordingly
+
+Response JSON matches the MCP read endpoints for the same `resource`.
+
+---
+
+## Write endpoints
+
+### `PATCH /api/v1/tasks/{id}`
+
+- **Scope:** `v1.tasks.write`
+- **Body:** Same as authenticated web API `PATCH /api/tasks/{id}` — e.g. `title`, `priority`, `completed`, `columnId`, `assigneeId`, `dueDate`, or `{ "type": "move-task", "columnId", "order" }`.
+- **Implementation reference:** `src/app/api/tasks/[id]/route.ts` in [the repo](https://github.com/BostonLeeK/nibbo).
+
+### `PATCH /api/v1/notes/{id}`
+
+- **Scope:** `v1.notes.write`
+- **Body:** Same fields as `PATCH /api/notes/{id}` (e.g. `title`, `content`, `pinned`, `categoryId`, …).
+
+### `DELETE /api/v1/notes/{id}`
+
+- **Scope:** `v1.notes.write`
+
+---
+
+## Quick reference
+
+| Method | Path | Scope |
+| ------ | ---- | ----- |
+| `GET` | `/api/v1/me` | `v1.read` |
+| `GET` | `/api/v1/read/{resource}` | `v1.read` |
+| `PATCH` | `/api/v1/tasks/{id}` | `v1.tasks.write` |
+| `PATCH` | `/api/v1/notes/{id}` | `v1.notes.write` |
+| `DELETE` | `/api/v1/notes/{id}` | `v1.notes.write` |
+
+---
+
+## curl examples
+
+```bash
+export BASE_URL=https://nibbo.space
+curl -sS -H "Authorization: Bearer YOUR_TOKEN" "$BASE_URL/api/v1/me"
+```
+
+```bash
+curl -sS -H "Authorization: Bearer YOUR_TOKEN" "$BASE_URL/api/v1/read/tasks"
+```
+
+```bash
+curl -sS -H "Authorization: Bearer YOUR_TOKEN" \
+  "$BASE_URL/api/v1/read/events?from=2026-01-01&to=2026-12-31"
+```
+
+```bash
+curl -sS -X PATCH "$BASE_URL/api/v1/tasks/TASK_ID" \
+  -H "Authorization: Bearer YOUR_TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{"completed":true}'
+```
+
+If anything is unclear, cross-check the route handlers under `src/app/api/v1/` in the [GitHub repository](https://github.com/BostonLeeK/nibbo).

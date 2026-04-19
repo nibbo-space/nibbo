@@ -1,0 +1,21 @@
+services:
+  db:
+    image: postgres:17-alpine
+    container_name: nibbo-db
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: homecrm
+      POSTGRES_PASSWORD: homecrm_local
+      POSTGRES_DB: homecrm
+    ports:
+      - "5432:5432"
+    volumes:
+      - nibbo_pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U homecrm -d homecrm"]
+      interval: 3s
+      timeout: 5s
+      retries: 10
+
+volumes:
+  nibbo_pgdata:

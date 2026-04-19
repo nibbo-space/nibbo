@@ -1,0 +1,1 @@
+ALTER TABLE "Family" ADD COLUMN "disabledAppModules" TEXT[] NOT NULL DEFAULT ARRAY[]::TEXT[];

@@ -1,0 +1,2 @@
+ALTER TABLE "Event" ADD COLUMN "weeklyRepeat" BOOLEAN NOT NULL DEFAULT false;
+ALTER TABLE "Event" ADD COLUMN "weeklyDay" INTEGER;

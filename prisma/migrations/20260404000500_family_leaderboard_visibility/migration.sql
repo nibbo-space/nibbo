@@ -1,0 +1,2 @@
+ALTER TABLE "Family"
+ADD COLUMN "shareInLeaderboard" BOOLEAN NOT NULL DEFAULT false;
