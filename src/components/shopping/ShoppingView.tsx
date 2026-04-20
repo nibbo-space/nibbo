@@ -7,7 +7,7 @@ import { cn } from "@/lib/utils";
 import toast from "react-hot-toast";
 import { createPortal } from "react-dom";
 import { useAppLanguage } from "@/hooks/useAppLanguage";
-import { I18N } from "@/lib/i18n";
+import { messageLocale, I18N } from "@/lib/i18n";
 
 interface User {
   id: string;
@@ -66,7 +66,7 @@ export default function ShoppingView({
   currentUserId: string;
 }) {
   const { language } = useAppLanguage();
-  const t = I18N[language].shopping;
+  const t = I18N[messageLocale(language)].shopping;
   const [lists, setLists] = useState(initialLists);
   const sortedLists = useMemo(
     () => [...lists].sort((a, b) => a.sortOrder - b.sortOrder || a.name.localeCompare(b.name)),

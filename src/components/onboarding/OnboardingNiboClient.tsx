@@ -7,7 +7,7 @@ import { motion } from "framer-motion";
 import { Sparkles } from "lucide-react";
 import toast from "react-hot-toast";
 import { useAppLanguage } from "@/hooks/useAppLanguage";
-import { I18N } from "@/lib/i18n";
+import { messageLocale, I18N } from "@/lib/i18n";
 import { LANDING_NIBBY_CHARGE_STAGE } from "@/lib/landing-nibby";
 import type { NibbyChatDrive } from "@/components/shared/NibbyAssistantStage";
 
@@ -31,7 +31,7 @@ type Props = {
 export default function OnboardingNiboClient({ familyId }: Props) {
   const router = useRouter();
   const { language } = useAppLanguage();
-  const t = I18N[language].onboarding;
+  const t = I18N[messageLocale(language)].onboarding;
   const [busy, setBusy] = useState(false);
   const nibbyDriveRef = useRef<NibbyChatDrive>({ speaking: false, lipPulse: 0 });
 
@@ -100,7 +100,7 @@ export default function OnboardingNiboClient({ familyId }: Props) {
             onClick={() => void onContinue()}
             className="mt-10 w-full max-w-sm rounded-2xl bg-gradient-to-r from-rose-500 to-peach-500 px-8 py-3.5 text-sm font-semibold text-white shadow-cozy transition disabled:opacity-60 sm:w-auto"
           >
-            {busy ? I18N[language].onboarding.saving : t.niboCta}
+            {busy ? I18N[messageLocale(language)].onboarding.saving : t.niboCta}
           </motion.button>
         </div>
       </motion.div>

@@ -1,6 +1,7 @@
 import { isUserAdmin } from "@/lib/admin";
 import { isAllowedBlogCoverUrl } from "@/lib/blog-cover-url";
 import { isValidBlogSlug, slugify } from "@/lib/blog-slug";
+import { parseExtraTranslationsBody, syncExtraBlogTranslations } from "@/lib/blog-post-translations";
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { NextResponse } from "next/server";
@@ -44,6 +45,8 @@ export async function POST(req: Request) {
     } else coverImageUrl = c;
   }
 
+  const extraTranslations = parseExtraTranslationsBody(b.translations);
+
   try {
     const post = await prisma.blogPost.create({
       data: {
@@ -61,6 +64,7 @@ export async function POST(req: Request) {
       },
       select: { id: true, slug: true },
     });
+    await syncExtraBlogTranslations(post.id, extraTranslations);
     return NextResponse.json(post);
   } catch (e: unknown) {
     const code = e && typeof e === "object" && "code" in e ? (e as { code: string }).code : "";

@@ -9,7 +9,7 @@ import { useAppLanguage } from "@/hooks/useAppLanguage";
 import { type BattleMove, randomBattleMove, resolveRound } from "@/lib/family-battle";
 import { FAMILY_BATTLE_WIN_XP } from "@/lib/family-display-xp";
 import type { NibbyChargeStage } from "@/lib/nibby-charge";
-import { I18N } from "@/lib/i18n";
+import { messageLocale, I18N } from "@/lib/i18n";
 import { TASK_POINTS_AWARDED_EVENT } from "@/lib/task-points";
 import { cn } from "@/lib/utils";
 
@@ -140,7 +140,7 @@ export default function FamilyBattleView({
   opponentChargeStage,
 }: FamilyBattleViewProps) {
   const { language } = useAppLanguage();
-  const t = I18N[language].achievements.familyBattle;
+  const t = I18N[messageLocale(language)].achievements.familyBattle;
   const playerDriveRef = useRef<NibbyChatDrive>({ speaking: false, lipPulse: 0 });
   const opponentDriveRef = useRef<NibbyChatDrive>({ speaking: false, lipPulse: 0 });
   const busyRef = useRef(false);

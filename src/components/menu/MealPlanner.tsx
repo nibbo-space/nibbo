@@ -11,7 +11,7 @@ import { DEFAULT_RECIPE_EMOJI, MEAL_TYPE_CONFIG, displayEmojiToken, normalizePro
 import toast from "react-hot-toast";
 import { createPortal } from "react-dom";
 import { useAppLanguage } from "@/hooks/useAppLanguage";
-import { I18N } from "@/lib/i18n";
+import { messageLocale, I18N } from "@/lib/i18n";
 import {
   mealLineKcalPerEater,
   mealLineTotalKcal,
@@ -137,8 +137,9 @@ function AnimatedRecipeImage({
 
 export default function MealPlanner({ initialRecipes, initialMarketRecipes, initialMealPlans, users, currentUserId, isAdmin }: MealPlannerProps) {
   const { language } = useAppLanguage();
-  const t = I18N[language].mealPlanner;
-  const dateLocale = language === "en" ? enUS : uk;
+  const ml = messageLocale(language);
+  const t = I18N[ml].mealPlanner;
+  const dateLocale = ml === "uk" ? uk : enUS;
   const [tab, setTab] = useState<Tab>("planner");
   const [recipes, setRecipes] = useState(initialRecipes);
   const [marketRecipes, setMarketRecipes] = useState(initialMarketRecipes);

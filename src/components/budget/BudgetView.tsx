@@ -23,7 +23,7 @@ import { displayEmojiToken, formatCurrency, formatDate } from "@/lib/utils";
 import toast from "react-hot-toast";
 import { createPortal } from "react-dom";
 import { useAppLanguage } from "@/hooks/useAppLanguage";
-import { I18N } from "@/lib/i18n";
+import { intlLocaleForUi, messageLocale, I18N } from "@/lib/i18n";
 
 interface User { id: string; name: string | null; image: string | null; color: string; emoji: string; }
 interface Category {
@@ -90,18 +90,18 @@ export default function BudgetView({
   exchangeRates: ExchangeRates;
 }) {
   const { language } = useAppLanguage();
-  const t = I18N[language].budget;
+  const t = I18N[messageLocale(language)].budget;
+  const intlLoc = intlLocaleForUi(language);
   const dateFmtOpts = {
     timeZone: calendarTimeZone,
-    locale: language === "en" ? "en-US" : "uk-UA",
+    locale: intlLoc,
   } as const;
   const formatUah = useCallback(
     (uah: number) => {
-      const loc = language === "en" ? "en-US" : "uk-UA";
       const v = uahToDisplayAmount(uah, displayCurrency, exchangeRates);
-      return formatCurrency(v, displayCurrency, loc);
+      return formatCurrency(v, displayCurrency, intlLoc);
     },
-    [displayCurrency, exchangeRates, language]
+    [displayCurrency, exchangeRates, intlLoc]
   );
   const [categories, setCategories] = useState(initialCategories);
   const [expenses, setExpenses] = useState(initialExpenses);

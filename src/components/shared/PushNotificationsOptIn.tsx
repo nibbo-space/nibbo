@@ -1,7 +1,7 @@
 "use client";
 
 import { useAppLanguage } from "@/hooks/useAppLanguage";
-import { I18N } from "@/lib/i18n";
+import { messageLocale, I18N } from "@/lib/i18n";
 import { useCallback, useEffect, useState } from "react";
 
 function urlBase64ToUint8Array(base64String: string) {
@@ -17,7 +17,7 @@ function urlBase64ToUint8Array(base64String: string) {
 
 export function PushNotificationsOptIn() {
   const { language } = useAppLanguage();
-  const t = I18N[language].pushNotifications;
+  const t = I18N[messageLocale(language)].pushNotifications;
   const [supported, setSupported] = useState(true);
   const [publicKey, setPublicKey] = useState<string | null>(null);
   const [perm, setPerm] = useState<NotificationPermission>("default");

@@ -5,7 +5,7 @@ import { useSearchParams } from "next/navigation";
 import { Link2, RefreshCw } from "lucide-react";
 import toast from "react-hot-toast";
 import { useAppLanguage } from "@/hooks/useAppLanguage";
-import { I18N } from "@/lib/i18n";
+import { intlLocaleForUi, messageLocale, I18N } from "@/lib/i18n";
 
 type Status = {
   googleAccount: boolean;
@@ -19,7 +19,7 @@ type Status = {
 
 export default function GoogleCalendarSyncPanel() {
   const { language } = useAppLanguage();
-  const t = I18N[language].calendar;
+  const t = I18N[messageLocale(language)].calendar;
   const searchParams = useSearchParams();
   const [status, setStatus] = useState<Status | null>(null);
   const [loading, setLoading] = useState(true);
@@ -123,7 +123,7 @@ export default function GoogleCalendarSyncPanel() {
             </p>
             {status.lastSyncAt ? (
               <p className="text-[11px] text-warm-400 mt-0.5">
-                {t.googleLastSync}: {new Date(status.lastSyncAt).toLocaleString(language === "en" ? "en-US" : "uk-UA")}
+                {t.googleLastSync}: {new Date(status.lastSyncAt).toLocaleString(intlLocaleForUi(language))}
               </p>
             ) : null}
           </div>

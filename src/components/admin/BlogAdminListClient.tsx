@@ -1,7 +1,8 @@
 "use client";
 
 import { useAppLanguage } from "@/hooks/useAppLanguage";
-import { I18N } from "@/lib/i18n";
+import { blogTranslationItemsFromPost, pickBlogLine } from "@/lib/blog-translations";
+import { messageLocale, I18N } from "@/lib/i18n";
 import { format } from "date-fns";
 import { enUS, uk } from "date-fns/locale";
 import { ExternalLink, Pencil, Plus, Trash2 } from "lucide-react";
@@ -15,21 +16,33 @@ export type BlogAdminRow = {
   slug: string;
   titleUk: string;
   titleEn: string;
+  excerptUk: string | null;
+  excerptEn: string | null;
+  bodyUk: string;
+  bodyEn: string;
   published: boolean;
   publishedAt: string | null;
   updatedAt: string;
+  translations: Array<{
+    title: string;
+    excerpt: string | null;
+    body: string;
+    language: { code: string };
+  }>;
 };
 
 export function BlogAdminListClient({ initialPosts }: { initialPosts: BlogAdminRow[] }) {
   const router = useRouter();
   const { language } = useAppLanguage();
-  const t = I18N[language].adminBlog;
-  const blogPage = I18N[language].blogPage;
-  const dateLocale = language === "uk" ? uk : enUS;
+  const ml = messageLocale(language);
+  const t = I18N[ml].adminBlog;
+  const blogPage = I18N[ml].blogPage;
+  const dateLocale = ml === "uk" ? uk : enUS;
   const [posts, setPosts] = useState(initialPosts);
   const [busyId, setBusyId] = useState<string | null>(null);
 
-  const titleOf = (p: BlogAdminRow) => (language === "uk" ? p.titleUk : p.titleEn);
+  const titleOf = (p: BlogAdminRow) =>
+    pickBlogLine(blogTranslationItemsFromPost(p), language)?.title ?? p.titleEn;
 
   const remove = async (id: string) => {
     if (!window.confirm(t.deleteConfirm)) return;

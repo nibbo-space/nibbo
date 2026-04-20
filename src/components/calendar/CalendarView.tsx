@@ -16,7 +16,7 @@ import { cn, formatTime } from "@/lib/utils";
 import toast from "react-hot-toast";
 import { createPortal } from "react-dom";
 import { useAppLanguage } from "@/hooks/useAppLanguage";
-import { I18N } from "@/lib/i18n";
+import { intlLocaleForUi, messageLocale, I18N } from "@/lib/i18n";
 
 interface User { id: string; name: string | null; image: string | null; color: string; emoji: string; }
 interface Subscription { id: string; title: string; }
@@ -63,9 +63,10 @@ export default function CalendarView({ initialEvents, users, currentUserId, subs
 }) {
   const { language } = useAppLanguage();
   const { timeZone } = useUserPreferences();
-  const dtOpts = { timeZone, locale: language === "en" ? "en-US" : "uk-UA" } as const;
-  const t = I18N[language].calendar;
-  const dateLocale = language === "en" ? enUS : uk;
+  const dtOpts = { timeZone, locale: intlLocaleForUi(language) } as const;
+  const t = I18N[messageLocale(language)].calendar;
+  const ml = messageLocale(language);
+  const dateLocale = ml === "uk" ? uk : enUS;
   const { enabled: focusEnabled, hydrated: focusHydrated } = useFocusMode();
   const focusCalendarSlim = focusHydrated && focusEnabled;
   const [events, setEvents] = useState<Event[]>(initialEvents);

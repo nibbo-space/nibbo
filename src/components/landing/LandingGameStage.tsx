@@ -4,7 +4,7 @@ import type { NibbyChatDrive } from "@/components/shared/NibbyAssistantStage";
 import { LANDING_NIBBY_CHARGE_STAGE, LANDING_NIBBY_FAMILY_ID } from "@/lib/landing-nibby";
 import { useHasMounted, useLandingReducedMotion } from "@/lib/landing-motion";
 import { useAppLanguage } from "@/hooks/useAppLanguage";
-import { I18N } from "@/lib/i18n";
+import { messageLocale, I18N } from "@/lib/i18n";
 import { motion, useScroll, useTransform } from "framer-motion";
 import dynamic from "next/dynamic";
 import { useRef } from "react";
@@ -37,7 +37,7 @@ export function LandingGameStage({
   nibbyDriveRef: React.MutableRefObject<NibbyChatDrive>;
 }) {
   const { language } = useAppLanguage();
-  const t = I18N[language].landing;
+  const t = I18N[messageLocale(language)].landing;
   const mounted = useHasMounted();
   const reduced = useLandingReducedMotion();
   const wrapRef = useRef<HTMLDivElement>(null);

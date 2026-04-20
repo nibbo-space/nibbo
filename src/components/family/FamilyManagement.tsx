@@ -14,7 +14,7 @@ import {
   Pill,
 } from "lucide-react";
 import { useAppLanguage } from "@/hooks/useAppLanguage";
-import { I18N } from "@/lib/i18n";
+import { messageLocale, I18N } from "@/lib/i18n";
 import { FAMILY_MODULE_CARD_ORDER, type AppModuleKey } from "@/lib/family-app-modules";
 import { useDisabledAppModules } from "@/components/shared/DisabledAppModulesProvider";
 
@@ -62,7 +62,7 @@ type Payload = {
 export default function FamilyManagement() {
   const syncNavModules = useDisabledAppModules()?.setDisabledAppModules;
   const { language } = useAppLanguage();
-  const t = I18N[language].family;
+  const t = I18N[messageLocale(language)].family;
   const [data, setData] = useState<Payload | null>(null);
   const [loading, setLoading] = useState(true);
   const [inviteEmail, setInviteEmail] = useState("");
@@ -350,7 +350,7 @@ export default function FamilyManagement() {
           {FAMILY_MODULE_CARD_ORDER.map(({ key, navKey }) => {
             const disabled = effectiveModuleDisabled.includes(key);
             const Icon = MODULE_ICONS[key];
-            const label = I18N[language].nav[navKey as keyof typeof I18N.uk.nav];
+            const label = I18N[messageLocale(language)].nav[navKey as keyof typeof I18N.uk.nav];
             return (
               <button
                 key={key}

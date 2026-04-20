@@ -1,15 +1,15 @@
 "use client";
 
 import { useAppLanguage } from "@/hooks/useAppLanguage";
-import { I18N } from "@/lib/i18n";
+import { messageLocale, I18N } from "@/lib/i18n";
 import { cn } from "@/lib/utils";
 import Image from "next/image";
 import Link from "next/link";
 
 export function LandingGameMenuNav() {
-  const { language, setLanguage } = useAppLanguage();
-  const t = I18N[language].landing;
-  const tRoot = I18N[language];
+  const { language, setLanguage, locales } = useAppLanguage();
+  const t = I18N[messageLocale(language)].landing;
+  const tRoot = I18N[messageLocale(language)];
 
   return (
     <nav
@@ -28,26 +28,23 @@ export function LandingGameMenuNav() {
           className="flex rounded-lg border-2 border-rose-200/80 bg-white/90 p-0.5 shadow-sm"
           aria-label={tRoot.languageLabel}
         >
-          <button
-            type="button"
-            onClick={() => setLanguage("uk")}
-            className={cn(
-              "rounded-md px-2 py-1 font-mono text-[10px] font-bold sm:px-2.5 sm:text-[11px]",
-              language === "uk" ? "bg-rose-100 text-rose-700" : "text-warm-600 hover:bg-rose-50/80",
-            )}
-          >
-            UK
-          </button>
-          <button
-            type="button"
-            onClick={() => setLanguage("en")}
-            className={cn(
-              "rounded-md px-2 py-1 font-mono text-[10px] font-bold sm:px-2.5 sm:text-[11px]",
-              language === "en" ? "bg-rose-100 text-rose-700" : "text-warm-600 hover:bg-rose-50/80",
-            )}
-          >
-            EN
-          </button>
+          {locales.map((loc) => {
+            const active = language.toLowerCase() === loc.code.toLowerCase();
+            return (
+              <button
+                key={loc.code}
+                type="button"
+                title={loc.name}
+                onClick={() => setLanguage(loc.code)}
+                className={cn(
+                  "rounded-md px-2 py-1 font-mono text-[10px] font-bold sm:px-2.5 sm:text-[11px]",
+                  active ? "bg-rose-100 text-rose-700" : "text-warm-600 hover:bg-rose-50/80",
+                )}
+              >
+                {loc.code.toUpperCase()}
+              </button>
+            );
+          })}
         </div>
         <Link
           href="/login"

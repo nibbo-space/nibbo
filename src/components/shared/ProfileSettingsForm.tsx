@@ -22,7 +22,7 @@ import {
   type TokenCreateMode,
   tokenHasScope,
 } from "@/lib/api-scopes";
-import { I18N } from "@/lib/i18n";
+import { intlLocaleForUi, messageLocale, I18N } from "@/lib/i18n";
 
 export interface UserProfile {
   id: string;
@@ -46,7 +46,7 @@ interface ProfileSettingsFormProps {
 export default function ProfileSettingsForm({ initialUser }: ProfileSettingsFormProps) {
   const router = useRouter();
   const { language } = useAppLanguage();
-  const t = I18N[language].profile;
+  const t = I18N[messageLocale(language)].profile;
   const [user, setUser] = useState(initialUser);
   const [name, setName] = useState(user.name ?? "");
   const [emoji, setEmoji] = useState(() => normalizeProfileEmoji(user.emoji));
@@ -145,7 +145,7 @@ export default function ProfileSettingsForm({ initialUser }: ProfileSettingsForm
   }, [user.id, loadFamily]);
 
   const loadMcpTokens = useCallback(async () => {
-    const pt = I18N[language].profile;
+    const pt = I18N[messageLocale(language)].profile;
     setMcpBusy(true);
     setMcpErr(null);
     try {
@@ -268,7 +268,7 @@ export default function ProfileSettingsForm({ initialUser }: ProfileSettingsForm
     }
   };
 
-  const dateLocale = language === "uk" ? "uk-UA" : "en-US";
+  const dateLocale = intlLocaleForUi(language);
 
   const save = async () => {
     setBusy(true);
@@ -582,7 +582,9 @@ export default function ProfileSettingsForm({ initialUser }: ProfileSettingsForm
               className="w-full rounded-xl border border-warm-200 bg-warm-50 px-3 py-2 text-sm text-warm-800 outline-none focus:border-rose-300"
             />
             {user.ollamaKeyConfigured ? (
-              <p className="text-[11px] text-sage-600">{language === "en" ? "Key is saved" : "Ключ збережено"}</p>
+              <p className="text-[11px] text-sage-600">
+                {messageLocale(language) === "en" ? "Key is saved" : "Ключ збережено"}
+              </p>
             ) : null}
           </div>
           <div className="space-y-1">
@@ -594,7 +596,7 @@ export default function ProfileSettingsForm({ initialUser }: ProfileSettingsForm
             >
               {OLLAMA_ASSISTANT_MODEL_OPTIONS.map((opt) => (
                 <option key={opt.id} value={opt.id}>
-                  {language === "en" ? opt.labelEn : opt.labelUk}
+                  {messageLocale(language) === "en" ? opt.labelEn : opt.labelUk}
                 </option>
               ))}
             </select>

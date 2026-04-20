@@ -5,7 +5,8 @@ import { buildFamilyContextForAssistant } from "@/lib/assistant-context";
 import { resolveAssistantOllamaModel } from "@/lib/assistant-ollama-models";
 import { buildAssistantSystemPrompt } from "@/lib/assistant-system-prompt";
 import { ensureUserFamily } from "@/lib/family";
-import { APP_LANGUAGE_COOKIE_KEY, resolveAppLanguage, type AppLanguage } from "@/lib/i18n";
+import { APP_LANGUAGE_COOKIE_KEY, messageLocale, type AppLanguage } from "@/lib/i18n";
+import { resolveUiLanguageFromRequest } from "@/lib/languages";
 import { prisma } from "@/lib/prisma";
 import { decryptUserSecret } from "@/lib/user-secret-crypto";
 import { cookies } from "next/headers";
@@ -73,10 +74,11 @@ export async function POST(req: NextRequest) {
   const context = `${contextBase}\n\n${actionRef}`;
   const mode = body.mode === "tamagotchi" ? "tamagotchi" : "default";
   const cookieStore = await cookies();
-  const appLanguage: AppLanguage = resolveAppLanguage(
+  const { language: resolvedLang } = await resolveUiLanguageFromRequest(
     cookieStore.get(APP_LANGUAGE_COOKIE_KEY)?.value,
     req.headers.get("accept-language")
   );
+  const appLanguage: AppLanguage = messageLocale(resolvedLang);
   const model = resolveAssistantOllamaModel(user.ollamaModel, process.env.ASSISTANT_OLLAMA_MODEL);
   const siteName = process.env.NEXT_PUBLIC_APP_NAME || "Nibbo";
   const mascotName = "Nibby";

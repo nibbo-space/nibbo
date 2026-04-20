@@ -7,7 +7,7 @@ import { AlarmClock, Calendar, Lock, Trash2, GripVertical, Pencil } from "lucide
 import { cn, formatDate, PRIORITY_CONFIG } from "@/lib/utils";
 import { useUserPreferences } from "@/components/shared/UserPreferencesProvider";
 import { useAppLanguage } from "@/hooks/useAppLanguage";
-import { I18N } from "@/lib/i18n";
+import { intlLocaleForUi, messageLocale, I18N } from "@/lib/i18n";
 
 interface User { id: string; name: string | null; image: string | null; color: string; emoji: string; }
 interface Task {
@@ -44,10 +44,10 @@ export default function TaskCard({
 }: TaskCardProps) {
   const { language } = useAppLanguage();
   const { timeZone } = useUserPreferences();
-  const dtOpts = { timeZone, locale: language === "en" ? "en-US" : "uk-UA" } as const;
-  const t = I18N[language].task.card;
-  const tp = I18N[language].task.priority;
-  const userFallback = I18N[language].task.userFallback;
+  const dtOpts = { timeZone, locale: intlLocaleForUi(language) } as const;
+  const t = I18N[messageLocale(language)].task.card;
+  const tp = I18N[messageLocale(language)].task.priority;
+  const userFallback = I18N[messageLocale(language)].task.userFallback;
   const [showActions, setShowActions] = useState(false);
   const priority = PRIORITY_CONFIG[task.priority];
 

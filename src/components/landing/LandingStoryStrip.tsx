@@ -2,13 +2,13 @@
 
 import { useAppLanguage } from "@/hooks/useAppLanguage";
 import { useLandingReducedMotion } from "@/lib/landing-motion";
-import { I18N } from "@/lib/i18n";
+import { messageLocale, I18N } from "@/lib/i18n";
 import { motion } from "framer-motion";
 import { LayoutGrid, Sparkles, Users } from "lucide-react";
 
 export function LandingStoryStrip() {
   const { language } = useAppLanguage();
-  const t = I18N[language].landing;
+  const t = I18N[messageLocale(language)].landing;
   const reduced = useLandingReducedMotion();
 
   const cards = [

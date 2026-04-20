@@ -7,7 +7,7 @@ import { useAppLanguage } from "@/hooks/useAppLanguage";
 import { ACHIEVEMENT_UNLOCK_EVENT, type AchievementUnlockDetail } from "@/lib/achievement-unlock-events";
 import { achievementById } from "@/lib/achievements/registry";
 import { familyAchievementDescription, familyAchievementLabel } from "@/lib/family-achievement-label";
-import { I18N } from "@/lib/i18n";
+import { messageLocale, I18N } from "@/lib/i18n";
 import { playAchievementUnlockSound } from "@/lib/achievement-unlock-sound";
 
 const CONFETTI_COLORS = ["#fb7185", "#fbbf24", "#a78bfa", "#4ade80", "#38bdf8", "#f472b6"];
@@ -106,7 +106,7 @@ export function AchievementUnlockProvider({ children }: { children: React.ReactN
   const [mounted, setMounted] = useState(false);
   const reduceMotion = useReducedMotion();
   const { language } = useAppLanguage();
-  const t = I18N[language].achievements;
+  const t = I18N[messageLocale(language)].achievements;
 
   useEffect(() => {
     setMounted(true);

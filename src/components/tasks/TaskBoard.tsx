@@ -38,7 +38,7 @@ import TaskCard from "./TaskCard";
 import AddBoardModal from "./AddBoardModal";
 import TaskEditModal from "./TaskEditModal";
 import { useAppLanguage } from "@/hooks/useAppLanguage";
-import { I18N } from "@/lib/i18n";
+import { messageLocale, I18N } from "@/lib/i18n";
 
 interface TaskBoardProps {
   initialBoards: TaskBoardBoard[];
@@ -169,7 +169,7 @@ function SortableBoardTab({
 
 export default function TaskBoard({ initialBoards, users, currentUserId }: TaskBoardProps) {
   const { language } = useAppLanguage();
-  const taskI18n = I18N[language].task;
+  const taskI18n = I18N[messageLocale(language)].task;
   const t = taskI18n.board;
   const [boards, setBoards] = useState<TaskBoardBoard[]>(initialBoards);
   const [activeBoard, setActiveBoard] = useState(initialBoards[0]?.id ?? "");
@@ -835,7 +835,7 @@ export default function TaskBoard({ initialBoards, users, currentUserId }: TaskB
 
 function AddColumnButton({ onAdd }: { onAdd: (name: string, emoji: string, color: string) => void }) {
   const { language } = useAppLanguage();
-  const t = I18N[language].task.board;
+  const t = I18N[messageLocale(language)].task.board;
   const [isAdding, setIsAdding] = useState(false);
   const [name, setName] = useState("");
 

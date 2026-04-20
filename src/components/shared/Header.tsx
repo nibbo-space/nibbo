@@ -8,7 +8,7 @@ import { LogOut, Sparkles } from "lucide-react";
 import Image from "next/image";
 import NotificationBell from "./NotificationBell";
 import { TASK_POINTS_AWARDED_EVENT } from "@/lib/task-points";
-import { I18N } from "@/lib/i18n";
+import { intlLocaleForUi, messageLocale, I18N } from "@/lib/i18n";
 import { useAppLanguage } from "@/hooks/useAppLanguage";
 import { useFocusModeActive } from "@/components/shared/FocusModeProvider";
 
@@ -27,8 +27,8 @@ interface HeaderProps {
 }
 
 export default function Header({ user: u, initialPoints, isAdmin = false }: HeaderProps) {
-  const { language, setLanguage } = useAppLanguage();
-  const t = I18N[language];
+  const { language, setLanguage, locales } = useAppLanguage();
+  const t = I18N[messageLocale(language)];
   const focusActive = useFocusModeActive();
   const [points, setPoints] = useState(initialPoints);
 
@@ -57,8 +57,9 @@ export default function Header({ user: u, initialPoints, isAdmin = false }: Head
       timeZone: tz,
     }).format(now)
   );
+  const ml = messageLocale(language);
   const greeting =
-    language === "en"
+    ml === "en"
       ? hour < 12
         ? "Good morning"
         : hour < 18
@@ -69,7 +70,7 @@ export default function Header({ user: u, initialPoints, isAdmin = false }: Head
         : hour < 18
           ? "Доброго дня"
           : "Доброго вечора";
-  const dateLabel = new Intl.DateTimeFormat(language === "en" ? "en-US" : "uk-UA", {
+  const dateLabel = new Intl.DateTimeFormat(intlLocaleForUi(language), {
     day: "numeric",
     month: "long",
     year: "numeric",
@@ -109,24 +110,22 @@ export default function Header({ user: u, initialPoints, isAdmin = false }: Head
           aria-label={t.languageLabel}
           title={t.languageLabel}
         >
-          <button
-            type="button"
-            onClick={() => setLanguage("uk")}
-            className={`px-2 py-1 text-[11px] rounded-md font-semibold transition-colors ${
-              language === "uk" ? "bg-rose-100 text-rose-700" : "text-warm-600 hover:bg-warm-100"
-            }`}
-          >
-            UK
-          </button>
-          <button
-            type="button"
-            onClick={() => setLanguage("en")}
-            className={`px-2 py-1 text-[11px] rounded-md font-semibold transition-colors ${
-              language === "en" ? "bg-rose-100 text-rose-700" : "text-warm-600 hover:bg-warm-100"
-            }`}
-          >
-            EN
-          </button>
+          {locales.map((loc) => {
+            const active = language.toLowerCase() === loc.code.toLowerCase();
+            return (
+              <button
+                key={loc.code}
+                type="button"
+                title={loc.name}
+                onClick={() => setLanguage(loc.code)}
+                className={`px-2 py-1 text-[11px] rounded-md font-semibold transition-colors ${
+                  active ? "bg-rose-100 text-rose-700" : "text-warm-600 hover:bg-warm-100"
+                }`}
+              >
+                {loc.code.toUpperCase()}
+              </button>
+            );
+          })}
         </div>
         {!focusActive ? (
           <>

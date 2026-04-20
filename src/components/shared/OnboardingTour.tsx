@@ -3,7 +3,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { usePathname } from "next/navigation";
 import { Joyride, STATUS, type EventData } from "react-joyride";
-import { I18N } from "@/lib/i18n";
+import { messageLocale, I18N } from "@/lib/i18n";
 import { useAppLanguage } from "@/hooks/useAppLanguage";
 
 type OnboardingTourProps = {
@@ -14,7 +14,7 @@ type OnboardingTourProps = {
 export default function OnboardingTour({ shouldRun, userId }: OnboardingTourProps) {
   const pathname = usePathname();
   const { language } = useAppLanguage();
-  const t = I18N[language];
+  const t = I18N[messageLocale(language)];
   const [run, setRun] = useState(false);
   const [saving, setSaving] = useState(false);
   const [completedLocally, setCompletedLocally] = useState(false);

@@ -8,7 +8,7 @@ import TaskTamagotchi3D from "@/components/shared/TaskTamagotchi3D";
 import type { NibbyChatDrive } from "@/components/shared/NibbyAssistantStage";
 import { useAppLanguage } from "@/hooks/useAppLanguage";
 import { unlockedFamilyAchievementIds } from "@/lib/family-achievements";
-import { I18N } from "@/lib/i18n";
+import { messageLocale, I18N } from "@/lib/i18n";
 import {
   pushMascotSpeakDelta,
   startMascotSpeakAudio,
@@ -49,7 +49,7 @@ const NibbyAssistantStage = dynamic(() => import("@/components/shared/NibbyAssis
 
 export default function NibbyLabClient({ defaultSeed }: { defaultSeed: string }) {
   const { language } = useAppLanguage();
-  const t = I18N[language].adminNibbyLab;
+  const t = I18N[messageLocale(language)].adminNibbyLab;
   const [seed, setSeed] = useState(defaultSeed);
   const driveRef = useRef<NibbyChatDrive>({ speaking: false, lipPulse: 0 });
   const pulseRef = useRef<number | null>(null);

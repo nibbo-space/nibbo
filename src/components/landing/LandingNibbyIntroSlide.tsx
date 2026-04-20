@@ -4,7 +4,7 @@ import type { NibbyChatDrive } from "@/components/shared/NibbyAssistantStage";
 import { LANDING_NIBBY_CHARGE_STAGE, LANDING_NIBBY_FAMILY_ID } from "@/lib/landing-nibby";
 import { useHasMounted, useLandingReducedMotion } from "@/lib/landing-motion";
 import { useAppLanguage } from "@/hooks/useAppLanguage";
-import { I18N } from "@/lib/i18n";
+import { messageLocale, I18N } from "@/lib/i18n";
 import { motion } from "framer-motion";
 import { Gift, Star } from "lucide-react";
 import dynamic from "next/dynamic";
@@ -41,7 +41,7 @@ const FLOAT_BADGES: FloatBadge[] = [
 
 export function LandingNibbyIntroSlide() {
   const { language } = useAppLanguage();
-  const t = I18N[language].landing;
+  const t = I18N[messageLocale(language)].landing;
   const mounted = useHasMounted();
   const reduced = useLandingReducedMotion();
   const nibbyDriveRef = useRef<NibbyChatDrive>({ speaking: false, lipPulse: 0 });

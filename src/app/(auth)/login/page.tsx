@@ -6,13 +6,13 @@ import { useState } from "react";
 import Image from "next/image";
 import { CalendarDays, CreditCard, NotebookPen, ShoppingCart, SquareKanban, UtensilsCrossed } from "lucide-react";
 import { useAppLanguage } from "@/hooks/useAppLanguage";
-import { I18N } from "@/lib/i18n";
+import { messageLocale, I18N } from "@/lib/i18n";
 import { cn } from "@/lib/utils";
 import Link from "next/link";
 
 export default function LoginPage() {
-  const { language, setLanguage } = useAppLanguage();
-  const tRoot = I18N[language];
+  const { language, setLanguage, locales } = useAppLanguage();
+  const tRoot = I18N[messageLocale(language)];
   const t = tRoot.login;
   const [loading, setLoading] = useState(false);
 
@@ -54,26 +54,23 @@ export default function LoginPage() {
         aria-label={tRoot.languageLabel}
         title={tRoot.languageLabel}
       >
-        <button
-          type="button"
-          onClick={() => setLanguage("uk")}
-          className={cn(
-            "px-2 py-1 text-[11px] rounded-md font-semibold transition-colors",
-            language === "uk" ? "bg-rose-100 text-rose-700" : "text-warm-600 hover:bg-warm-100"
-          )}
-        >
-          UK
-        </button>
-        <button
-          type="button"
-          onClick={() => setLanguage("en")}
-          className={cn(
-            "px-2 py-1 text-[11px] rounded-md font-semibold transition-colors",
-            language === "en" ? "bg-rose-100 text-rose-700" : "text-warm-600 hover:bg-warm-100"
-          )}
-        >
-          EN
-        </button>
+        {locales.map((loc) => {
+          const active = language.toLowerCase() === loc.code.toLowerCase();
+          return (
+            <button
+              key={loc.code}
+              type="button"
+              title={loc.name}
+              onClick={() => setLanguage(loc.code)}
+              className={cn(
+                "px-2 py-1 text-[11px] rounded-md font-semibold transition-colors",
+                active ? "bg-rose-100 text-rose-700" : "text-warm-600 hover:bg-warm-100"
+              )}
+            >
+              {loc.code.toUpperCase()}
+            </button>
+          );
+        })}
       </div>
       {accentDecorations.map((item, i) => (
         <motion.div

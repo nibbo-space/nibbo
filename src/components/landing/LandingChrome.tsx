@@ -1,12 +1,12 @@
 "use client";
 
 import { useAppLanguage } from "@/hooks/useAppLanguage";
-import { I18N } from "@/lib/i18n";
+import { messageLocale, I18N } from "@/lib/i18n";
 import { cn } from "@/lib/utils";
 
 export function LandingChrome({ variant = "cozy" }: { variant?: "cozy" | "hud" }) {
-  const { language, setLanguage } = useAppLanguage();
-  const tRoot = I18N[language];
+  const { language, setLanguage, locales } = useAppLanguage();
+  const tRoot = I18N[messageLocale(language)];
   const hud = variant === "hud";
 
   return (
@@ -19,28 +19,24 @@ export function LandingChrome({ variant = "cozy" }: { variant?: "cozy" | "hud" }
       )}
       aria-label={tRoot.languageLabel}
     >
-      <button
-        type="button"
-        onClick={() => setLanguage("uk")}
-        className={cn(
-          "rounded-md px-2.5 py-1.5 text-[11px] font-semibold transition-colors",
-          hud && "tracking-wide",
-          language === "uk" ? "bg-rose-100 text-rose-700" : "text-warm-600 hover:bg-rose-50/80",
-        )}
-      >
-        UK
-      </button>
-      <button
-        type="button"
-        onClick={() => setLanguage("en")}
-        className={cn(
-          "rounded-md px-2.5 py-1.5 text-[11px] font-semibold transition-colors",
-          hud && "tracking-wide",
-          language === "en" ? "bg-rose-100 text-rose-700" : "text-warm-600 hover:bg-rose-50/80",
-        )}
-      >
-        EN
-      </button>
+      {locales.map((loc) => {
+        const active = language.toLowerCase() === loc.code.toLowerCase();
+        return (
+          <button
+            key={loc.code}
+            type="button"
+            title={loc.name}
+            onClick={() => setLanguage(loc.code)}
+            className={cn(
+              "rounded-md px-2.5 py-1.5 text-[11px] font-semibold transition-colors",
+              hud && "tracking-wide",
+              active ? "bg-rose-100 text-rose-700" : "text-warm-600 hover:bg-rose-50/80",
+            )}
+          >
+            {loc.code.toUpperCase()}
+          </button>
+        );
+      })}
     </div>
   );
 }

@@ -24,11 +24,9 @@ import {
   Shield,
   Map,
   Newspaper,
-  FlaskConical,
-  Medal,
   X,
 } from "lucide-react";
-import { I18N } from "@/lib/i18n";
+import { messageLocale, I18N } from "@/lib/i18n";
 import { useAppLanguage } from "@/hooks/useAppLanguage";
 import { filterMainNavByDisabled, isFocusRoutingAvailable } from "@/lib/family-app-modules";
 import { useFocusMode } from "@/components/shared/FocusModeProvider";
@@ -85,7 +83,7 @@ export default function Sidebar({ user: u, isAdmin = false }: SidebarProps) {
     emoji: normalizeProfileEmoji(u?.emoji),
   };
   const { language } = useAppLanguage();
-  const t = I18N[language];
+  const t = I18N[messageLocale(language)];
   const pathname = usePathname();
   const [openMobileMenu, setOpenMobileMenu] = useState(false);
   const { enabled: focusEnabled, setEnabled: setFocusEnabled, active: focusActive } = useFocusMode();
@@ -231,36 +229,16 @@ export default function Sidebar({ user: u, isAdmin = false }: SidebarProps) {
                   );
                 })}
                 {isAdmin ? (
-                  <div className="mt-2 space-y-2">
+                  <div className="mt-2">
                     <Link
-                      href="/admin/nibby-lab"
+                      href="/admin"
                       onClick={() => setOpenMobileMenu(false)}
-                      className="flex min-h-[52px] items-center gap-3 rounded-2xl border border-sage-200/90 bg-sage-50/90 px-3 py-2.5 text-[15px] font-semibold leading-snug text-sage-800 shadow-sm"
+                      className="flex min-h-[52px] items-center gap-3 rounded-2xl border border-rose-200/90 bg-gradient-to-r from-rose-50 to-rose-100/80 px-3 py-2.5 text-[15px] font-semibold leading-snug text-rose-800 shadow-sm"
                     >
-                      <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-sage-200/80 bg-white text-sage-600">
-                        <FlaskConical size={18} strokeWidth={2} aria-hidden />
+                      <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-rose-200/80 bg-white text-rose-600">
+                        <Shield size={18} strokeWidth={2} aria-hidden />
                       </span>
-                      <span className="min-w-0 flex-1">{t.nav.adminNibbyLab}</span>
-                    </Link>
-                    <Link
-                      href="/admin/achievements-lab"
-                      onClick={() => setOpenMobileMenu(false)}
-                      className="flex min-h-[52px] items-center gap-3 rounded-2xl border border-amber-200/90 bg-amber-50/90 px-3 py-2.5 text-[15px] font-semibold leading-snug text-amber-950 shadow-sm"
-                    >
-                      <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-amber-200/80 bg-white text-amber-700">
-                        <Medal size={18} strokeWidth={2} aria-hidden />
-                      </span>
-                      <span className="min-w-0 flex-1">{t.nav.adminAchievementsLab}</span>
-                    </Link>
-                    <Link
-                      href="/admin/blog"
-                      onClick={() => setOpenMobileMenu(false)}
-                      className="flex min-h-[52px] items-center gap-3 rounded-2xl border border-violet-200/90 bg-violet-50/90 px-3 py-2.5 text-[15px] font-semibold leading-snug text-violet-950 shadow-sm"
-                    >
-                      <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-violet-200/80 bg-white text-violet-700">
-                        <Newspaper size={18} strokeWidth={2} aria-hidden />
-                      </span>
-                      <span className="min-w-0 flex-1">{t.nav.adminBlog}</span>
+                      <span className="min-w-0 flex-1">{t.nav.adminPanel}</span>
                     </Link>
                   </div>
                 ) : null}
@@ -351,50 +329,20 @@ export default function Sidebar({ user: u, isAdmin = false }: SidebarProps) {
           })}
         </nav>
         {isAdmin ? (
-          <div className="shrink-0 space-y-1 border-t border-warm-100 px-4 pt-3">
-            <Link href="/admin/nibby-lab">
+          <div className="shrink-0 border-t border-warm-100 px-4 pt-3">
+            <Link href="/admin">
               <motion.div
                 whileHover={{ x: 4 }}
                 whileTap={{ scale: 0.97 }}
                 className={cn(
                   "relative flex items-center gap-3 rounded-2xl px-4 py-3 text-sm font-medium transition-all",
-                  pathname.startsWith("/admin/nibby-lab")
-                    ? "bg-gradient-to-r from-sage-100 to-sage-50 text-sage-800 shadow-sm"
-                    : "text-sage-700 hover:bg-sage-50/90 hover:text-sage-900"
+                  pathname.startsWith("/admin")
+                    ? "bg-gradient-to-r from-rose-100 to-rose-50 text-rose-800 shadow-sm"
+                    : "text-rose-700 hover:bg-rose-50/90 hover:text-rose-900"
                 )}
               >
-                <FlaskConical size={18} className="relative z-10 shrink-0" />
-                <span className="relative z-10">{t.nav.adminNibbyLab}</span>
-              </motion.div>
-            </Link>
-            <Link href="/admin/achievements-lab">
-              <motion.div
-                whileHover={{ x: 4 }}
-                whileTap={{ scale: 0.97 }}
-                className={cn(
-                  "relative flex items-center gap-3 rounded-2xl px-4 py-3 text-sm font-medium transition-all",
-                  pathname.startsWith("/admin/achievements-lab")
-                    ? "bg-gradient-to-r from-amber-100 to-amber-50 text-amber-950 shadow-sm"
-                    : "text-amber-900 hover:bg-amber-50/90 hover:text-amber-950"
-                )}
-              >
-                <Medal size={18} className="relative z-10 shrink-0" />
-                <span className="relative z-10">{t.nav.adminAchievementsLab}</span>
-              </motion.div>
-            </Link>
-            <Link href="/admin/blog">
-              <motion.div
-                whileHover={{ x: 4 }}
-                whileTap={{ scale: 0.97 }}
-                className={cn(
-                  "relative flex items-center gap-3 rounded-2xl px-4 py-3 text-sm font-medium transition-all",
-                  pathname.startsWith("/admin/blog")
-                    ? "bg-gradient-to-r from-violet-100 to-violet-50 text-violet-950 shadow-sm"
-                    : "text-violet-900 hover:bg-violet-50/90 hover:text-violet-950"
-                )}
-              >
-                <Newspaper size={18} className="relative z-10 shrink-0" />
-                <span className="relative z-10">{t.nav.adminBlog}</span>
+                <Shield size={18} className="relative z-10 shrink-0" />
+                <span className="relative z-10">{t.nav.adminPanel}</span>
               </motion.div>
             </Link>
           </div>

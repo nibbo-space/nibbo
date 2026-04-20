@@ -1,7 +1,7 @@
 "use client";
 
 import { useAppLanguage } from "@/hooks/useAppLanguage";
-import { I18N } from "@/lib/i18n";
+import { messageLocale, I18N } from "@/lib/i18n";
 import { AnimatePresence, motion } from "framer-motion";
 import {
   CalendarDays,
@@ -47,7 +47,7 @@ const cookieBannerDecorItems = Array.from({ length: 18 }, (_, index) => {
 export function CookieConsent() {
   const pathname = usePathname();
   const { language } = useAppLanguage();
-  const t = I18N[language].legal;
+  const t = I18N[messageLocale(language)].legal;
   const [mounted, setMounted] = useState(false);
   const [visible, setVisible] = useState(false);
 

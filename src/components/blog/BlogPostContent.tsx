@@ -3,7 +3,8 @@
 import { BlogMarkdown } from "@/components/blog/BlogMarkdown";
 import { CozyPageBackground } from "@/components/shared/CozyPageBackground";
 import { useAppLanguage } from "@/hooks/useAppLanguage";
-import { I18N } from "@/lib/i18n";
+import { blogTranslationItemsFromPost, pickBlogTranslation } from "@/lib/blog-translations";
+import { messageLocale, I18N } from "@/lib/i18n";
 import { format } from "date-fns";
 import { enUS, uk } from "date-fns/locale";
 import { Newspaper } from "lucide-react";
@@ -15,8 +16,16 @@ export type BlogPostView = {
   titleEn: string;
   bodyUk: string;
   bodyEn: string;
+  excerptUk?: string | null;
+  excerptEn?: string | null;
   coverImageUrl: string | null;
   publishedAt: string | null;
+  translations: Array<{
+    title: string;
+    excerpt: string | null;
+    body: string;
+    language: { code: string };
+  }>;
 };
 
 export function BlogPostContent({
@@ -27,11 +36,13 @@ export function BlogPostContent({
   signedIn: boolean;
 }) {
   const { language } = useAppLanguage();
-  const t = I18N[language].blogPage;
-  const nav = I18N[language].nav;
-  const dateLocale = language === "uk" ? uk : enUS;
-  const title = language === "uk" ? post.titleUk : post.titleEn;
-  const body = language === "uk" ? post.bodyUk : post.bodyEn;
+  const ml = messageLocale(language);
+  const t = I18N[ml].blogPage;
+  const nav = I18N[ml].nav;
+  const dateLocale = ml === "uk" ? uk : enUS;
+  const picked = pickBlogTranslation(blogTranslationItemsFromPost(post), language);
+  const title = picked?.title ?? post.titleEn;
+  const body = picked?.body ?? post.bodyEn;
   const date = post.publishedAt ? new Date(post.publishedAt) : null;
 
   return (

@@ -2,7 +2,7 @@
 
 import { CozyPageBackground } from "@/components/shared/CozyPageBackground";
 import { useAppLanguage } from "@/hooks/useAppLanguage";
-import { I18N } from "@/lib/i18n";
+import { messageLocale, I18N } from "@/lib/i18n";
 import { motion } from "framer-motion";
 import {
   Baby,
@@ -18,8 +18,8 @@ const ICONS = [Smartphone, Baby, Sparkles, CalendarHeart, MessageCircleHeart] as
 
 export function RoadmapContent({ signedIn = false }: { signedIn?: boolean }) {
   const { language } = useAppLanguage();
-  const t = I18N[language].roadmapPage;
-  const nav = I18N[language].nav;
+  const t = I18N[messageLocale(language)].roadmapPage;
+  const nav = I18N[messageLocale(language)].nav;
 
   const items = [
     { title: t.item1Title, body: t.item1Body },

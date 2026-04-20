@@ -1,6 +1,7 @@
 import { BlogPostForm } from "@/components/admin/BlogPostForm";
 import { isUserAdmin } from "@/lib/admin";
 import { auth } from "@/lib/auth";
+import { getActiveLanguages } from "@/lib/languages";
 import type { Metadata } from "next";
 import { redirect } from "next/navigation";
 
@@ -13,5 +14,6 @@ export default async function AdminBlogNewPage() {
   if (!session?.user?.id) redirect("/login");
   if (!(await isUserAdmin(session.user.id))) redirect("/dashboard");
 
-  return <BlogPostForm mode="new" initial={null} />;
+  const languages = await getActiveLanguages();
+  return <BlogPostForm mode="new" initial={null} languages={languages} />;
 }
