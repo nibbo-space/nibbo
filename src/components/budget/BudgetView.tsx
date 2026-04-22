@@ -16,8 +16,9 @@ import {
   TrendingDown,
   TrendingUp,
 } from "lucide-react";
+import { DISPLAY_CURRENCY_CODES } from "@/lib/profile-regional";
 import type { ExchangeRates, SupportedCurrency } from "@/lib/exchange-rates";
-import { uahToDisplayAmount } from "@/lib/exchange-rates";
+import { displayAmountToUah, uahToDisplayAmount } from "@/lib/exchange-rates";
 import { kyivInstantAsCalendarYmd, kyivShiftCalendarDays } from "@/lib/kyiv-range";
 import { displayEmojiToken, formatCurrency, formatDate } from "@/lib/utils";
 import toast from "react-hot-toast";
@@ -124,8 +125,21 @@ export default function BudgetView({
   const [editingCreditId, setEditingCreditId] = useState<string | null>(null);
   const [editingCategoryId, setEditingCategoryId] = useState<string | null>(null);
   const [showPlanModal, setShowPlanModal] = useState(false);
-  const [newExpense, setNewExpense] = useState({ title: "", amount: "", categoryId: "", note: "", date: new Date().toISOString().split("T")[0] });
-  const [newIncome, setNewIncome] = useState({ title: "", amount: "", note: "", date: new Date().toISOString().split("T")[0] });
+  const [newExpense, setNewExpense] = useState({
+    title: "",
+    amount: "",
+    amountCurrency: displayCurrency,
+    categoryId: "",
+    note: "",
+    date: new Date().toISOString().split("T")[0],
+  });
+  const [newIncome, setNewIncome] = useState({
+    title: "",
+    amount: "",
+    amountCurrency: displayCurrency,
+    note: "",
+    date: new Date().toISOString().split("T")[0],
+  });
   const [newCat, setNewCat] = useState({ name: "", emoji: CAT_EMOJIS[0]!, color: "#4ade80", budget: "" });
   const [plannedIncome, setPlannedIncome] = useState<number | null>(null);
   const [plannedIncomeInput, setPlannedIncomeInput] = useState("");
@@ -183,6 +197,18 @@ export default function BudgetView({
       : { label: t.statusOnTrack, className: "bg-sky-100 text-sky-700" };
 
   useEffect(() => {
+    if (showAddExpense) {
+      setNewExpense((p) => ({ ...p, amountCurrency: displayCurrency }));
+    }
+  }, [showAddExpense, displayCurrency]);
+
+  useEffect(() => {
+    if (showAddIncome) {
+      setNewIncome((p) => ({ ...p, amountCurrency: displayCurrency }));
+    }
+  }, [showAddIncome, displayCurrency]);
+
+  useEffect(() => {
     if (typeof window === "undefined") return;
     const raw = window.localStorage.getItem(`nibbo:budget:planIncome:${monthKey}`);
     if (!raw) return;
@@ -234,13 +260,15 @@ export default function BudgetView({
 
   const handleAddExpense = async () => {
     if (!newExpense.title || !newExpense.amount) return;
-    const amount = parseFloat(newExpense.amount);
+    const parsed = parseFloat(newExpense.amount);
+    if (!Number.isFinite(parsed) || parsed <= 0) return;
+    const amountUah = displayAmountToUah(parsed, newExpense.amountCurrency, exchangeRates);
     const res = await fetch("/api/budget", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
         title: newExpense.title,
-        amount,
+        amount: amountUah,
         categoryId: newExpense.categoryId || undefined,
         note: newExpense.note,
         date: new Date(newExpense.date).toISOString(),
@@ -251,15 +279,22 @@ export default function BudgetView({
     const expKey = formatInTimeZone(new Date(expense.date), calendarTimeZone, "yyyy-MM");
     const nowKey = formatInTimeZone(new Date(), calendarTimeZone, "yyyy-MM");
     if (expKey === nowKey) {
-      setMonthExpenseTotal((x) => x + amount);
+      setMonthExpenseTotal((x) => x + expense.amount);
       setMonthExpenseTxCount((c) => c + 1);
       const cid = expense.category?.id ?? newExpense.categoryId;
       if (cid) {
-        setCategorySpent((prev) => ({ ...prev, [cid]: (prev[cid] ?? 0) + amount }));
+        setCategorySpent((prev) => ({ ...prev, [cid]: (prev[cid] ?? 0) + expense.amount }));
       }
     }
     setShowAddExpense(false);
-    setNewExpense({ title: "", amount: "", categoryId: "", note: "", date: new Date().toISOString().split("T")[0] });
+    setNewExpense({
+      title: "",
+      amount: "",
+      amountCurrency: displayCurrency,
+      categoryId: "",
+      note: "",
+      date: new Date().toISOString().split("T")[0],
+    });
     toast.success(t.toastExpenseAdded);
   };
 
@@ -284,14 +319,16 @@ export default function BudgetView({
 
   const handleAddIncome = async () => {
     if (!newIncome.title || !newIncome.amount) return;
-    const amount = parseFloat(newIncome.amount);
+    const parsed = parseFloat(newIncome.amount);
+    if (!Number.isFinite(parsed) || parsed <= 0) return;
+    const amountUah = displayAmountToUah(parsed, newIncome.amountCurrency, exchangeRates);
     const res = await fetch("/api/budget", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
         type: "income",
         title: newIncome.title,
-        amount,
+        amount: amountUah,
         note: newIncome.note,
         date: new Date(newIncome.date).toISOString(),
       }),
@@ -299,7 +336,13 @@ export default function BudgetView({
     const income = await res.json();
     setIncomes((prev) => [income, ...prev]);
     setShowAddIncome(false);
-    setNewIncome({ title: "", amount: "", note: "", date: new Date().toISOString().split("T")[0] });
+    setNewIncome({
+      title: "",
+      amount: "",
+      amountCurrency: displayCurrency,
+      note: "",
+      date: new Date().toISOString().split("T")[0],
+    });
     toast.success(t.toastIncomeAdded);
   };
 
@@ -1110,8 +1153,34 @@ export default function BudgetView({
                 <div className="space-y-4">
                   <input value={newIncome.title} onChange={(e) => setNewIncome((p) => ({ ...p, title: e.target.value }))}
                     placeholder={t.incomeTitlePlaceholder} className="w-full bg-warm-50 rounded-xl px-4 py-3 text-sm outline-none border border-warm-200 focus:border-sky-400" />
-                  <input type="number" value={newIncome.amount} onChange={(e) => setNewIncome((p) => ({ ...p, amount: e.target.value }))}
-                    placeholder={t.amountPlaceholder} className="w-full bg-warm-50 rounded-xl px-4 py-3 text-sm outline-none border border-warm-200 focus:border-sky-400" />
+                  <div className="flex flex-col gap-2 sm:flex-row sm:items-stretch">
+                    <input
+                      type="number"
+                      min="0"
+                      step={newIncome.amountCurrency === "JPY" ? "1" : "0.01"}
+                      value={newIncome.amount}
+                      onChange={(e) => setNewIncome((p) => ({ ...p, amount: e.target.value }))}
+                      placeholder={t.amountInInputCurrency.replace("{currency}", newIncome.amountCurrency)}
+                      className="min-w-0 flex-1 bg-warm-50 rounded-xl px-4 py-3 text-sm outline-none border border-warm-200 focus:border-sky-400"
+                    />
+                    <select
+                      value={newIncome.amountCurrency}
+                      onChange={(e) =>
+                        setNewIncome((p) => ({
+                          ...p,
+                          amountCurrency: e.target.value as SupportedCurrency,
+                        }))
+                      }
+                      className="w-full shrink-0 rounded-xl border border-warm-200 bg-warm-50 px-3 py-3 text-sm font-semibold text-warm-800 outline-none focus:border-sky-400 sm:w-28"
+                      aria-label={t.inputCurrencyLabel}
+                    >
+                      {DISPLAY_CURRENCY_CODES.map((c) => (
+                        <option key={c} value={c}>
+                          {c}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
                   <input type="date" value={newIncome.date} onChange={(e) => setNewIncome((p) => ({ ...p, date: e.target.value }))}
                     className="w-full bg-warm-50 rounded-xl px-4 py-3 text-sm outline-none border border-warm-200 focus:border-sky-400" />
                   <motion.button whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }}
@@ -1139,8 +1208,34 @@ export default function BudgetView({
                 <div className="space-y-4">
                   <input value={newExpense.title} onChange={(e) => setNewExpense((p) => ({ ...p, title: e.target.value }))}
                     placeholder={t.expenseTitlePlaceholder} className="w-full bg-warm-50 rounded-xl px-4 py-3 text-sm outline-none border border-warm-200 focus:border-sage-400" />
-                  <input type="number" value={newExpense.amount} onChange={(e) => setNewExpense((p) => ({ ...p, amount: e.target.value }))}
-                    placeholder={t.amountPlaceholder} className="w-full bg-warm-50 rounded-xl px-4 py-3 text-sm outline-none border border-warm-200 focus:border-sage-400" />
+                  <div className="flex flex-col gap-2 sm:flex-row sm:items-stretch">
+                    <input
+                      type="number"
+                      min="0"
+                      step={newExpense.amountCurrency === "JPY" ? "1" : "0.01"}
+                      value={newExpense.amount}
+                      onChange={(e) => setNewExpense((p) => ({ ...p, amount: e.target.value }))}
+                      placeholder={t.amountInInputCurrency.replace("{currency}", newExpense.amountCurrency)}
+                      className="min-w-0 flex-1 bg-warm-50 rounded-xl px-4 py-3 text-sm outline-none border border-warm-200 focus:border-sage-400"
+                    />
+                    <select
+                      value={newExpense.amountCurrency}
+                      onChange={(e) =>
+                        setNewExpense((p) => ({
+                          ...p,
+                          amountCurrency: e.target.value as SupportedCurrency,
+                        }))
+                      }
+                      className="w-full shrink-0 rounded-xl border border-warm-200 bg-warm-50 px-3 py-3 text-sm font-semibold text-warm-800 outline-none focus:border-sage-400 sm:w-28"
+                      aria-label={t.inputCurrencyLabel}
+                    >
+                      {DISPLAY_CURRENCY_CODES.map((c) => (
+                        <option key={c} value={c}>
+                          {c}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
                   <select value={newExpense.categoryId} onChange={(e) => setNewExpense((p) => ({ ...p, categoryId: e.target.value }))}
                     className="w-full bg-warm-50 rounded-xl px-4 py-3 text-sm outline-none border border-warm-200 focus:border-sage-400">
                     <option value="">{t.optionalCategory}</option>

@@ -1,4 +1,5 @@
-import { auth } from "@/lib/auth";
+import { auth, signOut } from "@/lib/auth";
+import { loadCredentialGate } from "@/lib/credential-guard";
 import { messageLocale, APP_LANGUAGE_COOKIE_KEY, I18N } from "@/lib/i18n";
 import { resolveUiLanguageFromRequest } from "@/lib/languages";
 import type { Metadata } from "next";
@@ -17,6 +18,17 @@ export async function generateMetadata(): Promise<Metadata> {
 
 export default async function LoginLayout({ children }: { children: React.ReactNode }) {
   const session = await auth();
-  if (session) redirect("/dashboard");
+  if (session?.user?.id) {
+    const gate = await loadCredentialGate(session.user.id);
+    if (!gate) {
+      await signOut({ redirectTo: "/login" });
+    } else if (gate.credentialExpired) {
+      redirect("/api/auth/incomplete-expired");
+    } else if (gate.mustSetPassword) {
+      redirect("/auth/set-password");
+    } else {
+      redirect("/dashboard");
+    }
+  }
   return children;
 }

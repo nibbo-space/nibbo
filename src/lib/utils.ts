@@ -1,5 +1,6 @@
 import { type ClassValue, clsx } from "clsx";
 import { twMerge } from "tailwind-merge";
+import type { SupportedCurrency } from "@/lib/exchange-rates";
 
 export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs));
@@ -28,12 +29,17 @@ export function formatTime(date: Date | string, opts?: DateTimeFormatOpts): stri
   }).format(d);
 }
 
-export function formatCurrency(
-  amount: number,
-  currency: "UAH" | "USD" | "EUR" = "UAH",
-  locale = "uk-UA"
-): string {
-  const loc = currency === "USD" ? "en-US" : currency === "EUR" ? "de-DE" : locale;
+export function formatCurrency(amount: number, currency: SupportedCurrency = "UAH", locale = "uk-UA"): string {
+  const loc =
+    currency === "USD"
+      ? "en-US"
+      : currency === "EUR"
+        ? "de-DE"
+        : currency === "GBP"
+          ? "en-GB"
+          : currency === "JPY"
+            ? "ja-JP"
+            : locale;
   return new Intl.NumberFormat(loc, {
     style: "currency",
     currency,

@@ -1,5 +1,5 @@
-import { syncFamilyMemberUnlocks } from "@/lib/achievements/evaluate";
 import { auth } from "@/lib/auth";
+import { acceptFamilyInvitationById, upsertFamilyInvitationWithNotify } from "@/lib/family-invite";
 import { ensureUserFamily } from "@/lib/family";
 import { parseDisabledAppModules } from "@/lib/family-app-modules";
 import { prisma } from "@/lib/prisma";
@@ -109,23 +109,20 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "Invalid email" }, { status: 400 });
   }
 
-  const existingUser = await prisma.user.findFirst({
-    where: { email },
-    select: { id: true, familyId: true },
+  const result = await upsertFamilyInvitationWithNotify({
+    familyId,
+    invitedByUserId: session.user.id,
+    email,
   });
-
-  if (existingUser?.familyId && existingUser.familyId === familyId) {
+  if (result.blockedReason === "already_in_family") {
     return NextResponse.json({ error: "User is already in your family" }, { status: 409 });
   }
-
-  const invite = await prisma.familyInvitation.upsert({
-    where: { familyId_email: { familyId, email } },
-    update: { invitedById: session.user.id, acceptedAt: null },
-    create: { familyId, invitedById: session.user.id, email },
-    select: { id: true, email: true, createdAt: true },
+  return NextResponse.json({
+    id: result.id,
+    email: result.email,
+    createdAt: result.createdAt,
+    emailSent: result.emailSent,
   });
-
-  return NextResponse.json(invite);
 }
 
 export async function DELETE(req: NextRequest) {
@@ -204,73 +201,16 @@ export async function PATCH(req: NextRequest) {
   const body = await req.json();
 
   if (body.acceptInviteId) {
-    const me = await prisma.user.findUnique({
-      where: { id: session.user.id },
-      select: { id: true, email: true, familyId: true, familyRole: true },
-    });
-    if (!me?.email) return NextResponse.json({ error: "User email required" }, { status: 400 });
-    const invite = await prisma.familyInvitation.findFirst({
-      where: { id: String(body.acceptInviteId), email: me.email.toLowerCase(), acceptedAt: null },
-      select: { id: true, familyId: true },
-    });
-    if (!invite) return NextResponse.json({ error: "Invite not found" }, { status: 404 });
-
-    if (me.familyId === invite.familyId) {
-      await prisma.familyInvitation.update({
-        where: { id: invite.id },
-        data: { acceptedAt: new Date() },
-      });
-      const newAchievementIds = await syncFamilyMemberUnlocks(invite.familyId);
-      return NextResponse.json({ success: true, switched: false, newAchievementIds });
+    const r = await acceptFamilyInvitationById(session.user.id, String(body.acceptInviteId));
+    if (!r.ok) {
+      return NextResponse.json({ error: r.error }, { status: r.status });
     }
-
-    const currentFamilyId = me.familyId;
-    if (!currentFamilyId) {
-      await prisma.user.update({
-        where: { id: me.id },
-        data: { familyId: invite.familyId, familyRole: "MEMBER" },
-      });
-      await prisma.familyInvitation.update({
-        where: { id: invite.id },
-        data: { acceptedAt: new Date() },
-      });
-      const newAchievementIds = await syncFamilyMemberUnlocks(invite.familyId);
-      return NextResponse.json({
-        success: true,
-        switched: true,
-        previousFamilyDeleted: false,
-        newAchievementIds,
-      });
-    }
-
-    const [membersCount, isOwner] = await Promise.all([
-      prisma.user.count({ where: { familyId: currentFamilyId } }),
-      Promise.resolve(me.familyRole === "OWNER"),
-    ]);
-    if (isOwner && membersCount > 1) {
-      return NextResponse.json(
-        { error: "Ти власник сім'ї з іншими учасниками. Передай власність або видали учасників перед переходом." },
-        { status: 409 }
-      );
-    }
-
-    await prisma.$transaction(async (tx) => {
-      await tx.user.update({
-        where: { id: me.id },
-        data: { familyId: invite.familyId, familyRole: "MEMBER" },
-      });
-      await tx.familyInvitation.update({
-        where: { id: invite.id },
-        data: { acceptedAt: new Date() },
-      });
-      const leftMembers = await tx.user.count({ where: { familyId: currentFamilyId } });
-      if (leftMembers === 0) {
-        await tx.family.delete({ where: { id: currentFamilyId } });
-      }
+    return NextResponse.json({
+      success: true,
+      switched: r.switched,
+      previousFamilyDeleted: r.previousFamilyDeleted,
+      newAchievementIds: r.newAchievementIds,
     });
-
-    const newAchievementIds = await syncFamilyMemberUnlocks(invite.familyId);
-    return NextResponse.json({ success: true, switched: true, newAchievementIds });
   }
 
   const currentUser = await getCurrentFamilyUser(session.user.id, familyId);

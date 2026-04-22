@@ -1,5 +1,5 @@
 import { auth } from "@/lib/auth";
-import { getNbuExchangeRates } from "@/lib/exchange-rates";
+import { getNbuExchangeRates, isSupportedCurrency, type SupportedCurrency } from "@/lib/exchange-rates";
 import { ensureUserFamily } from "@/lib/family";
 import { kyivCalendarYmd, kyivCalendarYmdMinusDays, kyivRangeUtcFromCalendarYmd } from "@/lib/kyiv-range";
 import { prisma } from "@/lib/prisma";
@@ -14,10 +14,7 @@ export default async function BudgetPage() {
 
   const calendarTz = session.user.timeZone || "Europe/Kyiv";
   const displayCurrencyRaw = String(session.user.displayCurrency || "USD").toUpperCase();
-  const displayCurrency =
-    displayCurrencyRaw === "USD" || displayCurrencyRaw === "EUR" || displayCurrencyRaw === "UAH"
-      ? displayCurrencyRaw
-      : "USD";
+  const displayCurrency: SupportedCurrency = isSupportedCurrency(displayCurrencyRaw) ? displayCurrencyRaw : "USD";
 
   const now = new Date();
   const monthStart = new Date(now.getFullYear(), now.getMonth(), 1);

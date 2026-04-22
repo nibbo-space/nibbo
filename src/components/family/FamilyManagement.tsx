@@ -107,8 +107,9 @@ export default function FamilyManagement() {
         body: JSON.stringify({ email }),
       });
       if (!res.ok) throw new Error("fail");
+      const payload = (await res.json()) as { emailSent?: boolean };
       setInviteEmail("");
-      toast.success(t.toastInviteSent);
+      toast.success(payload.emailSent ? t.toastInviteSent : t.toastInviteSavedNoEmail);
       await load();
     } catch {
       toast.error(t.toastInviteError);

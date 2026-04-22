@@ -4,6 +4,7 @@ import { NextResponse } from "next/server";
 function isPublicPath(pathname: string): boolean {
   if (pathname === "/login" || pathname === "/landing") return true;
   if (pathname.startsWith("/login/") || pathname.startsWith("/landing/")) return true;
+  if (pathname === "/auth/verify-request" || pathname.startsWith("/auth/verify-request/")) return true;
   if (pathname.startsWith("/privacy") || pathname.startsWith("/roadmap") || pathname.startsWith("/blog"))
     return true;
   if (pathname === "/opengraph-image" || pathname === "/twitter-image") return true;

@@ -42,6 +42,8 @@ model User {
   name          String?
   email         String?   @unique
   emailVerified DateTime?
+  passwordHash  String?
+  credentialSetupDeadline DateTime?
   image         String?
   color         String    @default("#f43f5e")
   emoji         String    @default("🌸")
@@ -304,6 +306,7 @@ model FamilyInvitation {
   email       String
   familyId    String
   invitedById String
+  inviteToken String?  @unique
   createdAt   DateTime @default(now())
   acceptedAt  DateTime?
 
