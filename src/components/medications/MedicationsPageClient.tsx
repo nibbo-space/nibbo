@@ -5,7 +5,7 @@ import { Loader2, Pencil, Pill, Plus, Trash2, X } from "lucide-react";
 import toast from "react-hot-toast";
 import { cn } from "@/lib/utils";
 import { useAppLanguage } from "@/hooks/useAppLanguage";
-import { I18N } from "@/lib/i18n";
+import { messageLocale, I18N } from "@/lib/i18n";
 import { formatMinutesAsClock, isReminderPingDay } from "@/lib/task-reminder";
 
 type ScheduleMode = "DAILY_TIMES" | "INTERVAL_DAYS";
@@ -84,7 +84,7 @@ function parseDailyTimes(text: string): string[] {
 
 export default function MedicationsPageClient() {
   const { language } = useAppLanguage();
-  const t = I18N[language].medications;
+  const t = I18N[messageLocale(language)].medications;
   const [loading, setLoading] = useState(true);
   const [busy, setBusy] = useState(false);
   const [items, setItems] = useState<MedRow[]>([]);

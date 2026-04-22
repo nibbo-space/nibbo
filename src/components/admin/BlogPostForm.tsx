@@ -2,12 +2,13 @@
 
 import { BlogMarkdown } from "@/components/blog/BlogMarkdown";
 import { slugify } from "@/lib/blog-slug";
+import type { ActiveLanguage } from "@/lib/languages";
 import { cn } from "@/lib/utils";
 import { useAppLanguage } from "@/hooks/useAppLanguage";
-import { I18N } from "@/lib/i18n";
+import { messageLocale, I18N } from "@/lib/i18n";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useRef, useState } from "react";
+import { useMemo, useRef, useState } from "react";
 import toast from "react-hot-toast";
 import { ImagePlus } from "lucide-react";
 
@@ -22,6 +23,14 @@ export type BlogPostFormInitial = {
   bodyEn: string;
   coverImageUrl: string | null;
   published: boolean;
+  translations: Array<{
+    languageId: string;
+    code: string;
+    name: string;
+    title: string;
+    excerpt: string | null;
+    body: string;
+  }>;
 };
 
 function emptyInitial(): BlogPostFormInitial {
@@ -36,20 +45,45 @@ function emptyInitial(): BlogPostFormInitial {
     bodyEn: "",
     coverImageUrl: null,
     published: false,
+    translations: [],
   };
+}
+
+function buildExtraMap(
+  languages: ActiveLanguage[],
+  initial: BlogPostFormInitial | null
+): Record<string, { title: string; excerpt: string; body: string }> {
+  const m: Record<string, { title: string; excerpt: string; body: string }> = {};
+  for (const l of languages) {
+    if (["uk", "en"].includes(l.code.trim().toLowerCase())) continue;
+    const tr = initial?.translations.find((x) => x.languageId === l.id);
+    m[l.id] = {
+      title: tr?.title ?? "",
+      excerpt: tr?.excerpt ?? "",
+      body: tr?.body ?? "",
+    };
+  }
+  return m;
 }
 
 export function BlogPostForm({
   mode,
   initial,
+  languages,
 }: {
   mode: "new" | "edit";
   initial: BlogPostFormInitial | null;
+  languages: ActiveLanguage[];
 }) {
   const router = useRouter();
   const { language } = useAppLanguage();
-  const t = I18N[language].adminBlog;
+  const t = I18N[messageLocale(language)].adminBlog;
   const base = initial ?? emptyInitial();
+
+  const extraLanguages = useMemo(
+    () => languages.filter((l) => !["uk", "en"].includes(l.code.trim().toLowerCase())),
+    [languages]
+  );
 
   const [slug, setSlug] = useState(base.slug);
   const [titleUk, setTitleUk] = useState(base.titleUk);
@@ -58,16 +92,26 @@ export function BlogPostForm({
   const [excerptEn, setExcerptEn] = useState(base.excerptEn ?? "");
   const [bodyUk, setBodyUk] = useState(base.bodyUk);
   const [bodyEn, setBodyEn] = useState(base.bodyEn);
+  const [extraMap, setExtraMap] = useState(() => buildExtraMap(languages, initial));
   const [coverImageUrl, setCoverImageUrl] = useState<string | null>(base.coverImageUrl ?? null);
   const [published, setPublished] = useState(base.published);
   const [saving, setSaving] = useState(false);
-  const [preview, setPreview] = useState<"uk" | "en" | null>(null);
+  const [preview, setPreview] = useState<string | null>(null);
   const [uploading, setUploading] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const coverFileInputRef = useRef<HTMLInputElement>(null);
-  const uploadFieldRef = useRef<"uk" | "en">("uk");
+  const uploadFieldRef = useRef<"uk" | "en" | string>("uk");
 
-  const triggerUpload = (field: "uk" | "en") => {
+  const previewBody = useMemo(() => {
+    if (preview === "uk") return bodyUk;
+    if (preview === "en") return bodyEn;
+    if (preview && extraMap[preview]) return extraMap[preview].body;
+    return "";
+  }, [preview, bodyUk, bodyEn, extraMap]);
+
+  const langLabel = (l: ActiveLanguage) => `${l.name} (${l.code})`;
+
+  const triggerUpload = (field: "uk" | "en" | string) => {
     uploadFieldRef.current = field;
     fileInputRef.current?.click();
   };
@@ -97,7 +141,17 @@ export function BlogPostForm({
       const md = `\n\n![${t.imageAltDefault}](${data.url})\n`;
       const field = uploadFieldRef.current;
       if (field === "uk") setBodyUk((s) => s + md);
-      else setBodyEn((s) => s + md);
+      else if (field === "en") setBodyEn((s) => s + md);
+      else if (typeof field === "string") {
+        setExtraMap((prev) => ({
+          ...prev,
+          [field]: {
+            title: prev[field]?.title ?? "",
+            excerpt: prev[field]?.excerpt ?? "",
+            body: (prev[field]?.body ?? "") + md,
+          },
+        }));
+      }
     } finally {
       setUploading(false);
     }
@@ -145,6 +199,12 @@ export function BlogPostForm({
     bodyEn,
     coverImageUrl,
     published,
+    translations: extraLanguages.map((l) => ({
+      languageId: l.id,
+      title: extraMap[l.id]?.title ?? "",
+      excerpt: extraMap[l.id]?.excerpt?.trim() || null,
+      body: extraMap[l.id]?.body ?? "",
+    })),
   });
 
   const onSubmit = async (e: React.FormEvent) => {
@@ -418,6 +478,77 @@ export function BlogPostForm({
             />
           </div>
 
+          {extraLanguages.map((l) => {
+            const row = extraMap[l.id] ?? { title: "", excerpt: "", body: "" };
+            const named = langLabel(l);
+            return (
+              <div key={l.id} className="space-y-4 rounded-2xl border border-lavender-100 bg-lavender-50/30 p-4">
+                <p className="text-sm font-semibold text-warm-800">{named}</p>
+                <div>
+                  <label htmlFor={`bp-t-${l.id}`} className="mb-1 block text-sm font-medium text-warm-700">
+                    {t.titleNamed.replace("{name}", named)}
+                  </label>
+                  <input
+                    id={`bp-t-${l.id}`}
+                    value={row.title}
+                    onChange={(e) =>
+                      setExtraMap((prev) => ({
+                        ...prev,
+                        [l.id]: { ...row, title: e.target.value },
+                      }))
+                    }
+                    className={inputClass}
+                  />
+                </div>
+                <div>
+                  <label htmlFor={`bp-e-${l.id}`} className="mb-1 block text-sm font-medium text-warm-700">
+                    {t.excerptNamed.replace("{name}", named)}
+                  </label>
+                  <textarea
+                    id={`bp-e-${l.id}`}
+                    value={row.excerpt}
+                    onChange={(e) =>
+                      setExtraMap((prev) => ({
+                        ...prev,
+                        [l.id]: { ...row, excerpt: e.target.value },
+                      }))
+                    }
+                    rows={3}
+                    className={cn(inputClass, "resize-y")}
+                  />
+                </div>
+                <div>
+                  <div className="mb-1 flex flex-wrap items-center justify-between gap-2">
+                    <label htmlFor={`bp-b-${l.id}`} className="block text-sm font-medium text-warm-700">
+                      {t.bodyNamed.replace("{name}", named)}
+                    </label>
+                    <button
+                      type="button"
+                      onClick={() => triggerUpload(l.id)}
+                      disabled={uploading || saving}
+                      className="inline-flex items-center gap-1.5 rounded-xl border border-warm-200 bg-white px-3 py-1.5 text-xs font-bold text-warm-700 hover:bg-warm-100 disabled:opacity-50"
+                    >
+                      <ImagePlus className="h-3.5 w-3.5" strokeWidth={2.5} aria-hidden />
+                      {t.uploadImageNamed.replace("{name}", l.code.toUpperCase())}
+                    </button>
+                  </div>
+                  <textarea
+                    id={`bp-b-${l.id}`}
+                    value={row.body}
+                    onChange={(e) =>
+                      setExtraMap((prev) => ({
+                        ...prev,
+                        [l.id]: { ...row, body: e.target.value },
+                      }))
+                    }
+                    rows={14}
+                    className={cn(inputClass, "resize-y font-mono text-[13px] leading-relaxed")}
+                  />
+                </div>
+              </div>
+            );
+          })}
+
           <label className="flex cursor-pointer items-center gap-3 rounded-2xl border border-rose-100 bg-rose-50/50 px-4 py-3">
             <input
               type="checkbox"
@@ -451,7 +582,7 @@ export function BlogPostForm({
 
         <div className="mt-8 border-t border-warm-100 pt-6">
           <p className="mb-3 text-sm font-semibold text-warm-700">{t.previewMarkdown}</p>
-          <div className="mb-2 flex gap-2">
+          <div className="mb-2 flex flex-wrap gap-2">
             <button
               type="button"
               onClick={() => setPreview((p) => (p === "uk" ? null : "uk"))}
@@ -472,15 +603,23 @@ export function BlogPostForm({
             >
               EN
             </button>
+            {extraLanguages.map((l) => (
+              <button
+                key={l.id}
+                type="button"
+                onClick={() => setPreview((p) => (p === l.id ? null : l.id))}
+                className={cn(
+                  "rounded-xl px-3 py-1.5 text-sm font-semibold",
+                  preview === l.id ? "bg-rose-100 text-rose-800" : "bg-warm-50 text-warm-600"
+                )}
+              >
+                {l.code.toUpperCase()}
+              </button>
+            ))}
           </div>
-          {preview === "uk" ? (
+          {preview ? (
             <div className="rounded-2xl border border-warm-100 bg-cream-50/80 p-5">
-              <BlogMarkdown content={bodyUk || "_"} />
-            </div>
-          ) : null}
-          {preview === "en" ? (
-            <div className="rounded-2xl border border-warm-100 bg-cream-50/80 p-5">
-              <BlogMarkdown content={bodyEn || "_"} />
+              <BlogMarkdown content={previewBody || "_"} />
             </div>
           ) : null}
         </div>

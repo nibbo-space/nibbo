@@ -5,7 +5,7 @@ import { LandingGameStage } from "@/components/landing/LandingGameStage";
 import type { NibbyChatDrive } from "@/components/shared/NibbyAssistantStage";
 import { useHasMounted, useLandingReducedMotion } from "@/lib/landing-motion";
 import { useAppLanguage } from "@/hooks/useAppLanguage";
-import { I18N } from "@/lib/i18n";
+import { messageLocale, I18N } from "@/lib/i18n";
 import { motion, useScroll, useTransform } from "framer-motion";
 import Image from "next/image";
 import Link from "next/link";
@@ -13,7 +13,7 @@ import { useCallback, useRef, useState } from "react";
 
 export function LandingHero({ nibbyDriveRef }: { nibbyDriveRef: React.MutableRefObject<NibbyChatDrive> }) {
   const { language } = useAppLanguage();
-  const t = I18N[language].landing;
+  const t = I18N[messageLocale(language)].landing;
   const mounted = useHasMounted();
   const reduced = useLandingReducedMotion();
   const heroRef = useRef<HTMLElement | null>(null);
@@ -125,7 +125,7 @@ export function LandingHero({ nibbyDriveRef }: { nibbyDriveRef: React.MutableRef
             transition={{ duration: 0.4, delay: reduced ? 0 : 0.3 }}
             className="mt-4 text-xs font-semibold text-warm-400"
           >
-            ✦ Free forever · No credit card · All features included
+            {t.trustLine}
           </motion.p>
         </div>
 

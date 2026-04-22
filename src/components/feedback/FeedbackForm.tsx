@@ -6,7 +6,7 @@ import { CozyPageBackground } from "@/components/shared/CozyPageBackground";
 import { useCallback, useState } from "react";
 import toast from "react-hot-toast";
 import { cn } from "@/lib/utils";
-import { I18N } from "@/lib/i18n";
+import { messageLocale, I18N } from "@/lib/i18n";
 import { useAppLanguage } from "@/hooks/useAppLanguage";
 import { ACHIEVEMENT_UNLOCK_EVENT, type AchievementUnlockDetail } from "@/lib/achievement-unlock-events";
 import {
@@ -26,7 +26,7 @@ export function FeedbackForm(props: {
   signedIn: boolean;
 }) {
   const { language } = useAppLanguage();
-  const t = I18N[language].feedback;
+  const t = I18N[messageLocale(language)].feedback;
   const [kind, setKind] = useState<Kind>("bug");
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
@@ -35,7 +35,7 @@ export function FeedbackForm(props: {
   const [sending, setSending] = useState(false);
 
   const backLabel = props.signedIn ? t.backDashboard : t.backLogin;
-  const tNav = I18N[language].nav;
+  const tNav = I18N[messageLocale(language)].nav;
 
   const onFiles = useCallback((list: FileList | null) => {
     if (!list || list.length === 0) {

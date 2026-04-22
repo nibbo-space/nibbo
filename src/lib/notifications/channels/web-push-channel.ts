@@ -1,5 +1,5 @@
 import { prisma } from "@/lib/prisma";
-import { I18N, type AppLanguage } from "@/lib/i18n";
+import { messageLocale, I18N, type AppLanguage } from "@/lib/i18n";
 import {
   getVapidPrivateKey,
   getVapidPublicKey,
@@ -33,8 +33,8 @@ export class WebPushChannel implements PushDeliveryChannel {
 
     for (const sub of subs) {
       const lang = resolveLang(sub.locale);
-      const t = I18N[lang].pushNotifications;
-      const bell = I18N[lang].notificationBell;
+      const t = I18N[messageLocale(lang)].pushNotifications;
+      const bell = I18N[messageLocale(lang)].notificationBell;
       const actor = input.actorLabel.trim() || bell.someone;
       const title = t.taskAssignedTitle;
       const body = t.taskAssignedBody.replace("{actor}", actor).replace("{title}", input.taskTitle);

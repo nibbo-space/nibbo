@@ -2,7 +2,7 @@
 
 import { useAppLanguage } from "@/hooks/useAppLanguage";
 import { useLandingReducedMotion } from "@/lib/landing-motion";
-import { I18N } from "@/lib/i18n";
+import { messageLocale, I18N } from "@/lib/i18n";
 import { motion } from "framer-motion";
 import { LogIn, MapPinned, Newspaper, Shield } from "lucide-react";
 import Image from "next/image";
@@ -10,8 +10,8 @@ import Link from "next/link";
 
 export function LandingFooterCta() {
   const { language } = useAppLanguage();
-  const t = I18N[language].landing;
-  const nav = I18N[language].nav;
+  const t = I18N[messageLocale(language)].landing;
+  const nav = I18N[messageLocale(language)].nav;
   const reduced = useLandingReducedMotion();
 
   const navItems = [
@@ -70,7 +70,7 @@ export function LandingFooterCta() {
           </motion.div>
 
           <p className="text-xs font-semibold text-warm-400">
-            ✦ Free forever · No credit card · All features included
+            {t.trustLine}
           </p>
         </div>
       </div>

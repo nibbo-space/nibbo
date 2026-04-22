@@ -12,7 +12,7 @@ import { listAchievementsSorted } from "@/lib/achievements/registry";
 import { nibbyChargeStage } from "@/lib/nibby-charge";
 import { reportMascotBlobTap } from "@/lib/mascot-blob-tap-client";
 import { playMascotBlobTapVoice } from "@/lib/mascot-speak-audio";
-import { I18N, type AppLanguage } from "@/lib/i18n";
+import { messageLocale, I18N, type AppLanguage } from "@/lib/i18n";
 import { createMascotDNA, mascotBoundingRadius } from "@/lib/mascot-dna";
 import { buildProceduralMascot } from "@/lib/procedural-mascot-three";
 import { MessageCircle, Share2, Sparkles } from "lucide-react";
@@ -324,7 +324,7 @@ export default function TaskTamagotchi3D({
   const { config } = useCozyConfig();
   const { openBuddy } = useAssistantBuddy();
   const { language } = useAppLanguage();
-  const t = I18N[language].tamagotchi;
+  const t = I18N[messageLocale(language)].tamagotchi;
   const lang = language as AppLanguage;
   const mascotName = config.mascot.slice(0, 1).toUpperCase() + config.mascot.slice(1);
   const mood = resolveMood(doneToday, doneWeek, t);
@@ -357,7 +357,7 @@ export default function TaskTamagotchi3D({
   const shareToInstagramStory = useCallback(async () => {
     const canvas = canvasRef.current;
     if (!canvas || shareBusy) return;
-    const tb = I18N[language].tamagotchi;
+    const tb = I18N[messageLocale(language)].tamagotchi;
     setShareBusy(true);
     const busyId = toast.loading(tb.sharePreparing);
     try {
@@ -420,7 +420,7 @@ export default function TaskTamagotchi3D({
       if (e instanceof Error && e.name === "AbortError") {
         toast.dismiss(busyId);
       } else {
-        toast.error(I18N[language].tamagotchi.shareFailed, { id: busyId });
+        toast.error(I18N[messageLocale(language)].tamagotchi.shareFailed, { id: busyId });
       }
     } finally {
       setShareBusy(false);

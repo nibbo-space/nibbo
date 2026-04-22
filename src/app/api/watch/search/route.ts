@@ -1,6 +1,8 @@
 import { auth } from "@/lib/auth";
 import { ensureUserFamily } from "@/lib/family";
-import { getTmdbApiKey, tmdbSearch } from "@/lib/tmdb";
+import { APP_LANGUAGE_COOKIE_KEY } from "@/lib/i18n";
+import { resolveUiLanguageFromRequest } from "@/lib/languages";
+import { getTmdbApiKey, tmdbLanguageFromAppCode, tmdbSearch } from "@/lib/tmdb";
 import { NextRequest, NextResponse } from "next/server";
 
 export async function GET(req: NextRequest) {
@@ -15,6 +17,10 @@ export async function GET(req: NextRequest) {
   if (q.trim().length < 2) {
     return NextResponse.json({ results: [] });
   }
-  const results = await tmdbSearch(q);
+  const { language } = await resolveUiLanguageFromRequest(
+    req.cookies.get(APP_LANGUAGE_COOKIE_KEY)?.value,
+    req.headers.get("accept-language")
+  );
+  const results = await tmdbSearch(q, tmdbLanguageFromAppCode(language));
   return NextResponse.json({ results });
 }

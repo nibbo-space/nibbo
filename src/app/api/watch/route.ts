@@ -1,8 +1,10 @@
 import { syncUserStatUnlocks } from "@/lib/achievements/evaluate";
 import { auth } from "@/lib/auth";
 import { ensureUserFamily } from "@/lib/family";
+import { APP_LANGUAGE_COOKIE_KEY } from "@/lib/i18n";
+import { resolveUiLanguageFromRequest } from "@/lib/languages";
 import { prisma } from "@/lib/prisma";
-import { getTmdbApiKey, tmdbFetchDetails } from "@/lib/tmdb";
+import { getTmdbApiKey, tmdbFetchDetails, tmdbLanguageFromAppCode } from "@/lib/tmdb";
 import { NextRequest, NextResponse } from "next/server";
 
 const watchUserSelect = { id: true, name: true, image: true, color: true, emoji: true } as const;
@@ -54,7 +56,11 @@ export async function POST(req: NextRequest) {
 
   const key = getTmdbApiKey();
   if (key) {
-    const details = await tmdbFetchDetails(mediaType, externalId);
+    const { language } = await resolveUiLanguageFromRequest(
+      req.cookies.get(APP_LANGUAGE_COOKIE_KEY)?.value,
+      req.headers.get("accept-language")
+    );
+    const details = await tmdbFetchDetails(mediaType, externalId, tmdbLanguageFromAppCode(language));
     if (details) {
       title = details.title;
       posterPath = details.posterPath;

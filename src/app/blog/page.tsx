@@ -1,6 +1,7 @@
 import { BlogIndexContent } from "@/components/blog/BlogIndexContent";
 import { auth } from "@/lib/auth";
-import { APP_LANGUAGE_COOKIE_KEY, I18N, resolveAppLanguage } from "@/lib/i18n";
+import { messageLocale, APP_LANGUAGE_COOKIE_KEY, I18N } from "@/lib/i18n";
+import { resolveUiLanguageFromRequest } from "@/lib/languages";
 import { prisma } from "@/lib/prisma";
 import { getMetadataBaseUrl } from "@/lib/site-url";
 import type { Metadata } from "next";
@@ -9,12 +10,12 @@ import { cookies, headers } from "next/headers";
 export async function generateMetadata(): Promise<Metadata> {
   const cookieStore = await cookies();
   const hdrs = await headers();
-  const language = resolveAppLanguage(
+  const { language } = await resolveUiLanguageFromRequest(
     cookieStore.get(APP_LANGUAGE_COOKIE_KEY)?.value,
     hdrs.get("accept-language")
   );
   const base = getMetadataBaseUrl();
-  const b = I18N[language].blogPage;
+  const b = I18N[messageLocale(language)].blogPage;
   return {
     title: b.metaTitle,
     description: b.metaDescription,
@@ -42,8 +43,18 @@ export default async function BlogPage() {
       titleEn: true,
       excerptUk: true,
       excerptEn: true,
+      bodyUk: true,
+      bodyEn: true,
       coverImageUrl: true,
       publishedAt: true,
+      translations: {
+        select: {
+          title: true,
+          excerpt: true,
+          body: true,
+          language: { select: { code: true } },
+        },
+      },
     },
   });
 

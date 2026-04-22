@@ -8,7 +8,7 @@ import { createPortal } from "react-dom";
 import { uahToDisplayAmount, type ExchangeRates, type SupportedCurrency } from "@/lib/exchange-rates";
 import { useUserPreferences } from "@/components/shared/UserPreferencesProvider";
 import { useAppLanguage } from "@/hooks/useAppLanguage";
-import { I18N } from "@/lib/i18n";
+import { intlLocaleForUi, messageLocale, I18N } from "@/lib/i18n";
 import { formatCurrency, normalizeProfileEmoji } from "@/lib/utils";
 
 type FamilyRole = "OWNER" | "MEMBER";
@@ -170,8 +170,8 @@ export default function SubscriptionsView({
 }) {
   const { language } = useAppLanguage();
   const { displayCurrency: viewerCurrency } = useUserPreferences();
-  const t = I18N[language].subscriptions;
-  const localeCode = language === "en" ? "en-US" : "uk-UA";
+  const t = I18N[messageLocale(language)].subscriptions;
+  const localeCode = intlLocaleForUi(language);
   const statusConfig: Record<SubscriptionStatus, { label: string; className: string }> = {
     ACTIVE: { label: t.active, className: "bg-sage-100 text-sage-700" },
     PAUSED: { label: t.paused, className: "bg-amber-100 text-amber-700" },

@@ -16,7 +16,7 @@ import {
 } from "lucide-react";
 import toast from "react-hot-toast";
 import { useAppLanguage } from "@/hooks/useAppLanguage";
-import { I18N } from "@/lib/i18n";
+import { messageLocale, I18N } from "@/lib/i18n";
 import { FAMILY_MODULE_CARD_ORDER, type AppModuleKey } from "@/lib/family-app-modules";
 
 const MODULE_ICONS: Record<AppModuleKey, typeof SquareKanban> = {
@@ -38,8 +38,8 @@ type Props = {
 export default function OnboardingModulesClient({ initialDisabled }: Props) {
   const router = useRouter();
   const { language } = useAppLanguage();
-  const t = I18N[language].onboarding;
-  const tFamily = I18N[language].family;
+  const t = I18N[messageLocale(language)].onboarding;
+  const tFamily = I18N[messageLocale(language)].family;
   const [disabled, setDisabled] = useState<string[]>(initialDisabled);
   const [saving, setSaving] = useState(false);
 
@@ -90,7 +90,7 @@ export default function OnboardingModulesClient({ initialDisabled }: Props) {
           {FAMILY_MODULE_CARD_ORDER.map(({ key, navKey }) => {
             const isOff = disabled.includes(key);
             const Icon = MODULE_ICONS[key];
-            const label = I18N[language].nav[navKey as keyof typeof I18N.uk.nav];
+            const label = I18N[messageLocale(language)].nav[navKey as keyof typeof I18N.uk.nav];
             return (
               <button
                 key={key}

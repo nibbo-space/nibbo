@@ -4,12 +4,12 @@ import Link from "next/link";
 import Image from "next/image";
 import { motion } from "framer-motion";
 import { House, MessageSquareText } from "lucide-react";
-import { I18N } from "@/lib/i18n";
+import { messageLocale, I18N } from "@/lib/i18n";
 import { useAppLanguage } from "@/hooks/useAppLanguage";
 
 export function NotFoundContent() {
   const { language } = useAppLanguage();
-  const t = I18N[language].notFound;
+  const t = I18N[messageLocale(language)].notFound;
 
   return (
     <div className="flex min-h-[calc(100dvh-1px)] flex-col items-center justify-center px-4 py-16">

@@ -4,12 +4,12 @@ import { Palette } from "lucide-react";
 import { CozySeasonMode } from "@/lib/cozy-config";
 import { useCozyConfig } from "@/hooks/useCozyConfig";
 import { useAppLanguage } from "@/hooks/useAppLanguage";
-import { I18N } from "@/lib/i18n";
+import { messageLocale, I18N } from "@/lib/i18n";
 
 export default function CozyThemeToggle() {
   const { config, updateConfig } = useCozyConfig();
   const { language } = useAppLanguage();
-  const t = I18N[language].cozyTheme;
+  const t = I18N[messageLocale(language)].cozyTheme;
 
   return (
     <div className="hidden md:flex items-center gap-1.5 px-2 py-1.5 rounded-xl border border-warm-200 bg-white/75 backdrop-blur-sm">

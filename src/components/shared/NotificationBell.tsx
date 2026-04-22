@@ -9,7 +9,7 @@ import { Bell } from "lucide-react";
 import { PushNotificationsOptIn } from "@/components/shared/PushNotificationsOptIn";
 import { cn } from "@/lib/utils";
 import { useAppLanguage } from "@/hooks/useAppLanguage";
-import { I18N } from "@/lib/i18n";
+import { messageLocale, I18N } from "@/lib/i18n";
 
 type NotificationItem = {
   id: string;
@@ -25,7 +25,7 @@ type NotificationItem = {
 
 export default function NotificationBell() {
   const { language } = useAppLanguage();
-  const t = I18N[language].notificationBell;
+  const t = I18N[messageLocale(language)].notificationBell;
   const router = useRouter();
   const [open, setOpen] = useState(false);
   const [count, setCount] = useState(0);

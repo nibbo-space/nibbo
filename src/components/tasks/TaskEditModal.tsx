@@ -8,7 +8,7 @@ import { createPortal } from "react-dom";
 import { PRIORITY_CONFIG } from "@/lib/utils";
 import type { TaskBoardTask, TaskBoardUser } from "@/lib/task-board";
 import { useAppLanguage } from "@/hooks/useAppLanguage";
-import { I18N } from "@/lib/i18n";
+import { messageLocale, I18N } from "@/lib/i18n";
 
 const PRIOS: TaskBoardTask["priority"][] = ["LOW", "MEDIUM", "HIGH", "URGENT"];
 
@@ -48,9 +48,9 @@ export default function TaskEditModal({
   onSave,
 }: TaskEditModalProps) {
   const { language } = useAppLanguage();
-  const t = I18N[language].task.editModal;
-  const tp = I18N[language].task.priority;
-  const userFallback = I18N[language].task.userFallback;
+  const t = I18N[messageLocale(language)].task.editModal;
+  const tp = I18N[messageLocale(language)].task.priority;
+  const userFallback = I18N[messageLocale(language)].task.userFallback;
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
   const [dueDate, setDueDate] = useState("");

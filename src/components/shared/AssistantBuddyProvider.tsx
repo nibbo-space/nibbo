@@ -16,7 +16,7 @@ import { useUserPreferences } from "@/components/shared/UserPreferencesProvider"
 import { useCozyConfig } from "@/hooks/useCozyConfig";
 import { useAppLanguage } from "@/hooks/useAppLanguage";
 import { ACHIEVEMENT_UNLOCK_EVENT, type AchievementUnlockDetail } from "@/lib/achievement-unlock-events";
-import { I18N } from "@/lib/i18n";
+import { messageLocale, I18N } from "@/lib/i18n";
 import {
   awaitMascotSpeakMinDuration,
   flushMascotSpeakCoalesced,
@@ -60,7 +60,7 @@ function AssistantBuddyChrome({
   const { assistantEnabled, assistantMascotSeed } = useUserPreferences();
   const { config } = useCozyConfig();
   const { language } = useAppLanguage();
-  const t = I18N[language].assistant;
+  const t = I18N[messageLocale(language)].assistant;
   const mascotLabel = config.mascot.slice(0, 1).toUpperCase() + config.mascot.slice(1);
   const [messages, setMessages] = useState<ChatMsg[]>([]);
   const [input, setInput] = useState("");

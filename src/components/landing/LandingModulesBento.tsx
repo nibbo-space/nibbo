@@ -3,7 +3,7 @@
 import { LandingHudCorners } from "@/components/landing/LandingHudCorners";
 import { useAppLanguage } from "@/hooks/useAppLanguage";
 import { useLandingReducedMotion } from "@/lib/landing-motion";
-import { I18N } from "@/lib/i18n";
+import { messageLocale, I18N } from "@/lib/i18n";
 import { cn } from "@/lib/utils";
 import { motion } from "framer-motion";
 import {
@@ -189,14 +189,14 @@ function ShoppingDecor() {
 
 export function LandingModulesBento() {
   const { language } = useAppLanguage();
-  const t = I18N[language].landing;
+  const t = I18N[messageLocale(language)].landing;
   const reduced = useLandingReducedMotion();
 
   const tiles: Tile[] = [
     {
       key: "tasks",
       Icon: SquareKanban,
-      label: I18N[language].login.features.tasks,
+      label: I18N[messageLocale(language)].login.features.tasks,
       hint: t.moduleHintTasks,
       className: "md:col-span-3 md:row-span-2 md:row-start-1",
       variant: "hero",
@@ -204,7 +204,7 @@ export function LandingModulesBento() {
     {
       key: "calendar",
       Icon: CalendarDays,
-      label: I18N[language].login.features.calendar,
+      label: I18N[messageLocale(language)].login.features.calendar,
       hint: t.moduleHintCalendar,
       className: "md:col-span-3 md:row-start-1 md:col-start-4",
       variant: "compact",
@@ -213,7 +213,7 @@ export function LandingModulesBento() {
     {
       key: "menu",
       Icon: UtensilsCrossed,
-      label: I18N[language].login.features.menu,
+      label: I18N[messageLocale(language)].login.features.menu,
       hint: t.moduleHintMenu,
       className: "md:col-span-3 md:row-start-2 md:col-start-4",
       variant: "compact",
@@ -222,7 +222,7 @@ export function LandingModulesBento() {
     {
       key: "notes",
       Icon: NotebookPen,
-      label: I18N[language].login.features.notes,
+      label: I18N[messageLocale(language)].login.features.notes,
       hint: t.moduleHintNotes,
       className: "md:col-span-2 md:row-start-3 md:col-start-1",
       variant: "compact",
@@ -231,7 +231,7 @@ export function LandingModulesBento() {
     {
       key: "budget",
       Icon: CreditCard,
-      label: I18N[language].login.features.budget,
+      label: I18N[messageLocale(language)].login.features.budget,
       hint: t.moduleHintBudget,
       className: "md:col-span-2 md:row-start-3 md:col-start-3",
       variant: "compact",
@@ -240,7 +240,7 @@ export function LandingModulesBento() {
     {
       key: "shopping",
       Icon: ShoppingCart,
-      label: I18N[language].login.features.shopping,
+      label: I18N[messageLocale(language)].login.features.shopping,
       hint: t.moduleHintShopping,
       className: "md:col-span-2 md:row-start-3 md:col-start-5",
       variant: "compact",

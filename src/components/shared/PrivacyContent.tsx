@@ -2,13 +2,13 @@
 
 import { CozyPageBackground } from "@/components/shared/CozyPageBackground";
 import { useAppLanguage } from "@/hooks/useAppLanguage";
-import { I18N } from "@/lib/i18n";
+import { messageLocale, I18N } from "@/lib/i18n";
 import Link from "next/link";
 
 export function PrivacyContent({ signedIn = false }: { signedIn?: boolean }) {
   const { language } = useAppLanguage();
-  const t = I18N[language].legal;
-  const nav = I18N[language].nav;
+  const t = I18N[messageLocale(language)].legal;
+  const nav = I18N[messageLocale(language)].nav;
 
   const blocks: { title: string; body: string }[] = [
     { title: t.privacyDataTitle, body: t.privacyDataBody },
@@ -66,7 +66,7 @@ export function PrivacyContent({ signedIn = false }: { signedIn?: boolean }) {
                       href="/feedback"
                       className="inline-flex items-center gap-1 font-semibold text-rose-600 underline-offset-2 hover:text-rose-700 hover:underline"
                     >
-                      {I18N[language].feedback.pageTitle}
+                      {I18N[messageLocale(language)].feedback.pageTitle}
                       <span aria-hidden>→</span>
                     </Link>
                   </p>

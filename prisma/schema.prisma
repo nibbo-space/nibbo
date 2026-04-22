@@ -102,8 +102,69 @@ model BlogPost {
   updatedAt   DateTime  @updatedAt
 
   author User @relation(fields: [authorId], references: [id], onDelete: Cascade)
+  translations BlogPostTranslation[]
 
   @@index([published, publishedAt])
+}
+
+model Language {
+  id        String   @id @default(cuid())
+  code      String   @unique
+  name      String
+  isDefault Boolean  @default(false)
+  isActive  Boolean  @default(true)
+  sortOrder Int      @default(0)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  blogTranslations BlogPostTranslation[]
+  i18nValues       I18nValue[]
+
+  @@index([isActive, sortOrder])
+}
+
+model BlogPostTranslation {
+  id         String   @id @default(cuid())
+  postId     String
+  languageId String
+  title      String
+  excerpt    String?  @db.Text
+  body       String   @db.Text
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  post     BlogPost  @relation(fields: [postId], references: [id], onDelete: Cascade)
+  language Language  @relation(fields: [languageId], references: [id], onDelete: Cascade)
+
+  @@unique([postId, languageId])
+  @@index([languageId])
+}
+
+model I18nKey {
+  id        String   @id @default(cuid())
+  namespace String
+  key       String   @unique
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  values I18nValue[]
+
+  @@index([namespace])
+}
+
+model I18nValue {
+  id         String   @id @default(cuid())
+  i18nKeyId  String
+  languageId String
+  value      String   @db.Text
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  i18nKey  I18nKey   @relation(fields: [i18nKeyId], references: [id], onDelete: Cascade)
+  language Language  @relation(fields: [languageId], references: [id], onDelete: Cascade)
+
+  @@unique([i18nKeyId, languageId])
+  @@index([languageId])
 }
 
 model PushSubscription {

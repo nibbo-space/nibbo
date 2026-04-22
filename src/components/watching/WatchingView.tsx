@@ -8,7 +8,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { cn, normalizeProfileEmoji } from "@/lib/utils";
 import { useAppLanguage } from "@/hooks/useAppLanguage";
 import { ACHIEVEMENT_UNLOCK_EVENT, type AchievementUnlockDetail } from "@/lib/achievement-unlock-events";
-import { I18N } from "@/lib/i18n";
+import { intlLocaleForUi, messageLocale, I18N } from "@/lib/i18n";
 
 function dispatchNewAchievements(payload: unknown) {
   if (typeof payload !== "object" || payload === null) return;
@@ -77,7 +77,7 @@ export default function WatchingView({
   hasTmdb: boolean;
 }) {
   const { language } = useAppLanguage();
-  const t = I18N[language].watch;
+  const t = I18N[messageLocale(language)].watch;
   const [active, setActive] = useState(initialActive);
   const [history, setHistory] = useState(initialHistory);
   const [community, setCommunity] = useState(initialCommunity);
@@ -475,7 +475,7 @@ export default function WatchingView({
                   {!isActiveTab && row.completedAt && (
                     <p className="text-xs text-warm-500">
                       {row.status === "FINISHED" ? t.statusFinished : t.statusDropped}:{" "}
-                      {new Date(row.completedAt).toLocaleDateString(language === "uk" ? "uk-UA" : "en-US")}
+                      {new Date(row.completedAt).toLocaleDateString(intlLocaleForUi(language))}
                     </p>
                   )}
                 </div>

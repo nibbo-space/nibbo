@@ -1,25 +1,22 @@
 "use client";
 
 import { useLandingReducedMotion } from "@/lib/landing-motion";
+import { useAppLanguage } from "@/hooks/useAppLanguage";
+import { intlLocaleForUi, I18N, messageLocale } from "@/lib/i18n";
 import { cn } from "@/lib/utils";
 import { motion } from "framer-motion";
 import { Trophy, Zap } from "lucide-react";
+import { useMemo } from "react";
 
-type FamilyEntry = { rank: number; name: string; emoji: string; xp: number; tasks: number; highlight?: boolean };
+type DemoRow = { rank: number; emoji: string; xp: number; tasks: number; highlight?: boolean };
 
-const FAMILIES: FamilyEntry[] = [
-  { rank: 1, name: "The Mitchell Family",  emoji: "🦊", xp: 1850, tasks: 185, highlight: true },
-  { rank: 2, name: "The Johnson Family",   emoji: "🐻", xp: 1240, tasks: 124 },
-  { rank: 3, name: "The Rodriguez Family", emoji: "🦋", xp: 980,  tasks: 98  },
-  { rank: 4, name: "The Kim Family",       emoji: "🌿", xp: 810,  tasks: 81  },
-  { rank: 5, name: "The Thompson Family",  emoji: "⭐", xp: 670,  tasks: 67  },
+const DEMO_ROWS: DemoRow[] = [
+  { rank: 1, emoji: "🦊", xp: 1850, tasks: 185, highlight: true },
+  { rank: 2, emoji: "🐻", xp: 1240, tasks: 124 },
+  { rank: 3, emoji: "🦋", xp: 980, tasks: 98 },
+  { rank: 4, emoji: "🌿", xp: 810, tasks: 81 },
+  { rank: 5, emoji: "⭐", xp: 670, tasks: 67 },
 ];
-
-const STATS = [
-  { label: "Always free",       value: "∞"  },
-  { label: "Modules included",  value: "6"  },
-  { label: "Open beta",         value: "🚀" },
-] as const;
 
 const RANK_STYLE: Record<number, string> = {
   1: "bg-gradient-to-br from-amber-300 to-orange-400 text-white shadow-sm",
@@ -28,25 +25,39 @@ const RANK_STYLE: Record<number, string> = {
 };
 
 export function LandingLeaderboard() {
+  const { language } = useAppLanguage();
+  const ml = messageLocale(language);
+  const t = I18N[ml].landing;
   const reduced = useLandingReducedMotion();
+  const names = t.leaderboardDemoNames;
+  const stats = useMemo(
+    () => [
+      { value: "∞", label: t.leaderboardStatAlwaysFree },
+      { value: "6", label: t.leaderboardStatModules },
+      { value: "🚀", label: t.leaderboardStatOpenBeta },
+    ],
+    [t]
+  );
+  const localeTag = intlLocaleForUi(language);
 
   return (
     <section id="landing-leaderboard" className="scroll-mt-24">
       <div className="overflow-hidden rounded-2xl border-[3px] border-rose-200/75 bg-gradient-to-br from-white/95 via-cream-50/60 to-lavender-50/40 p-6 shadow-[0_10px_0_0_rgba(253,164,175,0.2),0_28px_48px_-20px_rgba(244,63,94,0.1)] sm:p-8 md:rounded-[1.75rem] md:p-10">
         <div className="mb-8 text-center md:text-left">
-          <p className="font-mono text-[10px] font-bold uppercase tracking-[0.28em] text-rose-500">◇ Leaderboard ◇</p>
+          <p className="font-mono text-[10px] font-bold uppercase tracking-[0.28em] text-rose-500">
+            {t.leaderboardEyebrow}
+          </p>
           <h2 className="mt-2 font-display text-2xl font-extrabold tracking-tight text-warm-950 sm:text-3xl md:text-4xl">
-            See how families play together
+            {t.leaderboardTitle}
           </h2>
           <p className="mx-auto mt-2 max-w-xl text-sm leading-relaxed text-warm-600 md:mx-0 sm:text-base">
-            Complete tasks, earn XP, climb the leaderboard. These are example families — yours could be here too.
+            {t.leaderboardLead}
           </p>
         </div>
 
         <div className="grid gap-6 md:grid-cols-[1fr_auto] md:gap-8 lg:gap-12">
-          {/* Leaderboard rows */}
           <div className="space-y-2.5">
-            {FAMILIES.map((f, i) => (
+            {DEMO_ROWS.map((f, i) => (
               <motion.div
                 key={f.rank}
                 initial={false}
@@ -59,7 +70,6 @@ export function LandingLeaderboard() {
                     : "border-warm-100/80 bg-white/80",
                 )}
               >
-                {/* Rank badge */}
                 <div
                   className={cn(
                     "flex h-8 w-8 shrink-0 items-center justify-center rounded-lg text-sm font-extrabold",
@@ -78,9 +88,11 @@ export function LandingLeaderboard() {
                       f.highlight ? "text-rose-700" : "text-warm-900",
                     )}
                   >
-                    {f.name}
+                    {names[i] ?? ""}
                   </p>
-                  <p className="text-xs text-warm-500">{f.tasks} tasks done</p>
+                  <p className="text-xs text-warm-500">
+                    {t.leaderboardTasksDone.replace("{count}", String(f.tasks))}
+                  </p>
                 </div>
 
                 <div className="shrink-0 text-right">
@@ -93,17 +105,16 @@ export function LandingLeaderboard() {
                     )}
                   >
                     <Zap className="h-3.5 w-3.5" strokeWidth={2.5} />
-                    {f.xp.toLocaleString("en-US")}
+                    {f.xp.toLocaleString(localeTag)}
                   </div>
-                  <p className="mt-0.5 text-[11px] text-warm-400">XP</p>
+                  <p className="mt-0.5 text-[11px] text-warm-400">{t.leaderboardXpShort}</p>
                 </div>
               </motion.div>
             ))}
           </div>
 
-          {/* Stats sidebar */}
           <div className="flex flex-row gap-3 md:flex-col md:justify-center md:gap-3">
-            {STATS.map((s) => (
+            {stats.map((s) => (
               <div
                 key={s.label}
                 className="flex flex-1 flex-col items-center justify-center rounded-2xl border-2 border-rose-100/80 bg-gradient-to-b from-white to-rose-50/40 px-4 py-5 text-center shadow-sm md:min-w-[130px]"

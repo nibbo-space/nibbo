@@ -7,11 +7,11 @@ import toast from "react-hot-toast";
 import { useAppLanguage } from "@/hooks/useAppLanguage";
 import { ACHIEVEMENT_UNLOCK_EVENT, type AchievementUnlockDetail } from "@/lib/achievement-unlock-events";
 import { listAchievementsSorted } from "@/lib/achievements/registry";
-import { I18N } from "@/lib/i18n";
+import { messageLocale, I18N } from "@/lib/i18n";
 
 export default function AchievementsLabClient({ initialTapCount }: { initialTapCount: number }) {
   const { language } = useAppLanguage();
-  const t = I18N[language].adminAchievementsLab;
+  const t = I18N[messageLocale(language)].adminAchievementsLab;
   const [tapCount, setTapCount] = useState(initialTapCount);
   const [previewId, setPreviewId] = useState(listAchievementsSorted()[0]?.id ?? "first-steps");
   const [busy, setBusy] = useState(false);

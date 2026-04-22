@@ -27,7 +27,7 @@ import { ACHIEVEMENT_UNLOCK_EVENT, type AchievementUnlockDetail } from "@/lib/ac
 import { TASK_POINTS_AWARDED_EVENT } from "@/lib/task-points";
 import { useUserPreferences } from "@/components/shared/UserPreferencesProvider";
 import { useAppLanguage } from "@/hooks/useAppLanguage";
-import { I18N } from "@/lib/i18n";
+import { intlLocaleForUi, messageLocale, I18N } from "@/lib/i18n";
 import { isModuleDisabled, pathnameToAppModule } from "@/lib/family-app-modules";
 import type { DashboardReminderRow } from "@/lib/task-reminder-tick";
 
@@ -86,9 +86,9 @@ export default function DashboardClient({
 }: DashboardClientProps) {
   const { language } = useAppLanguage();
   const { timeZone, assistantEnabled } = useUserPreferences();
-  const dtOpts = { timeZone, locale: language === "en" ? "en-US" : "uk-UA" } as const;
-  const t = I18N[language].dashboard;
-  const taskPriority = I18N[language].task.priority;
+  const dtOpts = { timeZone, locale: intlLocaleForUi(language) } as const;
+  const t = I18N[messageLocale(language)].dashboard;
+  const taskPriority = I18N[messageLocale(language)].task.priority;
   const [show3D, setShow3D] = useState(false);
   const [tasks, setTasks] = useState<DashboardTask[]>(recentTasks as DashboardTask[]);
   const [tamagotchiStats, setTamagotchiStats] = useState<PersonalTaskStats>(personalTaskStats);

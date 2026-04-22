@@ -7,7 +7,7 @@ import { useAppLanguage } from "@/hooks/useAppLanguage";
 import { EARLY_SETTLER_ACHIEVEMENT_ID, type AchievementKind } from "@/lib/achievements/registry";
 import { familyLevelProgress } from "@/lib/family-level";
 import { familyAchievementDescription } from "@/lib/family-achievement-label";
-import { I18N } from "@/lib/i18n";
+import { messageLocale, I18N } from "@/lib/i18n";
 
 export type AchievementCardVM = {
   id: string;
@@ -86,7 +86,7 @@ export default function AchievementsView({
   achievements,
 }: AchievementsViewProps) {
   const { language } = useAppLanguage();
-  const t = I18N[language].achievements;
+  const t = I18N[messageLocale(language)].achievements;
   const fb = t.familyBattle;
   const badges = t.badges as Record<string, string>;
   const hints = (t as { badgeHints?: Record<string, string> }).badgeHints ?? {};

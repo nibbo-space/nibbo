@@ -4,7 +4,7 @@ import { LandingHudCorners } from "@/components/landing/LandingHudCorners";
 import { LandingJourneyMiniMock } from "@/components/landing/LandingJourneyMiniMock";
 import { useAppLanguage } from "@/hooks/useAppLanguage";
 import { useHasMounted, useLandingReducedMotion } from "@/lib/landing-motion";
-import { I18N } from "@/lib/i18n";
+import { messageLocale, I18N } from "@/lib/i18n";
 import { cn } from "@/lib/utils";
 import {
   motion,
@@ -45,7 +45,7 @@ function buildCurvedPath(points: readonly { x: number; y: number }[]): string {
 
 export function LandingScrollJourney() {
   const { language } = useAppLanguage();
-  const t = I18N[language].landing;
+  const t = I18N[messageLocale(language)].landing;
   const mounted = useHasMounted();
   const reduced = useLandingReducedMotion();
   const uid = useId().replace(/:/g, "");

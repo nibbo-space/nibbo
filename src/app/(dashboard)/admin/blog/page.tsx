@@ -21,9 +21,21 @@ export default async function AdminBlogListPage() {
       slug: true,
       titleUk: true,
       titleEn: true,
+      excerptUk: true,
+      excerptEn: true,
+      bodyUk: true,
+      bodyEn: true,
       published: true,
       publishedAt: true,
       updatedAt: true,
+      translations: {
+        select: {
+          title: true,
+          excerpt: true,
+          body: true,
+          language: { select: { code: true } },
+        },
+      },
     },
   });
 

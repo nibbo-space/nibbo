@@ -10,7 +10,7 @@ import { PRIORITY_CONFIG } from "@/lib/utils";
 import TaskCard from "./TaskCard";
 import type { TaskBoardColumn, TaskBoardTask, TaskBoardUser } from "@/lib/task-board";
 import { useAppLanguage } from "@/hooks/useAppLanguage";
-import { I18N } from "@/lib/i18n";
+import { messageLocale, I18N } from "@/lib/i18n";
 
 const TASK_PRIORITIES: TaskBoardTask["priority"][] = ["LOW", "MEDIUM", "HIGH", "URGENT"];
 
@@ -48,9 +48,9 @@ export default function TaskColumn({
   onEditTask,
 }: TaskColumnProps) {
   const { language } = useAppLanguage();
-  const t = I18N[language].task.column;
-  const tp = I18N[language].task.priority;
-  const userFallback = I18N[language].task.userFallback;
+  const t = I18N[messageLocale(language)].task.column;
+  const tp = I18N[messageLocale(language)].task.priority;
+  const userFallback = I18N[messageLocale(language)].task.userFallback;
   const [isAdding, setIsAdding] = useState(false);
   const [newTaskTitle, setNewTaskTitle] = useState("");
   const [newAssigneeId, setNewAssigneeId] = useState("");

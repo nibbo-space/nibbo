@@ -1,6 +1,7 @@
 import { isUserAdmin } from "@/lib/admin";
 import { isAllowedBlogCoverUrl } from "@/lib/blog-cover-url";
 import { isValidBlogSlug, slugify } from "@/lib/blog-slug";
+import { parseExtraTranslationsBody, syncExtraBlogTranslations } from "@/lib/blog-post-translations";
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { NextResponse } from "next/server";
@@ -68,6 +69,9 @@ export async function PATCH(req: Request, ctx: Ctx) {
       },
       select: { id: true, slug: true },
     });
+    if ("translations" in b) {
+      await syncExtraBlogTranslations(id, parseExtraTranslationsBody(b.translations));
+    }
     return NextResponse.json(post);
   } catch (e: unknown) {
     const code = e && typeof e === "object" && "code" in e ? (e as { code: string }).code : "";

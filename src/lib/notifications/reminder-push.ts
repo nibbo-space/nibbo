@@ -1,5 +1,5 @@
 import { prisma } from "@/lib/prisma";
-import { I18N, type AppLanguage } from "@/lib/i18n";
+import { messageLocale, I18N, type AppLanguage } from "@/lib/i18n";
 import {
   getVapidPrivateKey,
   getVapidPublicKey,
@@ -33,7 +33,7 @@ export async function sendReminderDuePush(params: {
 
   for (const sub of subs) {
     const lang = resolveLang(sub.locale);
-    const t = I18N[lang].pushNotifications;
+    const t = I18N[messageLocale(lang)].pushNotifications;
     const title = t.reminderDueTitle;
     const body = t.reminderDueBody.replace("{title}", params.taskTitle);
     const payload = JSON.stringify({ title, body, url, tag });

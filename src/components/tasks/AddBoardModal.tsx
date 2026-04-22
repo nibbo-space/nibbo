@@ -5,7 +5,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { LayoutGrid, X } from "lucide-react";
 import { createPortal } from "react-dom";
 import { useAppLanguage } from "@/hooks/useAppLanguage";
-import { I18N } from "@/lib/i18n";
+import { messageLocale, I18N } from "@/lib/i18n";
 
 const COLORS = ["#f43f5e", "#fb923c", "#facc15", "#4ade80", "#38bdf8", "#818cf8", "#c084fc", "#f472b6"];
 
@@ -27,7 +27,7 @@ export default function AddBoardModal({
   onDeleteBoard,
 }: AddBoardModalProps) {
   const { language } = useAppLanguage();
-  const t = I18N[language].task.addBoardModal;
+  const t = I18N[messageLocale(language)].task.addBoardModal;
   const [name, setName] = useState("");
   const [selectedEmoji, setSelectedEmoji] = useState("board");
   const [selectedColor, setSelectedColor] = useState("#f43f5e");

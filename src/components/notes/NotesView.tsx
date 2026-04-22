@@ -14,7 +14,7 @@ import {
 } from "@/lib/utils";
 import toast from "react-hot-toast";
 import { useAppLanguage } from "@/hooks/useAppLanguage";
-import { I18N } from "@/lib/i18n";
+import { messageLocale, I18N } from "@/lib/i18n";
 
 interface User { id: string; name: string | null; image: string | null; color: string; emoji: string; }
 interface NoteCategory {
@@ -118,7 +118,7 @@ export default function NotesView({
   currentUserId: string;
 }) {
   const { language } = useAppLanguage();
-  const t = I18N[language].notes;
+  const t = I18N[messageLocale(language)].notes;
   const [notes, setNotes] = useState(initialNotes);
   const [categories, setCategories] = useState(initialCategories);
   const [search, setSearch] = useState("");

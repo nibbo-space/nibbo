@@ -2,7 +2,8 @@
 
 import { CozyPageBackground } from "@/components/shared/CozyPageBackground";
 import { useAppLanguage } from "@/hooks/useAppLanguage";
-import { I18N } from "@/lib/i18n";
+import { blogTranslationItemsFromPost, pickBlogLine } from "@/lib/blog-translations";
+import { messageLocale, I18N } from "@/lib/i18n";
 import { format } from "date-fns";
 import { enUS, uk } from "date-fns/locale";
 import { motion } from "framer-motion";
@@ -16,8 +17,16 @@ export type BlogListItem = {
   titleEn: string;
   excerptUk: string | null;
   excerptEn: string | null;
+  bodyUk: string;
+  bodyEn: string;
   coverImageUrl: string | null;
   publishedAt: string | null;
+  translations: Array<{
+    title: string;
+    excerpt: string | null;
+    body: string;
+    language: { code: string };
+  }>;
 };
 
 export function BlogIndexContent({
@@ -28,9 +37,11 @@ export function BlogIndexContent({
   signedIn: boolean;
 }) {
   const { language } = useAppLanguage();
-  const t = I18N[language].blogPage;
-  const nav = I18N[language].nav;
-  const dateLocale = language === "uk" ? uk : enUS;
+  const ml = messageLocale(language);
+  const t = I18N[ml].blogPage;
+  const nav = I18N[ml].nav;
+  const dateLocale = ml === "uk" ? uk : enUS;
+  const lineFor = (post: BlogListItem) => pickBlogLine(blogTranslationItemsFromPost(post), language);
 
   return (
     <CozyPageBackground>
@@ -58,11 +69,11 @@ export function BlogIndexContent({
           ) : (
             <ul className="mt-10 space-y-4 md:mt-12">
               {posts.map((post, i) => {
-                const title = language === "uk" ? post.titleUk : post.titleEn;
+                const line = lineFor(post);
+                const title = line?.title ?? post.titleEn;
                 const excerpt =
-                  language === "uk"
-                    ? post.excerptUk || post.excerptEn
-                    : post.excerptEn || post.excerptUk;
+                  line?.excerpt ||
+                  (ml === "uk" ? post.excerptUk || post.excerptEn : post.excerptEn || post.excerptUk);
                 const date = post.publishedAt ? new Date(post.publishedAt) : null;
                 return (
                   <motion.li
