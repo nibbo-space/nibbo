@@ -5,7 +5,7 @@ import { motion } from "framer-motion";
 import { useEffect, useState } from "react";
 import Image from "next/image";
 import { CalendarDays, CreditCard, NotebookPen, ShoppingCart, SquareKanban, UtensilsCrossed } from "lucide-react";
-import { useRouter, useSearchParams } from "next/navigation";
+import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { useAppLanguage } from "@/hooks/useAppLanguage";
 import { messageLocale, I18N } from "@/lib/i18n";
 import { cn } from "@/lib/utils";
@@ -15,6 +15,7 @@ type AuthPanel = "signin" | "register";
 
 export default function LoginClient({ magicLinkEnabled }: { magicLinkEnabled: boolean }) {
   const router = useRouter();
+  const pathname = usePathname();
   const searchParams = useSearchParams();
   const { language, setLanguage, locales } = useAppLanguage();
   const tRoot = I18N[messageLocale(language)];
@@ -28,6 +29,7 @@ export default function LoginClient({ magicLinkEnabled }: { magicLinkEnabled: bo
   const [credPassword, setCredPassword] = useState("");
   const errKey = searchParams.get("error");
   const inviteFlow = searchParams.get("invite") === "1";
+  const afterAuthUrl = inviteFlow ? "/onboarding/account-setup" : "/dashboard";
   const errorLine =
     errKey === "credential_expired"
       ? t.errors.credential_expired
@@ -47,20 +49,31 @@ export default function LoginClient({ magicLinkEnabled }: { magicLinkEnabled: bo
 
   useEffect(() => {
     if (searchParams.get("tab") === "register") setPanel("register");
-  }, [searchParams]);
+    const pre = searchParams.get("inviteEmail")?.trim().toLowerCase();
+    if (pre && pre.includes("@")) {
+      setMagicEmail(pre);
+      setCredEmail(pre);
+      const q = new URLSearchParams(searchParams.toString());
+      if (q.has("inviteEmail")) {
+        q.delete("inviteEmail");
+        const qs = q.toString();
+        router.replace(qs ? `${pathname}?${qs}` : pathname, { scroll: false });
+      }
+    }
+  }, [pathname, router, searchParams]);
 
   const busy = loadingGoogle || loadingMagic || loadingCredentials;
 
   const handleGoogleSignIn = async () => {
     setLoadingGoogle(true);
-    await signIn("google", { callbackUrl: "/dashboard" });
+    await signIn("google", { callbackUrl: afterAuthUrl });
   };
 
   const handleMagicLink = async () => {
     const trimmed = magicEmail.trim().toLowerCase();
     if (!trimmed || !magicLinkEnabled) return;
     setLoadingMagic(true);
-    await signIn("nodemailer", { email: trimmed, callbackUrl: "/dashboard" });
+    await signIn("nodemailer", { email: trimmed, callbackUrl: afterAuthUrl });
     setLoadingMagic(false);
   };
 
@@ -71,7 +84,7 @@ export default function LoginClient({ magicLinkEnabled }: { magicLinkEnabled: bo
     const res = await signIn("credentials", {
       email: e,
       password: credPassword,
-      callbackUrl: "/dashboard",
+      callbackUrl: afterAuthUrl,
       redirect: false,
     });
     setLoadingCredentials(false);

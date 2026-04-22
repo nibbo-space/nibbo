@@ -71,6 +71,7 @@ export function buildProviders(): NextAuthConfig["providers"] {
   const google = GoogleProvider({
     clientId: process.env.GOOGLE_CLIENT_ID!,
     clientSecret: process.env.GOOGLE_CLIENT_SECRET!,
+    allowDangerousEmailAccountLinking: true,
   });
   return nodemailer ? [google, nodemailer, credentials] : [google, credentials];
 }

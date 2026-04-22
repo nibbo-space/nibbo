@@ -13,8 +13,10 @@ export function deriveCredentialGate(row: {
 }) {
   const providers = row.accounts.map((a) => a.provider);
   const hasEmailMagic = hasEmailMagicProvider(providers);
+  const emailLinkNoAccountRow = row.accounts.length === 0;
   const pendingPassword =
-    !row.passwordHash && (hasEmailMagic || Boolean(row.credentialSetupDeadline));
+    !row.passwordHash &&
+    (hasEmailMagic || Boolean(row.credentialSetupDeadline) || emailLinkNoAccountRow);
   const credentialExpired = Boolean(
     pendingPassword &&
       row.credentialSetupDeadline &&

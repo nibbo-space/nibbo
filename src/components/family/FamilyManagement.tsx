@@ -10,6 +10,7 @@ import {
   Repeat2,
   ShoppingCart,
   SquareKanban,
+  Trophy,
   UtensilsCrossed,
   Pill,
 } from "lucide-react";
@@ -17,6 +18,7 @@ import { useAppLanguage } from "@/hooks/useAppLanguage";
 import { messageLocale, I18N } from "@/lib/i18n";
 import { FAMILY_MODULE_CARD_ORDER, type AppModuleKey } from "@/lib/family-app-modules";
 import { useDisabledAppModules } from "@/components/shared/DisabledAppModulesProvider";
+import { cn } from "@/lib/utils";
 
 type Member = {
   id: string;
@@ -310,26 +312,112 @@ export default function FamilyManagement() {
               className="w-full bg-warm-50 rounded-xl px-3 py-2 text-sm text-warm-800 border border-warm-200 outline-none focus:border-rose-300 disabled:opacity-60"
             />
           </div>
-          <label className="flex items-center gap-2 text-sm text-warm-700">
-            <input
-              type="checkbox"
-              checked={shareInLeaderboard}
-              onChange={(e) => setShareInLeaderboard(e.target.checked)}
+          <div className="grid gap-3 sm:grid-cols-2">
+            <button
+              type="button"
+              role="switch"
+              aria-checked={shareInLeaderboard}
               disabled={!owner || busy}
-              className="accent-rose-500"
-            />
-            {t.leaderboardShare}
-          </label>
-          <label className="flex items-center gap-2 text-sm text-warm-700">
-            <input
-              type="checkbox"
-              checked={shareWatchingFeed}
-              onChange={(e) => setShareWatchingFeed(e.target.checked)}
+              onClick={() => setShareInLeaderboard((v) => !v)}
+              className={cn(
+                "flex w-full gap-3 rounded-2xl border p-4 text-left transition-all outline-none focus-visible:ring-2 focus-visible:ring-rose-300 disabled:cursor-not-allowed disabled:opacity-60",
+                shareInLeaderboard
+                  ? "border-rose-300 bg-gradient-to-br from-rose-50 via-white to-lavender-50/40 shadow-sm"
+                  : "border-warm-200 bg-warm-50/40 hover:border-warm-300 hover:bg-warm-50/70"
+              )}
+            >
+              <div
+                className={cn(
+                  "flex h-12 w-12 shrink-0 items-center justify-center rounded-xl border-2",
+                  shareInLeaderboard
+                    ? "border-rose-200 bg-white text-rose-600"
+                    : "border-warm-200 bg-white text-warm-400"
+                )}
+              >
+                <Trophy size={22} strokeWidth={2} aria-hidden />
+              </div>
+              <div className="min-w-0 flex-1">
+                <p className="text-sm font-semibold text-warm-800">{t.leaderboardShare}</p>
+                <p className="mt-1 text-xs leading-relaxed text-warm-500">{t.leaderboardShareHint}</p>
+              </div>
+              <div className="flex shrink-0 flex-col items-end justify-center gap-1.5">
+                <span
+                  className={cn(
+                    "text-[10px] font-bold uppercase tracking-wide",
+                    shareInLeaderboard ? "text-rose-600" : "text-warm-400"
+                  )}
+                >
+                  {shareInLeaderboard ? t.moduleOn : t.moduleOff}
+                </span>
+                <span
+                  className={cn(
+                    "relative h-7 w-[44px] shrink-0 rounded-full transition-colors",
+                    shareInLeaderboard ? "bg-rose-500" : "bg-warm-300"
+                  )}
+                  aria-hidden
+                >
+                  <span
+                    className={cn(
+                      "absolute top-0.5 h-6 w-6 rounded-full bg-white shadow transition-transform",
+                      shareInLeaderboard ? "translate-x-[22px]" : "translate-x-0.5"
+                    )}
+                  />
+                </span>
+              </div>
+            </button>
+            <button
+              type="button"
+              role="switch"
+              aria-checked={shareWatchingFeed}
               disabled={!owner || busy}
-              className="accent-rose-500"
-            />
-            {t.watchingFeedShare}
-          </label>
+              onClick={() => setShareWatchingFeed((v) => !v)}
+              className={cn(
+                "flex w-full gap-3 rounded-2xl border p-4 text-left transition-all outline-none focus-visible:ring-2 focus-visible:ring-rose-300 disabled:cursor-not-allowed disabled:opacity-60",
+                shareWatchingFeed
+                  ? "border-rose-300 bg-gradient-to-br from-rose-50 via-white to-lavender-50/40 shadow-sm"
+                  : "border-warm-200 bg-warm-50/40 hover:border-warm-300 hover:bg-warm-50/70"
+              )}
+            >
+              <div
+                className={cn(
+                  "flex h-12 w-12 shrink-0 items-center justify-center rounded-xl border-2",
+                  shareWatchingFeed
+                    ? "border-rose-200 bg-white text-rose-600"
+                    : "border-warm-200 bg-white text-warm-400"
+                )}
+              >
+                <Clapperboard size={22} strokeWidth={2} aria-hidden />
+              </div>
+              <div className="min-w-0 flex-1">
+                <p className="text-sm font-semibold text-warm-800">{t.watchingFeedShare}</p>
+                <p className="mt-1 text-xs leading-relaxed text-warm-500">{t.watchingFeedShareHint}</p>
+              </div>
+              <div className="flex shrink-0 flex-col items-end justify-center gap-1.5">
+                <span
+                  className={cn(
+                    "text-[10px] font-bold uppercase tracking-wide",
+                    shareWatchingFeed ? "text-rose-600" : "text-warm-400"
+                  )}
+                >
+                  {shareWatchingFeed ? t.moduleOn : t.moduleOff}
+                </span>
+                <span
+                  className={cn(
+                    "relative h-7 w-[44px] shrink-0 rounded-full transition-colors",
+                    shareWatchingFeed ? "bg-rose-500" : "bg-warm-300"
+                  )}
+                  aria-hidden
+                >
+                  <span
+                    className={cn(
+                      "absolute top-0.5 h-6 w-6 rounded-full bg-white shadow transition-transform",
+                      shareWatchingFeed ? "translate-x-[22px]" : "translate-x-0.5"
+                    )}
+                  />
+                </span>
+              </div>
+            </button>
+          </div>
           <button
             type="button"
             disabled={!owner || busy}

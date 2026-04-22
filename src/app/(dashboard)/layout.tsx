@@ -8,9 +8,10 @@ import { AchievementUnlockProvider } from "@/components/achievements/Achievement
 import { AssistantBuddyProvider } from "@/components/shared/AssistantBuddyProvider";
 import { FocusModeProvider } from "@/components/shared/FocusModeProvider";
 import { UserPreferencesProvider } from "@/components/shared/UserPreferencesProvider";
+import ConsumeFamilyInviteClient from "@/components/family/ConsumeFamilyInviteClient";
 import { auth, signOut } from "@/lib/auth";
 import { loadCredentialGate } from "@/lib/credential-guard";
-import { consumePendingFamilyInviteCookie } from "@/lib/family-invite";
+import { applyFamilyInviteCookieIfPresent } from "@/lib/family-invite";
 import { prisma } from "@/lib/prisma";
 import { redirect } from "next/navigation";
 
@@ -27,7 +28,7 @@ export default async function DashboardLayout({
   } else if (gate.credentialExpired) {
     redirect("/api/auth/incomplete-expired");
   } else if (gate.mustSetPassword) {
-    redirect("/auth/set-password");
+    redirect("/onboarding/account-setup");
   }
   let user: {
     id: string;
@@ -93,8 +94,8 @@ export default async function DashboardLayout({
   if (!user) redirect("/login");
 
   if (user.email) {
-    const consumed = await consumePendingFamilyInviteCookie(session.user.id, user.email);
-    if (consumed) {
+    const applied = await applyFamilyInviteCookieIfPresent(session.user.id, user.email);
+    if (applied) {
       const next = await prisma.user.findUnique({
         where: { id: session.user.id },
         select: { familyId: true, familyRole: true },
@@ -132,6 +133,7 @@ export default async function DashboardLayout({
 
   return (
     <div className="flex min-h-dvh flex-col bg-cream-50 md:h-screen md:flex-row md:overflow-hidden">
+      <ConsumeFamilyInviteClient />
       <UserPreferencesProvider
         displayCurrency={user.displayCurrency}
         timeZone={user.timeZone}

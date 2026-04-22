@@ -148,6 +148,7 @@ export default function BudgetView({
     bank: "MONOBANK" as Credit["bank"],
     bankOtherName: "",
     monthlyAmount: "",
+    monthlyAmountCurrency: displayCurrency,
     paymentDay: "10",
     lastPaidAt: "",
     status: "ACTIVE" as Credit["status"],
@@ -207,6 +208,12 @@ export default function BudgetView({
       setNewIncome((p) => ({ ...p, amountCurrency: displayCurrency }));
     }
   }, [showAddIncome, displayCurrency]);
+
+  useEffect(() => {
+    if (showCreditModal) {
+      setNewCredit((p) => ({ ...p, monthlyAmountCurrency: displayCurrency }));
+    }
+  }, [showCreditModal, displayCurrency]);
 
   useEffect(() => {
     if (typeof window === "undefined") return;
@@ -402,11 +409,14 @@ export default function BudgetView({
 
   const handleSaveCredit = async () => {
     if (!newCredit.title || !newCredit.monthlyAmount || !newCredit.paymentDay) return;
+    const parsed = parseFloat(newCredit.monthlyAmount);
+    if (!Number.isFinite(parsed) || parsed <= 0) return;
+    const monthlyAmountUah = displayAmountToUah(parsed, newCredit.monthlyAmountCurrency, exchangeRates);
     const payload = {
       title: newCredit.title,
       bank: newCredit.bank,
       bankOtherName: newCredit.bank === "OTHER" ? newCredit.bankOtherName : null,
-      monthlyAmount: Number(newCredit.monthlyAmount),
+      monthlyAmount: Math.round(monthlyAmountUah * 100) / 100,
       paymentDay: Number(newCredit.paymentDay),
       lastPaidAt: newCredit.lastPaidAt ? new Date(newCredit.lastPaidAt).toISOString() : null,
       status: newCredit.status,
@@ -435,6 +445,7 @@ export default function BudgetView({
       bank: "MONOBANK",
       bankOtherName: "",
       monthlyAmount: "",
+      monthlyAmountCurrency: displayCurrency,
       paymentDay: "10",
       lastPaidAt: "",
       status: "ACTIVE",
@@ -449,6 +460,7 @@ export default function BudgetView({
       bank: "MONOBANK",
       bankOtherName: "",
       monthlyAmount: "",
+      monthlyAmountCurrency: displayCurrency,
       paymentDay: "10",
       lastPaidAt: "",
       status: "ACTIVE",
@@ -459,11 +471,20 @@ export default function BudgetView({
 
   const openEditCredit = (credit: Credit) => {
     setEditingCreditId(credit.id);
+    const displayAmt = uahToDisplayAmount(credit.monthlyAmount, displayCurrency, exchangeRates);
+    const monthlyStr =
+      displayCurrency === "JPY"
+        ? String(Math.round(displayAmt))
+        : (() => {
+            const r = Math.round(displayAmt * 100) / 100;
+            return Number.isFinite(r) ? String(r) : String(credit.monthlyAmount);
+          })();
     setNewCredit({
       title: credit.title,
       bank: credit.bank,
       bankOtherName: credit.bankOtherName || "",
-      monthlyAmount: String(credit.monthlyAmount),
+      monthlyAmount: monthlyStr,
+      monthlyAmountCurrency: displayCurrency,
       paymentDay: String(credit.paymentDay),
       lastPaidAt: credit.lastPaidAt ? credit.lastPaidAt.slice(0, 10) : "",
       status: credit.status,
@@ -1042,13 +1063,34 @@ export default function BudgetView({
                         className="w-full bg-warm-50 rounded-xl px-4 py-3 text-sm outline-none border border-warm-200 focus:border-lavender-400"
                       />
                     )}
-                    <input
-                      type="number"
-                      value={newCredit.monthlyAmount}
-                      onChange={(e) => setNewCredit((p) => ({ ...p, monthlyAmount: e.target.value }))}
-                      placeholder={t.creditMonthlyAmount}
-                      className="w-full bg-warm-50 rounded-xl px-4 py-3 text-sm outline-none border border-warm-200 focus:border-lavender-400"
-                    />
+                    <div className="flex flex-col gap-2 sm:flex-row sm:items-stretch">
+                      <input
+                        type="number"
+                        min="0"
+                        step={newCredit.monthlyAmountCurrency === "JPY" ? "1" : "0.01"}
+                        value={newCredit.monthlyAmount}
+                        onChange={(e) => setNewCredit((p) => ({ ...p, monthlyAmount: e.target.value }))}
+                        placeholder={t.amountInInputCurrency.replace("{currency}", newCredit.monthlyAmountCurrency)}
+                        className="min-w-0 flex-1 bg-warm-50 rounded-xl px-4 py-3 text-sm outline-none border border-warm-200 focus:border-lavender-400"
+                      />
+                      <select
+                        value={newCredit.monthlyAmountCurrency}
+                        onChange={(e) =>
+                          setNewCredit((p) => ({
+                            ...p,
+                            monthlyAmountCurrency: e.target.value as SupportedCurrency,
+                          }))
+                        }
+                        className="w-full shrink-0 rounded-xl border border-warm-200 bg-warm-50 px-3 py-3 text-sm font-semibold text-warm-800 outline-none focus:border-lavender-400 sm:w-28"
+                        aria-label={t.inputCurrencyLabel}
+                      >
+                        {DISPLAY_CURRENCY_CODES.map((c) => (
+                          <option key={c} value={c}>
+                            {c}
+                          </option>
+                        ))}
+                      </select>
+                    </div>
                     <div>
                       <p className="text-xs font-medium text-warm-600 mb-1.5">{t.creditPaymentDayLabel}</p>
                       <input

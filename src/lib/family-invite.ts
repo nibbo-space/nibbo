@@ -3,6 +3,8 @@ import { createTransport } from "nodemailer";
 import { cookies } from "next/headers";
 import { syncFamilyMemberUnlocks } from "@/lib/achievements/evaluate";
 import { getSmtpMailConfig } from "@/lib/auth-providers";
+import { emailLogoInlinePng } from "@/lib/email-inline-logo";
+import { APP_LANGUAGE_COOKIE_KEY, messageLocale } from "@/lib/i18n";
 import { prisma } from "@/lib/prisma";
 import { getMetadataBaseUrl } from "@/lib/site-url";
 
@@ -17,6 +19,86 @@ function esc(s: string) {
     .replace(/</g, "&lt;")
     .replace(/>/g, "&gt;")
     .replace(/"/g, "&quot;");
+}
+
+type FamilyInviteEmailLocale = ReturnType<typeof messageLocale>;
+
+async function familyInviteEmailLocale(explicit?: FamilyInviteEmailLocale): Promise<FamilyInviteEmailLocale> {
+  if (explicit) return explicit;
+  const c = await cookies();
+  return messageLocale(c.get(APP_LANGUAGE_COOKIE_KEY)?.value ?? "");
+}
+
+function familyInviteIntroHtml(
+  locale: FamilyInviteEmailLocale,
+  familyName: string,
+  inviterLabel: string,
+  appName: string
+) {
+  const f = esc(familyName);
+  const i = esc(inviterLabel);
+  const a = esc(appName);
+  if (locale === "en") {
+    return `You're invited to join the family <strong>${f}</strong> on ${a} from ${i}.`;
+  }
+  if (locale === "ja") {
+    return `${i}から、${a}の家族「<strong>${f}</strong>」への招待です。`;
+  }
+  return `Запрошення до сім'ї <strong>${f}</strong> від ${i}.`;
+}
+
+function familyInviteCta(locale: FamilyInviteEmailLocale) {
+  if (locale === "en") return "Accept invitation";
+  if (locale === "ja") return "招待を受け取る";
+  return "Прийняти запрошення";
+}
+
+function familyInviteFooter(locale: FamilyInviteEmailLocale) {
+  if (locale === "en") {
+    return "After you sign in or register with this email, you will join the family automatically.";
+  }
+  if (locale === "ja") {
+    return "このメールアドレスでログインまたは登録すると、家族に参加します。";
+  }
+  return "Після входу або реєстрації з цим email ти одразу потрапиш у сім'ю.";
+}
+
+function familyInviteSubject(locale: FamilyInviteEmailLocale, appName: string) {
+  if (locale === "en") return `${appName} · Family invitation`;
+  if (locale === "ja") return `${appName} · 家族への招待`;
+  return `${appName} · запрошення у сім'ю`;
+}
+
+function familyInviteInviterFallback(locale: FamilyInviteEmailLocale) {
+  if (locale === "en") return "a family member";
+  if (locale === "ja") return "家族のメンバー";
+  return "учасника сім'ї";
+}
+
+function familyInviteDefaultFamilyName(locale: FamilyInviteEmailLocale) {
+  if (locale === "en") return "Family";
+  if (locale === "ja") return "家族";
+  return "Сім'я";
+}
+
+function familyInviteTextBody(
+  locale: FamilyInviteEmailLocale,
+  appName: string,
+  familyName: string,
+  inviterLabel: string,
+  url: string,
+  origin: string
+) {
+  const a = appName;
+  const f = familyName;
+  const i = inviterLabel;
+  if (locale === "en") {
+    return `${a} — you're invited to join "${f}" by ${i}\n\n${url}\n\n${origin}`;
+  }
+  if (locale === "ja") {
+    return `${a} — ${i}から家族「${f}」への招待です。\n\n${url}\n\n${origin}`;
+  }
+  return `${a} — запрошення до сім'ї «${f}» від ${i}\n\n${url}\n\n${origin}`;
 }
 
 function newInviteToken() {
@@ -143,17 +225,25 @@ export async function acceptFamilyInvitationByToken(
 }
 
 function buildFamilyInviteHtml(opts: {
+  locale: FamilyInviteEmailLocale;
   appName: string;
   origin: string;
   familyName: string;
   inviterLabel: string;
   inviteeEmail: string;
   url: string;
+  logoImgSrc: string | null;
 }) {
-  const { appName, origin, familyName, inviterLabel, inviteeEmail, url } = opts;
-  const logoUrl = `${origin}/favicon.svg`;
+  const { locale, appName, origin, familyName, inviterLabel, inviteeEmail, url, logoImgSrc } = opts;
+  const htmlLang = locale === "en" ? "en" : locale === "ja" ? "ja" : "uk";
+  const logoBlock = logoImgSrc
+    ? `<img src="${esc(logoImgSrc)}" alt="" width="72" height="72" style="display:block;margin:0 auto 20px;border-radius:16px;">`
+    : "";
+  const intro = familyInviteIntroHtml(locale, familyName, inviterLabel, appName);
+  const cta = esc(familyInviteCta(locale));
+  const footer = esc(familyInviteFooter(locale));
   return `<!DOCTYPE html>
-<html lang="uk">
+<html lang="${htmlLang}">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
@@ -164,14 +254,14 @@ function buildFamilyInviteHtml(opts: {
 <tr><td align="center" style="padding:40px 16px;">
 <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="max-width:480px;background:#ffffff;border-radius:24px;border:1px solid #fce7f3;box-shadow:0 12px 40px rgba(244,63,94,0.08);">
 <tr><td style="padding:36px 28px 32px;text-align:center;">
-<img src="${esc(logoUrl)}" alt="" width="72" height="72" style="display:block;margin:0 auto 20px;border-radius:16px;">
+${logoBlock}
 <p style="margin:0 0 8px;font-size:20px;font-weight:700;color:#44403c;">${esc(appName)}</p>
-<p style="margin:0 0 16px;font-size:15px;line-height:1.55;color:#78716b;">Запрошення до сім'ї <strong>${esc(familyName)}</strong> від ${esc(inviterLabel)}.<br><span style="color:#a8a29e;font-size:13px;">You're invited to join the family <strong>${esc(familyName)}</strong> on Nibbo.</span></p>
+<p style="margin:0 0 16px;font-size:15px;line-height:1.55;color:#78716b;">${intro}</p>
 <p style="margin:0 0 20px;font-size:12px;color:#a8a29e;">${esc(inviteeEmail)}</p>
 <table role="presentation" cellspacing="0" cellpadding="0" align="center"><tr><td style="border-radius:16px;background:#e11d48;">
-<a href="${esc(url)}" style="display:inline-block;padding:14px 28px;font-size:15px;font-weight:600;color:#ffffff;text-decoration:none;border-radius:16px;">Прийняти запрошення</a>
+<a href="${esc(url)}" style="display:inline-block;padding:14px 28px;font-size:15px;font-weight:600;color:#ffffff;text-decoration:none;border-radius:16px;">${cta}</a>
 </td></tr></table>
-<p style="margin:28px 0 0;font-size:12px;line-height:1.5;color:#a8a29e;">Після входу або реєстрації з цим email ти одразу потрапиш у сім'ю.<br>After you sign in or register with this email, you will join the family automatically.</p>
+<p style="margin:28px 0 0;font-size:12px;line-height:1.5;color:#a8a29e;">${footer}</p>
 <p style="margin:16px 0 0;font-size:11px;color:#d6d3d1;">${esc(origin)}</p>
 </td></tr></table>
 </td></tr></table>
@@ -179,8 +269,15 @@ function buildFamilyInviteHtml(opts: {
 </html>`;
 }
 
-function buildFamilyInviteText(opts: { appName: string; origin: string; familyName: string; inviterLabel: string; url: string }) {
-  return `${opts.appName} — запрошення до сім'ї "${opts.familyName}" від ${opts.inviterLabel}\n\n${opts.url}\n\n${opts.origin}`;
+function buildFamilyInviteText(opts: {
+  locale: FamilyInviteEmailLocale;
+  appName: string;
+  origin: string;
+  familyName: string;
+  inviterLabel: string;
+  url: string;
+}) {
+  return familyInviteTextBody(opts.locale, opts.appName, opts.familyName, opts.inviterLabel, opts.url, opts.origin);
 }
 
 export async function sendFamilyInviteEmail(params: {
@@ -189,20 +286,24 @@ export async function sendFamilyInviteEmail(params: {
   familyName: string;
   inviterName: string | null;
   inviterEmail: string | null;
+  locale: FamilyInviteEmailLocale;
 }) {
   const cfg = getSmtpMailConfig();
   if (!cfg) return { sent: false as const };
   const origin = getMetadataBaseUrl().origin.replace(/\/$/, "");
   const appName = process.env.NEXT_PUBLIC_APP_NAME?.trim() || "Nibbo";
   const url = `${origin}/api/invites/attest?token=${encodeURIComponent(params.inviteToken)}`;
-  const inviterLabel = params.inviterName?.trim() || params.inviterEmail || "учасника сім'ї";
+  const inviterLabel =
+    params.inviterName?.trim() || params.inviterEmail || familyInviteInviterFallback(params.locale);
   const transport = createTransport(cfg.server);
-  const subject = `${appName} · запрошення у сім'ю`;
+  const subject = familyInviteSubject(params.locale, appName);
+  const logo = await emailLogoInlinePng();
   const result = await transport.sendMail({
     to: params.to,
     from: cfg.from,
     subject,
     text: buildFamilyInviteText({
+      locale: params.locale,
       appName,
       origin,
       familyName: params.familyName,
@@ -210,13 +311,16 @@ export async function sendFamilyInviteEmail(params: {
       url,
     }),
     html: buildFamilyInviteHtml({
+      locale: params.locale,
       appName,
       origin,
       familyName: params.familyName,
       inviterLabel,
       inviteeEmail: params.to,
       url,
+      logoImgSrc: logo.ok ? logo.imgSrc : null,
     }),
+    attachments: logo.ok ? logo.attachments : undefined,
   });
   const rejected = result.rejected || [];
   const pending = result.pending || [];
@@ -231,6 +335,7 @@ export async function upsertFamilyInvitationWithNotify(params: {
   familyId: string;
   invitedByUserId: string;
   email: string;
+  emailLocale?: FamilyInviteEmailLocale;
 }): Promise<{
   id: string;
   email: string;
@@ -270,6 +375,7 @@ export async function upsertFamilyInvitationWithNotify(params: {
   let emailSent = false;
   if (token) {
     try {
+      const locale = await familyInviteEmailLocale(params.emailLocale);
       const [family, inviter] = await Promise.all([
         prisma.family.findUnique({
           where: { id: params.familyId },
@@ -280,13 +386,14 @@ export async function upsertFamilyInvitationWithNotify(params: {
           select: { name: true, email: true },
         }),
       ]);
-      const familyName = family?.name?.trim() || "Сім'я";
+      const familyName = family?.name?.trim() || familyInviteDefaultFamilyName(locale);
       await sendFamilyInviteEmail({
         to: email,
         inviteToken: token,
         familyName,
         inviterName: inviter?.name ?? null,
         inviterEmail: inviter?.email ?? null,
+        locale,
       });
       emailSent = true;
     } catch {
@@ -322,13 +429,13 @@ export function parseInviteEmailList(raw: string, max = 20): string[] {
 export async function validateFamilyInviteAttestToken(token: string) {
   const row = await prisma.familyInvitation.findFirst({
     where: { inviteToken: token, acceptedAt: null },
-    select: { id: true, createdAt: true },
+    select: { id: true, createdAt: true, email: true },
   });
   if (!row) return { ok: false as const, reason: "not_found" as const };
   if (Date.now() - row.createdAt.getTime() > INVITE_LINK_MAX_AGE_MS) {
     return { ok: false as const, reason: "expired" as const };
   }
-  return { ok: true as const };
+  return { ok: true as const, email: row.email };
 }
 
 export function familyInviteCookieOptions() {
@@ -342,7 +449,7 @@ export function familyInviteCookieOptions() {
   };
 }
 
-export async function consumePendingFamilyInviteCookie(
+export async function applyFamilyInviteCookieIfPresent(
   userId: string,
   email: string | null | undefined
 ): Promise<boolean> {
@@ -351,7 +458,7 @@ export async function consumePendingFamilyInviteCookie(
   const cookieStore = await cookies();
   const token = cookieStore.get(FAMILY_INVITE_COOKIE)?.value;
   if (!token) return false;
-  cookieStore.delete(FAMILY_INVITE_COOKIE);
-  await acceptFamilyInvitationByToken(userId, emailLower, token);
-  return true;
+  const result = await acceptFamilyInvitationByToken(userId, emailLower, token);
+  return result.ok;
 }
+

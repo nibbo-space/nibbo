@@ -10,7 +10,7 @@ export default async function MenuPage() {
   const familyId = await ensureUserFamily(session.user.id);
   if (!familyId) return null;
 
-  const [recipes, users, marketRecipes, admin] = await Promise.all([
+  const [recipes, users, admin] = await Promise.all([
     prisma.recipe.findMany({
       where: { familyId },
       include: { ingredients: true },
@@ -19,10 +19,6 @@ export default async function MenuPage() {
     prisma.user.findMany({
       where: { familyId },
       select: { id: true, name: true, image: true, color: true, emoji: true },
-    }),
-    prisma.recipeMarket.findMany({
-      include: { ingredients: true },
-      orderBy: { createdAt: "desc" },
     }),
     isUserAdmin(session.user.id),
   ]);
@@ -54,7 +50,6 @@ export default async function MenuPage() {
   return (
     <MealPlanner
       initialRecipes={recipes}
-      initialMarketRecipes={marketRecipes}
       initialMealPlans={initialMealPlans}
       users={users}
       currentUserId={session.user.id}

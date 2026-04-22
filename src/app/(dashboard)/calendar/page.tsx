@@ -1,9 +1,7 @@
-import { Suspense } from "react";
 import { auth } from "@/lib/auth";
 import { ensureUserFamily } from "@/lib/family";
 import { prisma } from "@/lib/prisma";
 import CalendarView from "@/components/calendar/CalendarView";
-import GoogleCalendarSyncPanel from "@/components/calendar/GoogleCalendarSyncPanel";
 
 export default async function CalendarPage() {
   const session = await auth();
@@ -29,18 +27,13 @@ export default async function CalendarPage() {
   ]);
 
   return (
-    <div className="flex h-full flex-col gap-4">
-      <Suspense fallback={null}>
-        <GoogleCalendarSyncPanel />
-      </Suspense>
-      <div className="min-h-0 flex-1">
-        <CalendarView
-          initialEvents={events}
-          users={users}
-          currentUserId={session.user.id}
-          subscriptions={subscriptions}
-        />
-      </div>
+    <div className="flex h-full min-h-0 flex-1 flex-col">
+      <CalendarView
+        initialEvents={events}
+        users={users}
+        currentUserId={session.user.id}
+        subscriptions={subscriptions}
+      />
     </div>
   );
 }

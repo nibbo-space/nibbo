@@ -1,11 +1,29 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { LayoutGrid, X } from "lucide-react";
+import { X } from "lucide-react";
 import { createPortal } from "react-dom";
 import { useAppLanguage } from "@/hooks/useAppLanguage";
 import { messageLocale, I18N } from "@/lib/i18n";
+import { USER_EMOJIS, displayEmojiToken, cn } from "@/lib/utils";
+
+const BOARD_ICON_EMOJIS = [
+  "📋",
+  "📌",
+  "✅",
+  "🎯",
+  "📁",
+  "💼",
+  "📝",
+  "📅",
+  "🛒",
+  "⏰",
+  "🔔",
+  "⚡",
+  "🚀",
+  "💡",
+];
 
 const COLORS = ["#f43f5e", "#fb923c", "#facc15", "#4ade80", "#38bdf8", "#818cf8", "#c084fc", "#f472b6"];
 
@@ -29,7 +47,7 @@ export default function AddBoardModal({
   const { language } = useAppLanguage();
   const t = I18N[messageLocale(language)].task.addBoardModal;
   const [name, setName] = useState("");
-  const [selectedEmoji, setSelectedEmoji] = useState("board");
+  const [selectedEmoji, setSelectedEmoji] = useState("📋");
   const [selectedColor, setSelectedColor] = useState("#f43f5e");
   const [isPrivate, setIsPrivate] = useState(false);
 
@@ -39,12 +57,12 @@ export default function AddBoardModal({
     if (!open) return;
     if (editBoard) {
       setName(editBoard.name);
-      setSelectedEmoji(editBoard.emoji);
+      setSelectedEmoji(displayEmojiToken(editBoard.emoji) || "📋");
       setSelectedColor(editBoard.color);
       setIsPrivate(editBoard.isPrivate);
     } else {
       setName("");
-      setSelectedEmoji("board");
+      setSelectedEmoji("📋");
       setSelectedColor("#f43f5e");
       setIsPrivate(false);
     }
@@ -59,11 +77,26 @@ export default function AddBoardModal({
     }
     if (!isEdit) {
       setName("");
-      setSelectedEmoji("board");
+      setSelectedEmoji("📋");
       setSelectedColor("#f43f5e");
       setIsPrivate(false);
     }
   };
+
+  const emojiPicker = useMemo(() => {
+    const seen = new Set<string>();
+    const out: string[] = [];
+    const add = (e: string) => {
+      const v = e.trim();
+      if (!v || seen.has(v)) return;
+      seen.add(v);
+      out.push(v);
+    };
+    add(selectedEmoji);
+    BOARD_ICON_EMOJIS.forEach(add);
+    USER_EMOJIS.forEach(add);
+    return out;
+  }, [selectedEmoji]);
 
   if (typeof document === "undefined") return null;
 
@@ -109,9 +142,34 @@ export default function AddBoardModal({
                 </div>
 
                 <div>
-                  <label className="text-sm font-medium text-warm-600 mb-2 block">{t.iconLabel}</label>
-                  <div className="w-10 h-10 rounded-xl bg-warm-50 border border-warm-200 flex items-center justify-center">
-                    <LayoutGrid size={18} className="text-warm-600" />
+                  <p className="text-sm font-medium text-warm-600 mb-2">{t.iconLabel}</p>
+                  <div className="mb-2 flex items-center gap-3">
+                    <div
+                      className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl border-2 border-warm-200 bg-warm-50 text-2xl leading-none"
+                      aria-hidden
+                    >
+                      {displayEmojiToken(selectedEmoji) || selectedEmoji}
+                    </div>
+                    <p className="text-xs text-warm-500">{t.iconHint}</p>
+                  </div>
+                  <div className="max-h-40 overflow-y-auto rounded-2xl border border-warm-200 bg-warm-50 p-2">
+                    <div className="flex flex-wrap gap-1.5">
+                      {emojiPicker.map((e) => (
+                        <button
+                          key={e}
+                          type="button"
+                          onClick={() => setSelectedEmoji(e)}
+                          className={cn(
+                            "flex h-9 w-9 shrink-0 items-center justify-center rounded-lg text-lg leading-none transition-colors",
+                            selectedEmoji === e
+                              ? "bg-white ring-2 ring-rose-400"
+                              : "bg-white/70 hover:bg-white"
+                          )}
+                        >
+                          <span className="select-none">{e}</span>
+                        </button>
+                      ))}
+                    </div>
                   </div>
                 </div>
 

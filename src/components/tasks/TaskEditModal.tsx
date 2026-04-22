@@ -31,21 +31,25 @@ function parseHmToMin(s: string): number | null {
 interface TaskEditModalProps {
   open: boolean;
   task: TaskBoardTask | null;
+  createColumnId?: string | null;
   users: TaskBoardUser[];
   boardIsPrivate: boolean;
   currentUserId: string;
   onClose: () => void;
   onSave: (taskId: string, payload: Record<string, unknown>) => Promise<void>;
+  onCreate?: (columnId: string, payload: Record<string, unknown>) => Promise<void>;
 }
 
 export default function TaskEditModal({
   open,
   task,
+  createColumnId = null,
   users,
   boardIsPrivate,
   currentUserId,
   onClose,
   onSave,
+  onCreate,
 }: TaskEditModalProps) {
   const { language } = useAppLanguage();
   const t = I18N[messageLocale(language)].task.editModal;
@@ -73,30 +77,49 @@ export default function TaskEditModal({
   }, []);
 
   useEffect(() => {
-    if (!task) return;
-    setTitle(task.title);
-    setDescription(task.description ?? "");
-    setDueDate(task.dueDate ? task.dueDate.slice(0, 10) : "");
-    setCompleted(task.completed);
-    setPriority(task.priority);
-    setAssigneeId(task.assignee?.id ?? "");
-    setIsPrivate(task.isPrivate);
-    syncReminderFromTask(task);
-  }, [task, syncReminderFromTask]);
+    if (!open) return;
+    if (task) {
+      setTitle(task.title);
+      setDescription(task.description ?? "");
+      setDueDate(task.dueDate ? task.dueDate.slice(0, 10) : "");
+      setCompleted(task.completed);
+      setPriority(task.priority);
+      setAssigneeId(task.assignee?.id ?? "");
+      setIsPrivate(task.isPrivate);
+      syncReminderFromTask(task);
+      return;
+    }
+    if (createColumnId) {
+      setTitle("");
+      setDescription("");
+      setDueDate("");
+      setCompleted(false);
+      setPriority("MEDIUM");
+      setAssigneeId("");
+      setIsPrivate(false);
+      setReminderEnabled(false);
+      setReminderCadence("7");
+      setReminderStart("09:00");
+      setReminderEnd("12:00");
+    }
+  }, [open, task, createColumnId, syncReminderFromTask]);
 
   const handleSave = async () => {
-    if (!task?.id || !title.trim()) return;
+    if (!title.trim()) return;
+    const creating = Boolean(createColumnId && !task);
+    if (!creating && !task?.id) return;
+    if (creating && !onCreate) return;
     setSaving(true);
     try {
       const payload: Record<string, unknown> = {
         title: title.trim(),
         description: description.trim() || null,
         dueDate: dueDate ? new Date(dueDate).toISOString() : null,
-        completed,
         priority,
         assigneeId: boardIsPrivate || isPrivate ? currentUserId : assigneeId || null,
         isPrivate,
       };
+      if (task?.id) payload.completed = completed;
       if (reminderEnabled) {
         let sm = parseHmToMin(reminderStart) ?? 9 * 60;
         let em = parseHmToMin(reminderEnd) ?? 12 * 60;
@@ -108,7 +131,11 @@ export default function TaskEditModal({
       } else {
         payload.reminderCadenceDays = null;
       }
-      await onSave(task.id, payload);
+      if (creating && createColumnId && onCreate) {
+        await onCreate(createColumnId, payload);
+      } else if (task?.id) {
+        await onSave(task.id, payload);
+      }
       onClose();
     } catch {
       toast.error(t.saveError);
@@ -117,7 +144,9 @@ export default function TaskEditModal({
     }
   };
 
-  if (!task || typeof document === "undefined") return null;
+  const isCreate = Boolean(createColumnId && !task);
+  if (!open || typeof document === "undefined") return null;
+  if (!task && !createColumnId) return null;
 
   return createPortal(
     <AnimatePresence>
@@ -138,7 +167,7 @@ export default function TaskEditModal({
           >
             <div className="bg-white rounded-3xl shadow-cozy-lg p-6">
               <div className="flex items-center justify-between mb-4">
-                <h2 className="text-lg font-bold text-warm-800">{t.title}</h2>
+                <h2 className="text-lg font-bold text-warm-800">{isCreate ? t.createTitle : t.title}</h2>
                 <button
                   type="button"
                   onClick={onClose}
@@ -167,15 +196,17 @@ export default function TaskEditModal({
                   onChange={(e) => setDueDate(e.target.value)}
                   className="w-full bg-warm-50 rounded-xl px-3 py-2 text-sm text-warm-800 border border-warm-200 focus:border-rose-300 outline-none"
                 />
-                <label className="flex items-center gap-2 text-sm text-warm-700">
-                  <input
-                    type="checkbox"
-                    checked={completed}
-                    onChange={(e) => setCompleted(e.target.checked)}
-                    className="rounded border-warm-300"
-                  />
-                  {t.completed}
-                </label>
+                {!isCreate && (
+                  <label className="flex items-center gap-2 text-sm text-warm-700">
+                    <input
+                      type="checkbox"
+                      checked={completed}
+                      onChange={(e) => setCompleted(e.target.checked)}
+                      className="rounded border-warm-300"
+                    />
+                    {t.completed}
+                  </label>
+                )}
                 <select
                   value={priority}
                   onChange={(e) => setPriority(e.target.value as TaskBoardTask["priority"])}
@@ -267,7 +298,7 @@ export default function TaskEditModal({
                     disabled={saving || !title.trim()}
                     className="flex-1 py-2.5 bg-rose-500 text-white rounded-xl text-sm font-medium hover:bg-rose-600 disabled:opacity-50"
                   >
-                    {t.save}
+                    {isCreate ? t.create : t.save}
                   </button>
                   <button
                     type="button"

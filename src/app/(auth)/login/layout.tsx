@@ -25,7 +25,7 @@ export default async function LoginLayout({ children }: { children: React.ReactN
     } else if (gate.credentialExpired) {
       redirect("/api/auth/incomplete-expired");
     } else if (gate.mustSetPassword) {
-      redirect("/auth/set-password");
+      redirect("/onboarding/account-setup");
     } else {
       redirect("/dashboard");
     }

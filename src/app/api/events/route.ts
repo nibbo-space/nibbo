@@ -1,6 +1,5 @@
 import { auth } from "@/lib/auth";
 import { ensureUserFamily } from "@/lib/family";
-import { pushNibboEventToGoogleIfNeeded } from "@/lib/google-calendar-sync";
 import { prisma } from "@/lib/prisma";
 import { NextRequest, NextResponse } from "next/server";
 
@@ -74,17 +73,5 @@ export async function POST(req: NextRequest) {
     },
   });
 
-  try {
-    await pushNibboEventToGoogleIfNeeded(familyId, event.id);
-  } catch {
-    /* ignore */
-  }
-  const refreshed = await prisma.event.findFirst({
-    where: { id: event.id },
-    include: {
-      assignee: { select: { id: true, name: true, image: true, color: true, emoji: true } },
-      subscription: { select: { id: true, title: true } },
-    },
-  });
-  return NextResponse.json(refreshed ?? event);
+  return NextResponse.json(event);
 }
