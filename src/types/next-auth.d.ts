@@ -12,6 +12,8 @@ declare module "next-auth" {
       isAdmin?: boolean;
       displayCurrency?: string;
       timeZone?: string;
+      mustSetPassword?: boolean;
+      credentialExpired?: boolean;
     };
   }
 }
@@ -23,5 +25,7 @@ declare module "next-auth/jwt" {
     isAdmin?: boolean;
     displayCurrency?: string;
     timeZone?: string;
+    mustSetPassword?: boolean;
+    credentialExpired?: boolean;
   }
 }

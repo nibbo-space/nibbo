@@ -1,6 +1,6 @@
 import { DEFAULT_APP_TIME_ZONE } from "@/lib/kyiv-range";
 
-export const DISPLAY_CURRENCY_CODES = ["UAH", "USD", "EUR"] as const;
+export const DISPLAY_CURRENCY_CODES = ["UAH", "USD", "EUR", "GBP", "JPY"] as const;
 
 export type DisplayCurrencyCode = (typeof DISPLAY_CURRENCY_CODES)[number];
 

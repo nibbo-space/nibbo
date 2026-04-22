@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useState } from "react";
+import { createPortal } from "react-dom";
 import { Loader2, Pencil, Pill, Plus, Trash2, X } from "lucide-react";
 import toast from "react-hot-toast";
 import { cn } from "@/lib/utils";
@@ -372,167 +373,180 @@ export default function MedicationsPageClient() {
         )}
       </div>
 
-      {modalOpen && (
-        <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-3 sm:p-6 bg-black/40">
+      {modalOpen &&
+        typeof document !== "undefined" &&
+        createPortal(
           <div
-            role="dialog"
-            aria-modal
-            className="w-full max-w-lg rounded-3xl border border-warm-100 bg-white shadow-2xl max-h-[90vh] overflow-y-auto"
+            className="fixed inset-0 z-[80] flex items-end justify-center bg-black/40 p-3 backdrop-blur-[1px] sm:items-center sm:p-6"
+            role="presentation"
+            onClick={(e) => {
+              if (e.target === e.currentTarget && !busy) closeModal();
+            }}
           >
-            <div className="sticky top-0 flex items-center justify-between gap-2 border-b border-warm-100 bg-white px-4 py-3 rounded-t-3xl">
-              <h2 className="font-semibold text-warm-900">{editingId ? t.editTitle : t.createTitle}</h2>
-              <button
-                type="button"
-                onClick={closeModal}
-                disabled={busy}
-                className="rounded-xl p-2 text-warm-500 hover:bg-warm-50"
-                aria-label={t.cancel}
-              >
-                <X className="h-5 w-5" />
-              </button>
-            </div>
-            <div className="p-4 space-y-4">
-              <div>
-                <label className="text-xs font-medium text-warm-600">{t.formName}</label>
-                <input
-                  value={form.name}
-                  onChange={(e) => setForm((f) => ({ ...f, name: e.target.value }))}
-                  className="mt-1 w-full rounded-xl border border-warm-200 px-3 py-2 text-sm outline-none focus:border-emerald-400 focus:ring-1 focus:ring-emerald-200"
-                />
-              </div>
-              <div>
-                <label className="text-xs font-medium text-warm-600">{t.formNotes}</label>
-                <textarea
-                  value={form.notes}
-                  onChange={(e) => setForm((f) => ({ ...f, notes: e.target.value }))}
-                  rows={2}
-                  className="mt-1 w-full rounded-xl border border-warm-200 px-3 py-2 text-sm outline-none focus:border-emerald-400 focus:ring-1 focus:ring-emerald-200 resize-none"
-                />
-              </div>
-              <div className="flex gap-2 flex-wrap">
-                <button
-                  type="button"
-                  onClick={() => setForm((f) => ({ ...f, scheduleMode: "DAILY_TIMES" }))}
-                  className={cn(
-                    "rounded-xl px-3 py-2 text-xs font-semibold border transition-colors",
-                    form.scheduleMode === "DAILY_TIMES"
-                      ? "border-emerald-400 bg-emerald-50 text-emerald-900"
-                      : "border-warm-200 bg-warm-50 text-warm-700"
-                  )}
-                >
-                  {t.scheduleDaily}
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setForm((f) => ({ ...f, scheduleMode: "INTERVAL_DAYS" }))}
-                  className={cn(
-                    "rounded-xl px-3 py-2 text-xs font-semibold border transition-colors",
-                    form.scheduleMode === "INTERVAL_DAYS"
-                      ? "border-emerald-400 bg-emerald-50 text-emerald-900"
-                      : "border-warm-200 bg-warm-50 text-warm-700"
-                  )}
-                >
-                  {t.scheduleInterval}
-                </button>
-              </div>
-              {form.scheduleMode === "DAILY_TIMES" ? (
-                <>
-                  <div>
-                    <label className="text-xs font-medium text-warm-600">{t.dailyTimesPlaceholder}</label>
-                    <input
-                      value={form.dailyTimesText}
-                      onChange={(e) => setForm((f) => ({ ...f, dailyTimesText: e.target.value }))}
-                      placeholder={t.dailyTimesPlaceholder}
-                      className="mt-1 w-full rounded-xl border border-warm-200 px-3 py-2 text-sm outline-none focus:border-emerald-400 focus:ring-1 focus:ring-emerald-200"
-                    />
-                    <p className="text-xs text-warm-500 mt-1">{t.dailyTimesHint}</p>
-                  </div>
-                  <div>
-                    <label className="text-xs font-medium text-warm-600">{t.toleranceLabel}</label>
-                    <input
-                      type="number"
-                      min={15}
-                      max={180}
-                      value={form.slotToleranceMin}
-                      onChange={(e) => setForm((f) => ({ ...f, slotToleranceMin: e.target.value }))}
-                      className="mt-1 w-full rounded-xl border border-warm-200 px-3 py-2 text-sm outline-none focus:border-emerald-400 focus:ring-1 focus:ring-emerald-200"
-                    />
-                  </div>
-                </>
-              ) : (
-                <>
-                  <div>
-                    <label className="text-xs font-medium text-warm-600">{t.intervalDaysLabel}</label>
-                    <input
-                      type="number"
-                      min={1}
-                      value={form.intervalDays}
-                      onChange={(e) => setForm((f) => ({ ...f, intervalDays: e.target.value }))}
-                      className="mt-1 w-full rounded-xl border border-warm-200 px-3 py-2 text-sm outline-none focus:border-emerald-400 focus:ring-1 focus:ring-emerald-200"
-                    />
-                  </div>
-                  <div>
-                    <label className="text-xs font-medium text-warm-600">{t.anchorLabel}</label>
-                    <input
-                      type="date"
-                      value={form.intervalAnchorYmd}
-                      onChange={(e) => setForm((f) => ({ ...f, intervalAnchorYmd: e.target.value }))}
-                      className="mt-1 w-full rounded-xl border border-warm-200 px-3 py-2 text-sm outline-none focus:border-emerald-400 focus:ring-1 focus:ring-emerald-200"
-                    />
-                  </div>
-                  <div className="grid grid-cols-2 gap-2">
-                    <div>
-                      <label className="text-xs font-medium text-warm-600">{t.windowFrom}</label>
-                      <input
-                        value={form.intervalWindowStart}
-                        onChange={(e) => setForm((f) => ({ ...f, intervalWindowStart: e.target.value }))}
-                        className="mt-1 w-full rounded-xl border border-warm-200 px-3 py-2 text-sm outline-none focus:border-emerald-400 focus:ring-1 focus:ring-emerald-200"
-                      />
-                    </div>
-                    <div>
-                      <label className="text-xs font-medium text-warm-600">{t.windowTo}</label>
-                      <input
-                        value={form.intervalWindowEnd}
-                        onChange={(e) => setForm((f) => ({ ...f, intervalWindowEnd: e.target.value }))}
-                        className="mt-1 w-full rounded-xl border border-warm-200 px-3 py-2 text-sm outline-none focus:border-emerald-400 focus:ring-1 focus:ring-emerald-200"
-                      />
-                    </div>
-                  </div>
-                  <div>
-                    <label className="text-xs font-medium text-warm-600">{t.toleranceLabel}</label>
-                    <input
-                      type="number"
-                      min={15}
-                      max={180}
-                      value={form.slotToleranceMin}
-                      onChange={(e) => setForm((f) => ({ ...f, slotToleranceMin: e.target.value }))}
-                      className="mt-1 w-full rounded-xl border border-warm-200 px-3 py-2 text-sm outline-none focus:border-emerald-400 focus:ring-1 focus:ring-emerald-200"
-                    />
-                  </div>
-                </>
-              )}
-              <div className="flex gap-2 pt-2">
+            <div
+              role="dialog"
+              aria-modal
+              aria-labelledby="med-modal-title"
+              className="w-full max-w-lg max-h-[min(90dvh,720px)] overflow-y-auto overscroll-contain rounded-3xl border border-warm-100 bg-white shadow-2xl"
+              onClick={(e) => e.stopPropagation()}
+            >
+              <div className="sticky top-0 z-10 flex items-center justify-between gap-2 rounded-t-3xl border-b border-warm-100 bg-white px-4 py-3">
+                <h2 id="med-modal-title" className="font-semibold text-warm-900">
+                  {editingId ? t.editTitle : t.createTitle}
+                </h2>
                 <button
                   type="button"
                   onClick={closeModal}
                   disabled={busy}
-                  className="flex-1 rounded-2xl border border-warm-200 py-2.5 text-sm font-semibold text-warm-700 hover:bg-warm-50"
+                  className="rounded-xl p-2 text-warm-500 hover:bg-warm-50"
+                  aria-label={t.cancel}
                 >
-                  {t.cancel}
-                </button>
-                <button
-                  type="button"
-                  onClick={() => void save()}
-                  disabled={busy}
-                  className="flex-1 rounded-2xl bg-emerald-600 py-2.5 text-sm font-semibold text-white hover:bg-emerald-700 disabled:opacity-60"
-                >
-                  {busy ? "…" : t.save}
+                  <X className="h-5 w-5" />
                 </button>
               </div>
+              <div className="space-y-4 p-4">
+                <div>
+                  <label className="text-xs font-medium text-warm-600">{t.formName}</label>
+                  <input
+                    value={form.name}
+                    onChange={(e) => setForm((f) => ({ ...f, name: e.target.value }))}
+                    className="mt-1 w-full rounded-xl border border-warm-200 px-3 py-2 text-sm outline-none focus:border-emerald-400 focus:ring-1 focus:ring-emerald-200"
+                  />
+                </div>
+                <div>
+                  <label className="text-xs font-medium text-warm-600">{t.formNotes}</label>
+                  <textarea
+                    value={form.notes}
+                    onChange={(e) => setForm((f) => ({ ...f, notes: e.target.value }))}
+                    rows={2}
+                    className="mt-1 w-full resize-none rounded-xl border border-warm-200 px-3 py-2 text-sm outline-none focus:border-emerald-400 focus:ring-1 focus:ring-emerald-200"
+                  />
+                </div>
+                <div className="flex flex-wrap gap-2">
+                  <button
+                    type="button"
+                    onClick={() => setForm((f) => ({ ...f, scheduleMode: "DAILY_TIMES" }))}
+                    className={cn(
+                      "rounded-xl border px-3 py-2 text-xs font-semibold transition-colors",
+                      form.scheduleMode === "DAILY_TIMES"
+                        ? "border-emerald-400 bg-emerald-50 text-emerald-900"
+                        : "border-warm-200 bg-warm-50 text-warm-700"
+                    )}
+                  >
+                    {t.scheduleDaily}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setForm((f) => ({ ...f, scheduleMode: "INTERVAL_DAYS" }))}
+                    className={cn(
+                      "rounded-xl border px-3 py-2 text-xs font-semibold transition-colors",
+                      form.scheduleMode === "INTERVAL_DAYS"
+                        ? "border-emerald-400 bg-emerald-50 text-emerald-900"
+                        : "border-warm-200 bg-warm-50 text-warm-700"
+                    )}
+                  >
+                    {t.scheduleInterval}
+                  </button>
+                </div>
+                {form.scheduleMode === "DAILY_TIMES" ? (
+                  <>
+                    <div>
+                      <label className="text-xs font-medium text-warm-600">{t.dailyTimesPlaceholder}</label>
+                      <input
+                        value={form.dailyTimesText}
+                        onChange={(e) => setForm((f) => ({ ...f, dailyTimesText: e.target.value }))}
+                        placeholder={t.dailyTimesPlaceholder}
+                        className="mt-1 w-full rounded-xl border border-warm-200 px-3 py-2 text-sm outline-none focus:border-emerald-400 focus:ring-1 focus:ring-emerald-200"
+                      />
+                      <p className="mt-1 text-xs text-warm-500">{t.dailyTimesHint}</p>
+                    </div>
+                    <div>
+                      <label className="text-xs font-medium text-warm-600">{t.toleranceLabel}</label>
+                      <input
+                        type="number"
+                        min={15}
+                        max={180}
+                        value={form.slotToleranceMin}
+                        onChange={(e) => setForm((f) => ({ ...f, slotToleranceMin: e.target.value }))}
+                        className="mt-1 w-full rounded-xl border border-warm-200 px-3 py-2 text-sm outline-none focus:border-emerald-400 focus:ring-1 focus:ring-emerald-200"
+                      />
+                    </div>
+                  </>
+                ) : (
+                  <>
+                    <div>
+                      <label className="text-xs font-medium text-warm-600">{t.intervalDaysLabel}</label>
+                      <input
+                        type="number"
+                        min={1}
+                        value={form.intervalDays}
+                        onChange={(e) => setForm((f) => ({ ...f, intervalDays: e.target.value }))}
+                        className="mt-1 w-full rounded-xl border border-warm-200 px-3 py-2 text-sm outline-none focus:border-emerald-400 focus:ring-1 focus:ring-emerald-200"
+                      />
+                    </div>
+                    <div>
+                      <label className="text-xs font-medium text-warm-600">{t.anchorLabel}</label>
+                      <input
+                        type="date"
+                        value={form.intervalAnchorYmd}
+                        onChange={(e) => setForm((f) => ({ ...f, intervalAnchorYmd: e.target.value }))}
+                        className="mt-1 w-full rounded-xl border border-warm-200 px-3 py-2 text-sm outline-none focus:border-emerald-400 focus:ring-1 focus:ring-emerald-200"
+                      />
+                    </div>
+                    <div className="grid grid-cols-2 gap-2">
+                      <div>
+                        <label className="text-xs font-medium text-warm-600">{t.windowFrom}</label>
+                        <input
+                          value={form.intervalWindowStart}
+                          onChange={(e) => setForm((f) => ({ ...f, intervalWindowStart: e.target.value }))}
+                          className="mt-1 w-full rounded-xl border border-warm-200 px-3 py-2 text-sm outline-none focus:border-emerald-400 focus:ring-1 focus:ring-emerald-200"
+                        />
+                      </div>
+                      <div>
+                        <label className="text-xs font-medium text-warm-600">{t.windowTo}</label>
+                        <input
+                          value={form.intervalWindowEnd}
+                          onChange={(e) => setForm((f) => ({ ...f, intervalWindowEnd: e.target.value }))}
+                          className="mt-1 w-full rounded-xl border border-warm-200 px-3 py-2 text-sm outline-none focus:border-emerald-400 focus:ring-1 focus:ring-emerald-200"
+                        />
+                      </div>
+                    </div>
+                    <div>
+                      <label className="text-xs font-medium text-warm-600">{t.toleranceLabel}</label>
+                      <input
+                        type="number"
+                        min={15}
+                        max={180}
+                        value={form.slotToleranceMin}
+                        onChange={(e) => setForm((f) => ({ ...f, slotToleranceMin: e.target.value }))}
+                        className="mt-1 w-full rounded-xl border border-warm-200 px-3 py-2 text-sm outline-none focus:border-emerald-400 focus:ring-1 focus:ring-emerald-200"
+                      />
+                    </div>
+                  </>
+                )}
+                <div className="flex gap-2 pt-2">
+                  <button
+                    type="button"
+                    onClick={closeModal}
+                    disabled={busy}
+                    className="flex-1 rounded-2xl border border-warm-200 py-2.5 text-sm font-semibold text-warm-700 hover:bg-warm-50"
+                  >
+                    {t.cancel}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => void save()}
+                    disabled={busy}
+                    className="flex-1 rounded-2xl bg-emerald-600 py-2.5 text-sm font-semibold text-white hover:bg-emerald-700 disabled:opacity-60"
+                  >
+                    {busy ? "…" : t.save}
+                  </button>
+                </div>
+              </div>
             </div>
-          </div>
-        </div>
-      )}
+          </div>,
+          document.body
+        )}
     </div>
   );
 }

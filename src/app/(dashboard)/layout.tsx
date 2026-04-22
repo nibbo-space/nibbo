@@ -8,7 +8,10 @@ import { AchievementUnlockProvider } from "@/components/achievements/Achievement
 import { AssistantBuddyProvider } from "@/components/shared/AssistantBuddyProvider";
 import { FocusModeProvider } from "@/components/shared/FocusModeProvider";
 import { UserPreferencesProvider } from "@/components/shared/UserPreferencesProvider";
-import { auth } from "@/lib/auth";
+import ConsumeFamilyInviteClient from "@/components/family/ConsumeFamilyInviteClient";
+import { auth, signOut } from "@/lib/auth";
+import { loadCredentialGate } from "@/lib/credential-guard";
+import { applyFamilyInviteCookieIfPresent } from "@/lib/family-invite";
 import { prisma } from "@/lib/prisma";
 import { redirect } from "next/navigation";
 
@@ -19,6 +22,14 @@ export default async function DashboardLayout({
 }) {
   const session = await auth();
   if (!session?.user?.id) redirect("/login");
+  const gate = await loadCredentialGate(session.user.id);
+  if (!gate) {
+    await signOut({ redirectTo: "/login" });
+  } else if (gate.credentialExpired) {
+    redirect("/api/auth/incomplete-expired");
+  } else if (gate.mustSetPassword) {
+    redirect("/onboarding/account-setup");
+  }
   let user: {
     id: string;
     name: string | null;
@@ -82,6 +93,19 @@ export default async function DashboardLayout({
   }
   if (!user) redirect("/login");
 
+  if (user.email) {
+    const applied = await applyFamilyInviteCookieIfPresent(session.user.id, user.email);
+    if (applied) {
+      const next = await prisma.user.findUnique({
+        where: { id: session.user.id },
+        select: { familyId: true, familyRole: true },
+      });
+      if (next) {
+        user = { ...user, familyId: next.familyId, familyRole: next.familyRole };
+      }
+    }
+  }
+
   let disabledAppModules: string[] = [];
   let modulesSetupCompletedAt: Date | null = null;
   if (user.familyId) {
@@ -109,6 +133,7 @@ export default async function DashboardLayout({
 
   return (
     <div className="flex min-h-dvh flex-col bg-cream-50 md:h-screen md:flex-row md:overflow-hidden">
+      <ConsumeFamilyInviteClient />
       <UserPreferencesProvider
         displayCurrency={user.displayCurrency}
         timeZone={user.timeZone}

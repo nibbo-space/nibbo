@@ -35,6 +35,7 @@ export default async function ProfilePage() {
       personalApiEnabled: true,
       ollamaApiKeyEnc: true,
       ollamaModel: true,
+      passwordHash: true,
     },
   });
   if (!row) redirect("/login");
@@ -51,6 +52,7 @@ export default async function ProfilePage() {
     personalApiEnabled: row.personalApiEnabled,
     ollamaKeyConfigured: Boolean(row.ollamaApiKeyEnc),
     ollamaModel: row.ollamaModel,
+    canChangePassword: Boolean(row.passwordHash),
   };
   return <ProfileSettingsForm initialUser={initialUser} />;
 }

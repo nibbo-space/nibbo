@@ -1,5 +1,6 @@
 import OnboardingNiboClient from "@/components/onboarding/OnboardingNiboClient";
 import { auth } from "@/lib/auth";
+import { loadCredentialGate } from "@/lib/credential-guard";
 import { ensureUserFamily } from "@/lib/family";
 import { prisma } from "@/lib/prisma";
 import { redirect } from "next/navigation";
@@ -7,6 +8,10 @@ import { redirect } from "next/navigation";
 export default async function OnboardingNiboPage() {
   const session = await auth();
   if (!session?.user?.id) redirect("/login");
+  const gate = await loadCredentialGate(session.user.id);
+  if (!gate) redirect("/login");
+  if (gate.credentialExpired) redirect("/api/auth/incomplete-expired");
+  if (gate.mustSetPassword) redirect("/onboarding/account-setup");
   const familyId = await ensureUserFamily(session.user.id);
   if (!familyId) redirect("/login");
 

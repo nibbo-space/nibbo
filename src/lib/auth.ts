@@ -1,7 +1,8 @@
 import { PrismaAdapter } from "@auth/prisma-adapter";
 import { randomUUID } from "crypto";
 import NextAuth from "next-auth";
-import GoogleProvider from "next-auth/providers/google";
+import { deriveCredentialGate, hasEmailMagicProvider } from "@/lib/auth-gate";
+import { buildProviders } from "@/lib/auth-providers";
 import { ensureUserFamily } from "./family";
 import { prisma } from "./prisma";
 
@@ -15,14 +16,22 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
   trustHost: true,
   secret: process.env.AUTH_SECRET || process.env.NEXTAUTH_SECRET,
   session: { strategy: "jwt" },
-  providers: [
-    GoogleProvider({
-      clientId: process.env.GOOGLE_CLIENT_ID!,
-      clientSecret: process.env.GOOGLE_CLIENT_SECRET!,
-    }),
-  ],
+  providers: buildProviders(),
   callbacks: {
-    async signIn() {
+    async signIn({ user, account }) {
+      if (user?.id && account?.provider && hasEmailMagicProvider([account.provider])) {
+        const row = await prisma.user.findUnique({
+          where: { id: user.id },
+          select: { passwordHash: true, credentialSetupDeadline: true },
+        });
+        if (row && !row.passwordHash && !row.credentialSetupDeadline) {
+          const hours = Number.parseInt(process.env.CREDENTIAL_SETUP_DEADLINE_HOURS || "24", 10);
+          await prisma.user.update({
+            where: { id: user.id },
+            data: { credentialSetupDeadline: new Date(Date.now() + hours * 60 * 60 * 1000) },
+          });
+        }
+      }
       return true;
     },
     async jwt({ token, user }) {
@@ -33,8 +42,8 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
         token.picture = user.image;
       }
       const isEdgeRuntime =
-        typeof (globalThis as { EdgeRuntime?: string }).EdgeRuntime ===
-          "string" || process.env.NEXT_RUNTIME === "edge";
+        typeof (globalThis as { EdgeRuntime?: string }).EdgeRuntime === "string" ||
+        process.env.NEXT_RUNTIME === "edge";
       if (isEdgeRuntime) {
         return token;
       }
@@ -58,15 +67,36 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
         SELECT "id" FROM "Admin" WHERE "userId" = ${userId} LIMIT 1
       `;
       token.isAdmin = adminRows.length > 0;
-      const prefs = await prisma.user.findUnique({
+      const row = await prisma.user.findUnique({
         where: { id: userId },
-        select: { displayCurrency: true, timeZone: true },
+        select: {
+          name: true,
+          displayCurrency: true,
+          timeZone: true,
+          passwordHash: true,
+          credentialSetupDeadline: true,
+          familyId: true,
+          accounts: { select: { provider: true } },
+        },
       });
-      token.displayCurrency = prefs?.displayCurrency ?? "USD";
-      token.timeZone = prefs?.timeZone ?? "Europe/Kyiv";
-      if (!user && token.familyId) return token;
-      let familyId = await ensureUserFamily(userId);
-      token.familyId = familyId ?? null;
+      if (row?.name != null && String(row.name).trim() !== "") {
+        token.name = row.name;
+      }
+      token.displayCurrency = row?.displayCurrency ?? "USD";
+      token.timeZone = row?.timeZone ?? "Europe/Kyiv";
+      const gate = deriveCredentialGate({
+        passwordHash: row?.passwordHash ?? null,
+        credentialSetupDeadline: row?.credentialSetupDeadline ?? null,
+        accounts: row?.accounts ?? [],
+      });
+      token.mustSetPassword = gate.mustSetPassword;
+      token.credentialExpired = gate.credentialExpired;
+      if (!gate.mustSetPassword) {
+        const familyId = await ensureUserFamily(userId);
+        token.familyId = familyId ?? null;
+      } else {
+        token.familyId = row?.familyId ?? null;
+      }
       return token;
     },
     session({ session, token }) {
@@ -75,20 +105,21 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
         ...(prev ?? {}),
         id: String(token.id ?? token.sub ?? ""),
         name: (token.name as string | null | undefined) ?? prev?.name ?? null,
-        email:
-          (typeof token.email === "string" ? token.email : prev?.email) ?? "",
-        image:
-          (token.picture as string | null | undefined) ?? prev?.image ?? null,
+        email: (typeof token.email === "string" ? token.email : prev?.email) ?? "",
+        image: (token.picture as string | null | undefined) ?? prev?.image ?? null,
         emailVerified: prev?.emailVerified ?? null,
         familyId: (token.familyId as string | null | undefined) ?? null,
         isAdmin: Boolean(token.isAdmin),
         displayCurrency: (token.displayCurrency as string | undefined) ?? "USD",
         timeZone: (token.timeZone as string | undefined) ?? "Europe/Kyiv",
+        mustSetPassword: Boolean(token.mustSetPassword),
+        credentialExpired: Boolean(token.credentialExpired),
       };
       return session;
     },
   },
   pages: {
     signIn: "/login",
+    verifyRequest: "/auth/verify-request",
   },
 });
