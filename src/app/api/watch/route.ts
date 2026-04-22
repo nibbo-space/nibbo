@@ -5,11 +5,12 @@ import { APP_LANGUAGE_COOKIE_KEY } from "@/lib/i18n";
 import { resolveUiLanguageFromRequest } from "@/lib/languages";
 import { prisma } from "@/lib/prisma";
 import { getTmdbApiKey, tmdbFetchDetails, tmdbLanguageFromAppCode } from "@/lib/tmdb";
+import { localizeTmdbWatchRows } from "@/lib/watch-tmdb-locale";
 import { NextRequest, NextResponse } from "next/server";
 
 const watchUserSelect = { id: true, name: true, image: true, color: true, emoji: true } as const;
 
-export async function GET() {
+export async function GET(req: NextRequest) {
   const session = await auth();
   if (!session?.user?.id) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   const familyId = await ensureUserFamily(session.user.id);
@@ -29,7 +30,19 @@ export async function GET() {
     }),
   ]);
 
-  return NextResponse.json({ active, history });
+  const { language } = await resolveUiLanguageFromRequest(
+    req.cookies.get(APP_LANGUAGE_COOKIE_KEY)?.value,
+    req.headers.get("accept-language")
+  );
+  const tmdbLang = tmdbLanguageFromAppCode(language);
+  if (!getTmdbApiKey()) {
+    return NextResponse.json({ active, history });
+  }
+  const [activeL, historyL] = await Promise.all([
+    localizeTmdbWatchRows(active, tmdbLang),
+    localizeTmdbWatchRows(history, tmdbLang),
+  ]);
+  return NextResponse.json({ active: activeL, history: historyL });
 }
 
 export async function POST(req: NextRequest) {
