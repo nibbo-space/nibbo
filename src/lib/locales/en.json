@@ -253,7 +253,10 @@
   },
   "header": {
     "friendFallback": "friend",
-    "logoutTitle": "Sign out"
+    "logoutTitle": "Sign out",
+    "greetingMorning": "Good morning",
+    "greetingAfternoon": "Good afternoon",
+    "greetingEvening": "Good evening"
   },
   "notificationBell": {
     "title": "Assignments",
@@ -465,7 +468,25 @@
     "storyExpandTitle": "The three pillars, in full",
     "footerCtaEyebrow": "Step into Nibbo",
     "footerCtaSupport": "Tasks, calendar, and lists on one screen—away from noisy chats.",
-    "footerBrandLine": "A cozy CRM for the whole household"
+    "footerBrandLine": "A cozy CRM for the whole household",
+    "leaderboardEyebrow": "✧ LEADERBOARD ✧",
+    "leaderboardTitle": "See how families play together",
+    "leaderboardLead": "Complete tasks, earn XP, climb the leaderboard. These are example families — yours could be here too.",
+    "leaderboardTasksDone": "{count} tasks done",
+    "leaderboardXpShort": "XP",
+    "leaderboardStatAlwaysFree": "Always free",
+    "leaderboardStatModules": "Modules included",
+    "leaderboardStatOpenBeta": "Open beta",
+    "leaderboardDemoNames": [
+      "The Mitchell Family",
+      "The Johnson Family",
+      "The Rodriguez Family",
+      "The Kim Family",
+      "The Thompson Family"
+    ],
+    "trustLine": "✦ Free forever · No credit card · All features included",
+    "nibbyIntroBadgeFree": "Free forever",
+    "nibbyIntroBadgeAllFeatures": "All features included"
   },
   "profile": {
     "userFallback": "User",
@@ -483,6 +504,18 @@
     "ollamaModelLabel": "Cloud model",
     "ollamaClearKey": "Remove key",
     "ollamaClearConfirm": "Remove the saved Ollama key? The assistant chat will turn off.",
+    "ollamaKeySaved": "Key is saved",
+    "ollamaModels": {
+      "gpt-oss:20b-cloud": "gpt-oss 20B (cloud)",
+      "gemini-3-flash-preview:cloud": "Gemini 3 Flash (cloud)",
+      "ministral-3:3b-cloud": "Ministral 3 3B (cloud)",
+      "ministral-3:8b-cloud": "Ministral 3 8B (cloud)",
+      "ministral-3:14b-cloud": "Ministral 3 14B (cloud)",
+      "qwen3.5:cloud": "Qwen 3.5 (cloud)",
+      "gpt-oss:120b-cloud": "gpt-oss 120B (cloud)",
+      "qwen3-coder:480b-cloud": "Qwen3 Coder 480B (cloud)",
+      "deepseek-v3.1:671b-cloud": "DeepSeek V3.1 671B (cloud)"
+    },
     "title": "Profile",
     "uploadPhoto": "Upload photo",
     "namePlaceholder": "Name",

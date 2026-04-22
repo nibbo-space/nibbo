@@ -1,5 +1,16 @@
 const TMDB_BASE = "https://api.themoviedb.org/3";
 
+const TMDB_LANG_BY_APP: Record<string, string> = {
+  uk: "uk-UA",
+  en: "en-US",
+  ja: "ja-JP",
+};
+
+export function tmdbLanguageFromAppCode(code: string | null | undefined) {
+  const c = (code || "en").trim().toLowerCase();
+  return TMDB_LANG_BY_APP[c] ?? "en-US";
+}
+
 export function tmdbPosterUrl(posterPath: string | null, size: "w185" | "w342" | "w500" = "w342") {
   if (!posterPath) return null;
   return `https://image.tmdb.org/t/p/${size}${posterPath}`;
@@ -38,13 +49,13 @@ function yearFromDate(d: string | undefined) {
   return d.slice(0, 4);
 }
 
-export async function tmdbSearch(query: string): Promise<WatchSearchHit[]> {
+export async function tmdbSearch(query: string, tmdbLanguage: string): Promise<WatchSearchHit[]> {
   const key = getTmdbApiKey();
   if (!key || query.trim().length < 2) return [];
   const url = new URL(`${TMDB_BASE}/search/multi`);
   url.searchParams.set("api_key", key);
   url.searchParams.set("query", query.trim());
-  url.searchParams.set("language", "uk-UA");
+  url.searchParams.set("language", tmdbLanguage || "en-US");
   const res = await fetch(url.toString(), { next: { revalidate: 0 } });
   if (!res.ok) return [];
   const data = (await res.json()) as TmdbSearchResponse;
@@ -73,11 +84,16 @@ export async function tmdbSearch(query: string): Promise<WatchSearchHit[]> {
   return out;
 }
 
-export async function tmdbFetchDetails(mediaType: "MOVIE" | "TV", externalId: string) {
+export async function tmdbFetchDetails(
+  mediaType: "MOVIE" | "TV",
+  externalId: string,
+  tmdbLanguage: string
+) {
   const key = getTmdbApiKey();
   if (!key) return null;
   const path = mediaType === "MOVIE" ? `movie/${externalId}` : `tv/${externalId}`;
-  const url = `${TMDB_BASE}/${path}?api_key=${encodeURIComponent(key)}&language=uk-UA`;
+  const lang = encodeURIComponent(tmdbLanguage || "en-US");
+  const url = `${TMDB_BASE}/${path}?api_key=${encodeURIComponent(key)}&language=${lang}`;
   const res = await fetch(url, { next: { revalidate: 3600 } });
   if (!res.ok) return null;
   if (mediaType === "MOVIE") {

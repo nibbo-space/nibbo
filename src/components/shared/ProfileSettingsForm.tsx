@@ -582,9 +582,7 @@ export default function ProfileSettingsForm({ initialUser }: ProfileSettingsForm
               className="w-full rounded-xl border border-warm-200 bg-warm-50 px-3 py-2 text-sm text-warm-800 outline-none focus:border-rose-300"
             />
             {user.ollamaKeyConfigured ? (
-              <p className="text-[11px] text-sage-600">
-                {messageLocale(language) === "en" ? "Key is saved" : "Ключ збережено"}
-              </p>
+              <p className="text-[11px] text-sage-600">{t.ollamaKeySaved}</p>
             ) : null}
           </div>
           <div className="space-y-1">
@@ -596,7 +594,7 @@ export default function ProfileSettingsForm({ initialUser }: ProfileSettingsForm
             >
               {OLLAMA_ASSISTANT_MODEL_OPTIONS.map((opt) => (
                 <option key={opt.id} value={opt.id}>
-                  {messageLocale(language) === "en" ? opt.labelEn : opt.labelUk}
+                  {(t.ollamaModels as Record<string, string>)[opt.id] ?? opt.id}
                 </option>
               ))}
             </select>

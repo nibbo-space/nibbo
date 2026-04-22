@@ -125,7 +125,7 @@ export function LandingHero({ nibbyDriveRef }: { nibbyDriveRef: React.MutableRef
             transition={{ duration: 0.4, delay: reduced ? 0 : 0.3 }}
             className="mt-4 text-xs font-semibold text-warm-400"
           >
-            ✦ Free forever · No credit card · All features included
+            {t.trustLine}
           </motion.p>
         </div>
 

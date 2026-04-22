@@ -253,7 +253,10 @@
   },
   "header": {
     "friendFallback": "друже",
-    "logoutTitle": "Вийти"
+    "logoutTitle": "Вийти",
+    "greetingMorning": "Доброго ранку",
+    "greetingAfternoon": "Доброго дня",
+    "greetingEvening": "Доброго вечора"
   },
   "notificationBell": {
     "title": "Призначення",
@@ -465,7 +468,25 @@
     "storyExpandTitle": "Три опори — повністю",
     "footerCtaEyebrow": "Перехід у дім Nibbo",
     "footerCtaSupport": "Задачі, календар і списки на одному екрані — без стрічки чатів.",
-    "footerBrandLine": "Затишна CRM для всієї родини"
+    "footerBrandLine": "Затишна CRM для всієї родини",
+    "leaderboardEyebrow": "✧ РЕЙТИНГ ✧",
+    "leaderboardTitle": "Подивись, як родини грають разом",
+    "leaderboardLead": "Закривайте задачі, заробляйте XP, піднімайтесь у рейтингу. Це приклади родин — і ваша може бути тут.",
+    "leaderboardTasksDone": "{count} задач зроблено",
+    "leaderboardXpShort": "XP",
+    "leaderboardStatAlwaysFree": "Завжди безкоштовно",
+    "leaderboardStatModules": "Модулів у наборі",
+    "leaderboardStatOpenBeta": "Відкрита бета",
+    "leaderboardDemoNames": [
+      "Родина Мітчелл",
+      "Родина Джонсон",
+      "Родина Родрігес",
+      "Родина Кім",
+      "Родина Томпсон"
+    ],
+    "trustLine": "✦ Безкоштовно назавжди · Без картки · Усі функції вже всередині",
+    "nibbyIntroBadgeFree": "Безкоштовно назавжди",
+    "nibbyIntroBadgeAllFeatures": "Усі функції включено"
   },
   "profile": {
     "userFallback": "User",
@@ -483,6 +504,18 @@
     "ollamaModelLabel": "Хмарна модель",
     "ollamaClearKey": "Прибрати ключ",
     "ollamaClearConfirm": "Прибрати збережений ключ Ollama? Чат помічника зникне.",
+    "ollamaKeySaved": "Ключ збережено",
+    "ollamaModels": {
+      "gpt-oss:20b-cloud": "gpt-oss 20B (хмара)",
+      "gemini-3-flash-preview:cloud": "Gemini 3 Flash (хмара)",
+      "ministral-3:3b-cloud": "Ministral 3 3B (хмара)",
+      "ministral-3:8b-cloud": "Ministral 3 8B (хмара)",
+      "ministral-3:14b-cloud": "Ministral 3 14B (хмара)",
+      "qwen3.5:cloud": "Qwen 3.5 (хмара)",
+      "gpt-oss:120b-cloud": "gpt-oss 120B (хмара)",
+      "qwen3-coder:480b-cloud": "Qwen3 Coder 480B (хмара)",
+      "deepseek-v3.1:671b-cloud": "DeepSeek V3.1 671B (хмара)"
+    },
     "title": "Профіль",
     "uploadPhoto": "Завантажити фото",
     "namePlaceholder": "Ім'я",

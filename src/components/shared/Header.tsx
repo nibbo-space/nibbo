@@ -57,19 +57,9 @@ export default function Header({ user: u, initialPoints, isAdmin = false }: Head
       timeZone: tz,
     }).format(now)
   );
-  const ml = messageLocale(language);
+  const th = t.header;
   const greeting =
-    ml === "en"
-      ? hour < 12
-        ? "Good morning"
-        : hour < 18
-          ? "Good afternoon"
-          : "Good evening"
-      : hour < 12
-        ? "Доброго ранку"
-        : hour < 18
-          ? "Доброго дня"
-          : "Доброго вечора";
+    hour < 12 ? th.greetingMorning : hour < 18 ? th.greetingAfternoon : th.greetingEvening;
   const dateLabel = new Intl.DateTimeFormat(intlLocaleForUi(language), {
     day: "numeric",
     month: "long",

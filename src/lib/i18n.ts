@@ -7,6 +7,7 @@ import {
   ACHIEVEMENT_BADGE_HINTS_UK,
 } from "@/lib/achievements/badge-i18n";
 import enRaw from "@/lib/locales/en.json";
+import jaRaw from "@/lib/locales/ja.json";
 import ukRaw from "@/lib/locales/uk.json";
 
 export type AppLanguage = string;
@@ -16,11 +17,11 @@ export const APP_LANGUAGE_COOKIE_KEY = "nibbo_language";
 
 export type UiLocaleOption = { code: string; name: string };
 
-const BUNDLED_MESSAGE_KEYS = new Set(["uk", "en"]);
+const BUNDLED_MESSAGE_KEYS = new Set(["uk", "en", "ja"]);
 
-export function messageLocale(code: string): "uk" | "en" {
+export function messageLocale(code: string): "uk" | "en" | "ja" {
   const c = code.trim().toLowerCase();
-  if (BUNDLED_MESSAGE_KEYS.has(c)) return c as "uk" | "en";
+  if (BUNDLED_MESSAGE_KEYS.has(c)) return c as "uk" | "en" | "ja";
   return "en";
 }
 
@@ -28,6 +29,7 @@ export function intlLocaleForUi(code: string): string {
   const c = code.trim().toLowerCase();
   if (c === "uk") return "uk-UA";
   if (c === "en") return "en-US";
+  if (c === "ja") return "ja-JP";
   try {
     return new Intl.Locale(c).maximize().toString();
   } catch {
@@ -97,6 +99,7 @@ function mergeAchievements(
 export const I18N = {
   uk: mergeAchievements(ukRaw, ACHIEVEMENT_BADGES_UK, ACHIEVEMENT_BADGE_HINTS_UK, ACHIEVEMENT_BADGE_DESCRIPTIONS_UK),
   en: mergeAchievements(enRaw as Messages, ACHIEVEMENT_BADGES_EN, ACHIEVEMENT_BADGE_HINTS_EN, ACHIEVEMENT_BADGE_DESCRIPTIONS_EN),
+  ja: mergeAchievements(jaRaw as Messages, {}, {}, {}),
 } as const;
 
 export type AppMessages = (typeof I18N)["uk"];

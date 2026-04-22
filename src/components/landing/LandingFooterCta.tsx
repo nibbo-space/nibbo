@@ -70,7 +70,7 @@ export function LandingFooterCta() {
           </motion.div>
 
           <p className="text-xs font-semibold text-warm-400">
-            ✦ Free forever · No credit card · All features included
+            {t.trustLine}
           </p>
         </div>
       </div>

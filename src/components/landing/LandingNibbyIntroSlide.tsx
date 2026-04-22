@@ -78,11 +78,11 @@ export function LandingNibbyIntroSlide() {
             <div className="mt-6 flex flex-wrap gap-3">
               <span className="inline-flex items-center gap-2 rounded-full border-2 border-emerald-200/90 bg-emerald-50 px-4 py-2 text-sm font-extrabold text-emerald-700 shadow-sm">
                 <Gift className="h-4 w-4" strokeWidth={2.5} />
-                Free forever
+                {t.nibbyIntroBadgeFree}
               </span>
               <span className="inline-flex items-center gap-2 rounded-full border-2 border-lavender-200/90 bg-lavender-50 px-4 py-2 text-sm font-extrabold text-lavender-700 shadow-sm">
                 <Star className="h-4 w-4" strokeWidth={2.5} />
-                All features included
+                {t.nibbyIntroBadgeAllFeatures}
               </span>
             </div>
           </div>
