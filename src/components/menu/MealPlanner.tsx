@@ -6,7 +6,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { format, addDays, startOfWeek } from "date-fns";
 import { uk, enUS } from "date-fns/locale";
 import Link from "next/link";
-import { Plus, X, Copy, ClipboardList, ImagePlus, Pencil, Trash2, Eye, UtensilsCrossed, CalendarDays, BookOpen, Store, Flame, Users, ChefHat } from "lucide-react";
+import { Plus, X, Copy, ClipboardList, ImagePlus, Pencil, Trash2, Eye, UtensilsCrossed, CalendarDays, BookOpen, Flame, Users, ChefHat } from "lucide-react";
 import { DEFAULT_RECIPE_EMOJI, MEAL_TYPE_CONFIG, displayEmojiToken, normalizeProfileEmoji } from "@/lib/utils";
 import toast from "react-hot-toast";
 import { createPortal } from "react-dom";
@@ -41,19 +41,6 @@ interface Recipe {
   category: string;
   ingredients: Ingredient[];
 }
-interface MarketRecipe {
-  id: string;
-  name: string;
-  description: string | null;
-  emoji: string;
-  imageUrl: string | null;
-  prepTime: number | null;
-  cookTime: number | null;
-  calories: number | null;
-  servings: number;
-  category: string;
-  ingredients: Ingredient[];
-}
 interface MealPlan {
   id: string;
   date: string;
@@ -67,14 +54,13 @@ interface MealPlan {
 
 interface MealPlannerProps {
   initialRecipes: Recipe[];
-  initialMarketRecipes: MarketRecipe[];
   initialMealPlans: MealPlan[];
   users: User[];
   currentUserId: string;
   isAdmin: boolean;
 }
 
-type Tab = "planner" | "recipes" | "market";
+type Tab = "planner" | "recipes";
 type RecipeForm = {
   name: string;
   description: string;
@@ -135,14 +121,13 @@ function AnimatedRecipeImage({
   );
 }
 
-export default function MealPlanner({ initialRecipes, initialMarketRecipes, initialMealPlans, users, currentUserId, isAdmin }: MealPlannerProps) {
+export default function MealPlanner({ initialRecipes, initialMealPlans, users, currentUserId, isAdmin }: MealPlannerProps) {
   const { language } = useAppLanguage();
   const ml = messageLocale(language);
   const t = I18N[ml].mealPlanner;
   const dateLocale = ml === "uk" ? uk : enUS;
   const [tab, setTab] = useState<Tab>("planner");
   const [recipes, setRecipes] = useState(initialRecipes);
-  const [marketRecipes, setMarketRecipes] = useState(initialMarketRecipes);
   const [mealPlans, setMealPlans] = useState(initialMealPlans);
   const [weekStart, setWeekStart] = useState(() => {
     const d = startOfWeek(new Date(), { weekStartsOn: 1 });
@@ -165,8 +150,7 @@ export default function MealPlanner({ initialRecipes, initialMarketRecipes, init
   const [editingRecipeId, setEditingRecipeId] = useState<string | null>(null);
   const [editInitialImageUrl, setEditInitialImageUrl] = useState<string | null>(null);
   const [viewRecipe, setViewRecipe] = useState<Recipe | null>(null);
-  const [viewRecipeSource, setViewRecipeSource] = useState<"recipes" | "market">("recipes");
-  const [marketLoadingId, setMarketLoadingId] = useState<string | null>(null);
+  const [publishMarketLoadingId, setPublishMarketLoadingId] = useState<string | null>(null);
   const [newRecipe, setNewRecipe] = useState<RecipeForm>({
     name: "", description: "", emoji: DEFAULT_RECIPE_EMOJI, category: t.categories[1] ?? "",
     prepTime: "", cookTime: "", calories: "", servings: "4",
@@ -230,7 +214,6 @@ export default function MealPlanner({ initialRecipes, initialMarketRecipes, init
 
   const openEditFromView = () => {
     if (!viewRecipe) return;
-    if (viewRecipeSource === "market") return;
     const r = viewRecipe;
     setViewRecipe(null);
     openEditRecipe(r);
@@ -433,7 +416,7 @@ export default function MealPlanner({ initialRecipes, initialMarketRecipes, init
   };
 
   const handlePublishToMarket = async (recipe: Recipe) => {
-    setMarketLoadingId(recipe.id);
+    setPublishMarketLoadingId(recipe.id);
     try {
       const res = await fetch("/api/recipe-market", {
         method: "POST",
@@ -444,46 +427,9 @@ export default function MealPlanner({ initialRecipes, initialMarketRecipes, init
         toast.error(t.marketAddFailed);
         return;
       }
-      const created = await res.json();
-      setMarketRecipes((prev) => [created, ...prev]);
       toast.success(t.marketAdded);
     } finally {
-      setMarketLoadingId(null);
-    }
-  };
-
-  const handleImportFromMarket = async (marketId: string) => {
-    setMarketLoadingId(marketId);
-    try {
-      const res = await fetch("/api/recipe-market", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ type: "import", marketRecipeId: marketId }),
-      });
-      if (!res.ok) {
-        toast.error(t.importFailed);
-        return;
-      }
-      const imported = await res.json();
-      setRecipes((prev) => [...prev, imported]);
-      toast.success(t.imported);
-    } finally {
-      setMarketLoadingId(null);
-    }
-  };
-
-  const handleDeleteMarketRecipe = async (marketId: string) => {
-    setMarketLoadingId(marketId);
-    try {
-      const res = await fetch(`/api/recipe-market/${marketId}`, { method: "DELETE" });
-      if (!res.ok) {
-        toast.error(t.marketDeleteFailed);
-        return;
-      }
-      setMarketRecipes((prev) => prev.filter((r) => r.id !== marketId));
-      toast.success(t.marketDeleted);
-    } finally {
-      setMarketLoadingId(null);
+      setPublishMarketLoadingId(null);
     }
   };
 
@@ -625,14 +571,12 @@ export default function MealPlanner({ initialRecipes, initialMarketRecipes, init
             tabIndex={meal.recipe ? 0 : undefined}
             onClick={() => {
               if (!meal.recipe) return;
-              setViewRecipeSource("recipes");
               setViewRecipe(meal.recipe);
             }}
             onKeyDown={(e) => {
               if (!meal.recipe) return;
               if (e.key === "Enter" || e.key === " ") {
                 e.preventDefault();
-                setViewRecipeSource("recipes");
                 setViewRecipe(meal.recipe);
               }
             }}
@@ -747,7 +691,7 @@ export default function MealPlanner({ initialRecipes, initialMarketRecipes, init
       {/* Tabs */}
       <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-3 mb-4 md:mb-6">
         <div className="flex gap-2 overflow-x-auto pb-1">
-          {[{ id: "planner", label: t.tabPlanner, Icon: CalendarDays }, { id: "recipes", label: t.tabRecipes, Icon: BookOpen }, { id: "market", label: t.tabMarket, Icon: Store }].map((tabItem) => (
+          {[{ id: "planner", label: t.tabPlanner, Icon: CalendarDays }, { id: "recipes", label: t.tabRecipes, Icon: BookOpen }].map((tabItem) => (
             <motion.button key={tabItem.id} whileHover={{ y: -1 }} whileTap={{ scale: 0.97 }}
               onClick={() => setTab(tabItem.id as Tab)}
               className={`flex items-center gap-2 px-4 py-2.5 rounded-2xl text-sm font-medium transition-all ${
@@ -773,17 +717,15 @@ export default function MealPlanner({ initialRecipes, initialMarketRecipes, init
               <span className="sm:hidden">{t.toShopping}</span>
             </motion.button>
           )}
-          {tab !== "market" && (
-            <motion.button
-              type="button"
-              whileHover={{ scale: 1.02 }}
-              whileTap={{ scale: 0.98 }}
-              onClick={openNewRecipeModal}
-              className="flex items-center justify-center gap-2 px-4 py-2.5 bg-gradient-to-r from-peach-500 to-peach-400 text-white rounded-2xl text-sm font-medium shadow-cozy w-full sm:w-auto"
-            >
-              <Plus size={16} /> {t.newRecipe}
-            </motion.button>
-          )}
+          <motion.button
+            type="button"
+            whileHover={{ scale: 1.02 }}
+            whileTap={{ scale: 0.98 }}
+            onClick={openNewRecipeModal}
+            className="flex items-center justify-center gap-2 px-4 py-2.5 bg-gradient-to-r from-peach-500 to-peach-400 text-white rounded-2xl text-sm font-medium shadow-cozy w-full sm:w-auto"
+          >
+            <Plus size={16} /> {t.newRecipe}
+          </motion.button>
         </div>
       </div>
 
@@ -865,8 +807,7 @@ export default function MealPlanner({ initialRecipes, initialMarketRecipes, init
             </div>
           </div>
         </div>
-      ) : tab === "recipes" ? (
-        /* Recipes grid */
+      ) : (
         <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-4 overflow-y-auto overflow-x-visible p-1 -m-1">
           {recipes.map((recipe) => (
             <motion.div
@@ -881,7 +822,7 @@ export default function MealPlanner({ initialRecipes, initialMarketRecipes, init
                   <button
                     type="button"
                     onClick={() => handlePublishToMarket(recipe)}
-                    disabled={marketLoadingId === recipe.id}
+                    disabled={publishMarketLoadingId === recipe.id}
                     className="w-9 h-9 rounded-xl bg-white/95 shadow-md border border-warm-200 text-warm-600 hover:text-sage-600 flex items-center justify-center disabled:opacity-60"
                     title={t.publishToMarket}
                   >
@@ -890,10 +831,7 @@ export default function MealPlanner({ initialRecipes, initialMarketRecipes, init
                 )}
                 <button
                   type="button"
-                    onClick={() => {
-                      setViewRecipeSource("recipes");
-                      setViewRecipe(recipe);
-                    }}
+                    onClick={() => setViewRecipe(recipe)}
                   className="w-9 h-9 rounded-xl bg-white/95 shadow-md border border-warm-200 text-warm-600 hover:text-sky-600 flex items-center justify-center"
                   title={t.view}
                 >
@@ -977,88 +915,6 @@ export default function MealPlanner({ initialRecipes, initialMarketRecipes, init
             <span className="text-sm font-medium">{t.addRecipe}</span>
           </motion.button>
 
-        </div>
-      ) : (
-        <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-4 overflow-y-auto overflow-x-visible p-1 -m-1">
-          {marketRecipes.map((recipe) => (
-            <motion.div
-              key={`market-${recipe.id}`}
-              initial={{ opacity: 0, y: 16 }}
-              animate={{ opacity: 1, y: 0 }}
-              whileHover={{ y: -4 }}
-              className="bg-white/90 rounded-3xl p-5 shadow-cozy border border-sage-200 relative"
-            >
-              {isAdmin && (
-                <button
-                  type="button"
-                  onClick={() => handleDeleteMarketRecipe(recipe.id)}
-                  disabled={marketLoadingId === recipe.id}
-                  className="absolute top-3 right-3 w-9 h-9 rounded-xl bg-white/95 shadow-md border border-warm-200 text-warm-500 hover:text-rose-600 flex items-center justify-center disabled:opacity-60"
-                  title={t.removeFromMarket}
-                >
-                  <Trash2 size={15} />
-                </button>
-              )}
-              <div className="absolute top-3 left-3 text-[10px] font-semibold px-2 py-1 rounded-full bg-sage-100 text-sage-700">{t.marketBadge}</div>
-              <div className="relative aspect-[4/3] rounded-2xl overflow-hidden bg-warm-100 mb-3 mt-6">
-                <button
-                  type="button"
-                  onClick={() => {
-                    setViewRecipeSource("market");
-                    setViewRecipe(recipe);
-                  }}
-                  className="absolute top-2 right-2 z-10 w-9 h-9 rounded-xl bg-white/95 shadow-md border border-warm-200 text-warm-600 hover:text-sky-600 flex items-center justify-center"
-                  title={t.view}
-                >
-                  <Eye size={15} />
-                </button>
-                {recipe.imageUrl ? (
-                  <AnimatedRecipeImage
-                    src={recipe.imageUrl}
-                    alt=""
-                    sizes="(max-width: 768px) 100vw, 33vw"
-                    unoptimized={isLocalUpload(recipe.imageUrl)}
-                  />
-                ) : (
-                  <div className="absolute inset-0 flex items-center justify-center text-5xl">
-                    {displayEmojiToken(recipe.emoji) || DEFAULT_RECIPE_EMOJI}
-                  </div>
-                )}
-              </div>
-              <h3 className="font-bold text-warm-800 mb-1">{recipe.name}</h3>
-              <p className="text-xs text-warm-400 mb-3 line-clamp-2">{recipe.description}</p>
-              <div className="flex gap-2 flex-wrap mb-3">
-                <span className="text-xs bg-peach-50 text-peach-600 px-2 py-1 rounded-full">{recipe.category}</span>
-                {recipe.prepTime && <span className="text-xs bg-sage-50 text-sage-600 px-2 py-1 rounded-full">⏱ {recipe.prepTime}m</span>}
-                {recipe.calories != null && (
-                  <span className="text-xs bg-amber-50 text-amber-700 px-2 py-1 rounded-full inline-flex items-center gap-1">
-                    <Flame size={12} /> {recipe.calories} kcal
-                    {recipeCaloriesPerServing(recipe.calories, recipe.servings) != null && (
-                      <span className="opacity-80">
-                        {" "}
-                        · {Math.round(recipeCaloriesPerServing(recipe.calories, recipe.servings)!)} {t.kcalPerPortionRecipe}
-                      </span>
-                    )}
-                  </span>
-                )}
-                <span className="text-xs bg-sky-50 text-sky-600 px-2 py-1 rounded-full inline-flex items-center gap-1"><Users size={12} /> {recipe.servings}</span>
-              </div>
-              <motion.button
-                type="button"
-                whileTap={{ scale: 0.98 }}
-                onClick={() => handleImportFromMarket(recipe.id)}
-                disabled={marketLoadingId === recipe.id}
-                className="w-full py-2.5 rounded-2xl bg-sage-500 text-white text-sm font-semibold disabled:opacity-60"
-              >
-                {t.addToMyRecipes}
-              </motion.button>
-            </motion.div>
-          ))}
-          {marketRecipes.length === 0 && (
-            <div className="col-span-full rounded-3xl bg-white/70 border border-warm-100 p-8 text-center text-warm-500">
-              {t.marketEmpty}
-            </div>
-          )}
         </div>
       )}
 
@@ -1268,16 +1124,14 @@ export default function MealPlanner({ initialRecipes, initialMarketRecipes, init
                 >
                   {t.close}
                 </button>
-                {viewRecipeSource !== "market" && (
-                  <motion.button
-                    type="button"
-                    whileTap={{ scale: 0.98 }}
-                    onClick={openEditFromView}
-                    className="flex-1 py-3 rounded-2xl bg-gradient-to-r from-peach-500 to-peach-400 text-white font-semibold text-sm"
-                  >
-                    {t.edit}
-                  </motion.button>
-                )}
+                <motion.button
+                  type="button"
+                  whileTap={{ scale: 0.98 }}
+                  onClick={openEditFromView}
+                  className="flex-1 py-3 rounded-2xl bg-gradient-to-r from-peach-500 to-peach-400 text-white font-semibold text-sm"
+                >
+                  {t.edit}
+                </motion.button>
               </div>
             </motion.div>
             </div>

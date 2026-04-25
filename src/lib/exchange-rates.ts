@@ -1,9 +1,9 @@
-export type SupportedCurrency = "UAH" | "USD" | "EUR";
+export type SupportedCurrency = "UAH" | "USD" | "EUR" | "GBP" | "JPY";
 
 export type ExchangeRates = Record<SupportedCurrency, number>;
 
 export function isSupportedCurrency(value: string): value is SupportedCurrency {
-  return value === "UAH" || value === "USD" || value === "EUR";
+  return value === "UAH" || value === "USD" || value === "EUR" || value === "GBP" || value === "JPY";
 }
 
 export function uahToDisplayAmount(uah: number, currency: SupportedCurrency, rates: ExchangeRates): number {
@@ -13,10 +13,19 @@ export function uahToDisplayAmount(uah: number, currency: SupportedCurrency, rat
   return uah / rate;
 }
 
+export function displayAmountToUah(display: number, currency: SupportedCurrency, rates: ExchangeRates): number {
+  if (currency === "UAH") return display;
+  const rate = rates[currency];
+  if (!rate || rate <= 0) return display;
+  return display * rate;
+}
+
 const fallbackRates: ExchangeRates = {
   UAH: 1,
   USD: 40,
   EUR: 43,
+  GBP: 52,
+  JPY: 0.27,
 };
 
 type NbuRateItem = {
@@ -47,13 +56,22 @@ export async function getNbuExchangeRates(): Promise<ExchangeRates> {
       return fallbackRates;
     }
 
+    const jpyRaw = data.find((item) => item.cc === "JPY")?.rate;
+    const jpyRate =
+      typeof jpyRaw === "number" && !Number.isNaN(jpyRaw) && jpyRaw > 0 ? jpyRaw : usdRate / 155;
+
+    const gbpRaw = data.find((item) => item.cc === "GBP")?.rate;
+    const gbpRate =
+      typeof gbpRaw === "number" && !Number.isNaN(gbpRaw) && gbpRaw > 0 ? gbpRaw : (usdRate * 1.27) / 1;
+
     return {
       UAH: 1,
       USD: usdRate,
       EUR: eurRate,
+      GBP: gbpRate,
+      JPY: jpyRate,
     };
   } catch {
     return fallbackRates;
   }
 }
-

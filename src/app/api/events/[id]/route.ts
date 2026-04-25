@@ -1,6 +1,5 @@
 import { auth } from "@/lib/auth";
 import { ensureUserFamily } from "@/lib/family";
-import { deleteNibboEventFromGoogleIfNeeded, pushNibboEventToGoogleIfNeeded } from "@/lib/google-calendar-sync";
 import { prisma } from "@/lib/prisma";
 import { NextRequest, NextResponse } from "next/server";
 
@@ -52,12 +51,6 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
     },
   });
 
-  try {
-    await pushNibboEventToGoogleIfNeeded(familyId, id);
-  } catch {
-    /* ignore */
-  }
-
   const event = await prisma.event.findFirst({
     where: { id },
     include: {
@@ -78,14 +71,9 @@ export async function DELETE(_: NextRequest, { params }: { params: Promise<{ id:
   const { id } = await params;
   const existing = await prisma.event.findFirst({
     where: { id, familyId },
-    select: { id: true, googleEventId: true },
+    select: { id: true },
   });
   if (!existing) return NextResponse.json({ error: "Not found" }, { status: 404 });
-  try {
-    await deleteNibboEventFromGoogleIfNeeded(familyId, id, existing.googleEventId);
-  } catch {
-    /* ignore */
-  }
   await prisma.event.delete({ where: { id } });
   return NextResponse.json({ success: true });
 }

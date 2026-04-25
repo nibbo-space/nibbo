@@ -181,6 +181,7 @@ export default function TaskBoard({ initialBoards, users, currentUserId }: TaskB
   const [showAddBoard, setShowAddBoard] = useState(false);
   const [editBoard, setEditBoard] = useState<TaskBoardBoard | null>(null);
   const [editTask, setEditTask] = useState<TaskBoardTask | null>(null);
+  const [createTaskColumnId, setCreateTaskColumnId] = useState<string | null>(null);
   const prevActiveBoardRef = useRef<string | undefined>(undefined);
 
   const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 8 } }));
@@ -234,6 +235,10 @@ export default function TaskBoard({ initialBoards, users, currentUserId }: TaskB
       return currentBoard.columns[0]?.id ?? "";
     });
   }, [currentBoard]);
+
+  useEffect(() => {
+    setCreateTaskColumnId(null);
+  }, [activeBoard]);
 
   const handleDragStart = (event: DragStartEvent) => {
     if (!isFilterAll) return;
@@ -380,28 +385,28 @@ export default function TaskBoard({ initialBoards, users, currentUserId }: TaskB
     toast.success(t.toastColumnAdded);
   };
 
-  const addTask = async (
+  const createTaskWithPayload = async (
     boardId: string,
     columnId: string,
-    title: string,
-    assigneeId?: string,
-    priority: TaskBoardTask["priority"] = "MEDIUM",
-    isPrivate?: boolean
+    payload: Record<string, unknown>
   ) => {
+    const board = boards.find((b) => b.id === boardId);
+    const col = board?.columns.find((c) => c.id === columnId);
+    const order = col?.tasks.length ?? 0;
     const res = await fetch("/api/tasks", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
         type: "task",
-        title,
         columnId,
-        assigneeId,
-        creatorId: currentUserId,
-        priority,
-        isPrivate: Boolean(isPrivate),
+        order,
+        ...payload,
       }),
     });
-    const task = await res.json();
+    if (!res.ok) {
+      throw new Error("fail");
+    }
+    const task = (await res.json()) as TaskBoardTask;
     setBoards((prev) =>
       prev.map((b) =>
         b.id === boardId
@@ -712,17 +717,20 @@ export default function TaskBoard({ initialBoards, users, currentUserId }: TaskB
                     <TaskColumn
                       column={mobileColumn}
                       users={users}
-                      boardIsPrivate={currentBoard.isPrivate}
-                      onAddTask={(columnId, title, assigneeId, priority, isPrivate) =>
-                        addTask(currentBoard.id, columnId, title, assigneeId, priority, isPrivate)
-                      }
+                      onRequestCreateTask={(columnId) => {
+                        setEditTask(null);
+                        setCreateTaskColumnId(columnId);
+                      }}
                       onDeleteTask={deleteTask}
                       onAssigneeChange={updateTaskAssignee}
                       onPriorityChange={updateTaskPriority}
                       onCompletedChange={(taskId, completed) => updateTaskCompleted(taskId, completed)}
                       onRenameColumn={renameColumn}
                       onDeleteColumn={deleteColumn}
-                      onEditTask={setEditTask}
+                      onEditTask={(task) => {
+                        setCreateTaskColumnId(null);
+                        setEditTask(task);
+                      }}
                     />
                   </SortableContext>
                 )}
@@ -741,17 +749,20 @@ export default function TaskBoard({ initialBoards, users, currentUserId }: TaskB
                       key={column.id}
                       column={column}
                       users={users}
-                      boardIsPrivate={currentBoard.isPrivate}
-                      onAddTask={(columnId, title, assigneeId, priority, isPrivate) =>
-                        addTask(currentBoard.id, columnId, title, assigneeId, priority, isPrivate)
-                      }
+                      onRequestCreateTask={(columnId) => {
+                        setEditTask(null);
+                        setCreateTaskColumnId(columnId);
+                      }}
                       onDeleteTask={deleteTask}
                       onAssigneeChange={updateTaskAssignee}
                       onPriorityChange={updateTaskPriority}
                       onCompletedChange={(taskId, completed) => updateTaskCompleted(taskId, completed)}
                       onRenameColumn={renameColumn}
                       onDeleteColumn={deleteColumn}
-                      onEditTask={setEditTask}
+                      onEditTask={(task) => {
+                        setCreateTaskColumnId(null);
+                        setEditTask(task);
+                      }}
                     />
                   ))}
                 </SortableContext>
@@ -821,13 +832,22 @@ export default function TaskBoard({ initialBoards, users, currentUserId }: TaskB
         onDeleteBoard={deleteBoard}
       />
       <TaskEditModal
-        open={Boolean(editTask)}
+        open={Boolean(editTask || createTaskColumnId)}
         task={editTask}
+        createColumnId={createTaskColumnId}
         users={users}
         boardIsPrivate={Boolean(currentBoard?.isPrivate)}
         currentUserId={currentUserId}
-        onClose={() => setEditTask(null)}
+        onClose={() => {
+          setEditTask(null);
+          setCreateTaskColumnId(null);
+        }}
         onSave={saveTaskFull}
+        onCreate={
+          currentBoard
+            ? (columnId, payload) => createTaskWithPayload(currentBoard.id, columnId, payload)
+            : undefined
+        }
       />
     </div>
   );

@@ -7,6 +7,7 @@ import {
   Medal,
   Languages,
   Newspaper,
+  Store,
   ChevronRight,
 } from "lucide-react";
 import { messageLocale, I18N, type AppMessages } from "@/lib/i18n";
@@ -59,6 +60,15 @@ const MODULES: {
     card: "border-violet-200/90 bg-gradient-to-br from-violet-50 to-white text-violet-950 shadow-sm hover:border-violet-300",
     iconWrap: "border-violet-200/80 bg-white text-violet-700",
     chevron: "text-violet-600",
+  },
+  {
+    href: "/admin/recipe-marketplace",
+    titleNavKey: "adminRecipeMarketplace",
+    descKey: "recipeMarketplace",
+    Icon: Store,
+    card: "border-emerald-200/90 bg-gradient-to-br from-emerald-50 to-white text-emerald-950 shadow-sm hover:border-emerald-300",
+    iconWrap: "border-emerald-200/80 bg-white text-emerald-700",
+    chevron: "text-emerald-600",
   },
 ];
 

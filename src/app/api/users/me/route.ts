@@ -28,13 +28,15 @@ export async function GET() {
       personalApiEnabled: true,
       ollamaApiKeyEnc: true,
       ollamaModel: true,
+      passwordHash: true,
     },
   });
   if (!user) return NextResponse.json({ error: "Not found" }, { status: 404 });
-  const { ollamaApiKeyEnc: _k, ...rest } = user;
+  const { ollamaApiKeyEnc: _k, passwordHash: _ph, ...rest } = user;
   return NextResponse.json({
     ...rest,
     ollamaKeyConfigured: Boolean(user.ollamaApiKeyEnc),
+    canChangePassword: Boolean(user.passwordHash),
   });
 }
 
@@ -105,12 +107,14 @@ export async function PATCH(req: NextRequest) {
       personalApiEnabled: true,
       ollamaApiKeyEnc: true,
       ollamaModel: true,
+      passwordHash: true,
     },
   });
 
-  const { ollamaApiKeyEnc: _enc, ...rest } = user;
+  const { ollamaApiKeyEnc: _enc, passwordHash: _ph, ...rest } = user;
   return NextResponse.json({
     ...rest,
     ollamaKeyConfigured: Boolean(user.ollamaApiKeyEnc),
+    canChangePassword: Boolean(user.passwordHash),
   });
 }

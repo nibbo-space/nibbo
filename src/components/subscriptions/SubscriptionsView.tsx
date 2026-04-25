@@ -5,6 +5,7 @@ import { AnimatePresence, motion } from "framer-motion";
 import { CalendarClock, Plus, Trash2, UserRound, X } from "lucide-react";
 import toast from "react-hot-toast";
 import { createPortal } from "react-dom";
+import { DISPLAY_CURRENCY_CODES } from "@/lib/profile-regional";
 import { uahToDisplayAmount, type ExchangeRates, type SupportedCurrency } from "@/lib/exchange-rates";
 import { useUserPreferences } from "@/components/shared/UserPreferencesProvider";
 import { useAppLanguage } from "@/hooks/useAppLanguage";
@@ -57,7 +58,7 @@ type FormState = {
   payerUserId: string;
 };
 
-const currencyOptions = ["UAH", "USD", "EUR"];
+const currencyOptions = [...DISPLAY_CURRENCY_CODES];
 
 function toInputDate(date: string | Date | null | undefined) {
   if (!date) return "";

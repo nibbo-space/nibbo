@@ -42,6 +42,8 @@ model User {
   name          String?
   email         String?   @unique
   emailVerified DateTime?
+  passwordHash  String?
+  credentialSetupDeadline DateTime?
   image         String?
   color         String    @default("#f43f5e")
   emoji         String    @default("🌸")
@@ -81,7 +83,6 @@ model User {
   familyBattles        FamilyBattle[] @relation("FamilyBattlePlayer")
   pushSubscriptions    PushSubscription[]
   medications          Medication[]
-  googleCalendarSyncFamilies Family[] @relation("GoogleCalendarSyncUser")
   blogPosts                 BlogPost[]
 }
 
@@ -238,15 +239,10 @@ model Family {
   shareWatchingFeed Boolean @default(false)
   disabledAppModules String[] @default([])
   modulesSetupCompletedAt DateTime?
-  googleCalendarSyncEnabled Boolean @default(false)
-  googleCalendarId          String   @default("primary")
-  googleCalendarSyncUserId  String?
-  googleCalendarLastSyncAt  DateTime?
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
 
   members           User[]
-  googleCalendarSyncUser User? @relation("GoogleCalendarSyncUser", fields: [googleCalendarSyncUserId], references: [id], onDelete: SetNull)
   invitations       FamilyInvitation[]
   taskBoards        TaskBoard[]
   events            Event[]
@@ -304,6 +300,7 @@ model FamilyInvitation {
   email       String
   familyId    String
   invitedById String
+  inviteToken String?  @unique
   createdAt   DateTime @default(now())
   acceptedAt  DateTime?
 
@@ -453,7 +450,6 @@ model Event {
   location    String?
   assigneeId  String?
   subscriptionId String?
-  googleEventId String? @unique
   familyId    String?
   createdAt   DateTime  @default(now())
   updatedAt   DateTime  @updatedAt

@@ -6,6 +6,7 @@ import { useRouter } from "next/navigation";
 import { Copy, Upload } from "lucide-react";
 import Image from "next/image";
 import { signOut } from "next-auth/react";
+import toast from "react-hot-toast";
 import { DEFAULT_APP_TIME_ZONE } from "@/lib/kyiv-range";
 import { DISPLAY_CURRENCY_CODES, PROFILE_TIME_ZONES } from "@/lib/profile-regional";
 import { USER_COLORS, USER_EMOJIS, normalizeProfileEmoji } from "@/lib/utils";
@@ -37,6 +38,7 @@ export interface UserProfile {
   personalApiEnabled?: boolean;
   ollamaKeyConfigured?: boolean;
   ollamaModel?: string | null;
+  canChangePassword?: boolean;
 }
 
 interface ProfileSettingsFormProps {
@@ -60,14 +62,9 @@ export default function ProfileSettingsForm({ initialUser }: ProfileSettingsForm
       : DEFAULT_ASSISTANT_OLLAMA_MODEL
   );
   const [busy, setBusy] = useState(false);
-  const [familyBusy, setFamilyBusy] = useState(false);
-  const [inviteEmail, setInviteEmail] = useState("");
+  const [assistantBusy, setAssistantBusy] = useState(false);
   const [familyMembers, setFamilyMembers] = useState<
     { id: string; name: string | null; email: string | null; emoji: string; color: string; familyRole?: string }[]
-  >([]);
-  const [pendingInvites, setPendingInvites] = useState<{ id: string; email: string }[]>([]);
-  const [incomingInvites, setIncomingInvites] = useState<
-    { id: string; email: string; familyId: string; family: { name: string } }[]
   >([]);
   const [currentUserRole, setCurrentUserRole] = useState<"OWNER" | "MEMBER" | null>(null);
   const [deleteConfirmEmail, setDeleteConfirmEmail] = useState("");
@@ -83,6 +80,10 @@ export default function ProfileSettingsForm({ initialUser }: ProfileSettingsForm
   const [personalApiBusy, setPersonalApiBusy] = useState(false);
   const [apiBaseOrigin, setApiBaseOrigin] = useState("");
   const [curlCopied, setCurlCopied] = useState(false);
+  const [currentPassword, setCurrentPassword] = useState("");
+  const [newPassword, setNewPassword] = useState("");
+  const [newPasswordConfirm, setNewPasswordConfirm] = useState("");
+  const [passwordBusy, setPasswordBusy] = useState(false);
 
   const successorCandidates = useMemo(
     () => familyMembers.filter((m) => m.id !== user.id),
@@ -103,6 +104,9 @@ export default function ProfileSettingsForm({ initialUser }: ProfileSettingsForm
         ? initialUser.ollamaModel
         : DEFAULT_ASSISTANT_OLLAMA_MODEL
     );
+    setCurrentPassword("");
+    setNewPassword("");
+    setNewPasswordConfirm("");
   }, [initialUser]);
 
   useEffect(() => {
@@ -125,24 +129,22 @@ export default function ProfileSettingsForm({ initialUser }: ProfileSettingsForm
     return out;
   }, [emoji]);
 
-  const loadFamily = useCallback(async () => {
-    setFamilyBusy(true);
+  const loadFamilyMembersForDelete = useCallback(async () => {
     try {
       const res = await fetch("/api/family/members");
       if (!res.ok) return;
       const data = await res.json();
       setFamilyMembers(data.members || []);
-      setPendingInvites(data.invitations || []);
-      setIncomingInvites(data.incomingInvitations || []);
       setCurrentUserRole(data.currentUserRole || null);
-    } finally {
-      setFamilyBusy(false);
+    } catch {
+      setFamilyMembers([]);
+      setCurrentUserRole(null);
     }
   }, []);
 
   useEffect(() => {
-    void loadFamily();
-  }, [user.id, loadFamily]);
+    void loadFamilyMembersForDelete();
+  }, [user.id, loadFamilyMembersForDelete]);
 
   const loadMcpTokens = useCallback(async () => {
     const pt = I18N[messageLocale(language)].profile;
@@ -270,49 +272,117 @@ export default function ProfileSettingsForm({ initialUser }: ProfileSettingsForm
 
   const dateLocale = intlLocaleForUi(language);
 
-  const save = async () => {
+  const saveProfile = async () => {
     setBusy(true);
     try {
-      const payload: Record<string, unknown> = {
-        name,
-        emoji,
-        color,
-        displayCurrency,
-        timeZone,
-        ollamaModel: ollamaModelInput,
-      };
+      const res = await fetch("/api/users/me", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          name,
+          emoji,
+          color,
+          displayCurrency,
+          timeZone,
+        }),
+      });
+      if (!res.ok) {
+        toast.error(t.toastProfileSaveError);
+        return;
+      }
+      const next = (await res.json()) as UserProfile;
+      setUser(next);
+      void loadFamilyMembersForDelete();
+      router.refresh();
+      toast.success(t.toastProfileSaved);
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const changePassword = async () => {
+    if (newPassword.length < 8) {
+      toast.error(t.toastPasswordTooShort);
+      return;
+    }
+    if (newPassword !== newPasswordConfirm) {
+      toast.error(t.toastPasswordMismatch);
+      return;
+    }
+    setPasswordBusy(true);
+    try {
+      const res = await fetch("/api/auth/change-password", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ currentPassword, newPassword }),
+      });
+      const data = (await res.json().catch(() => ({}))) as { error?: string };
+      if (!res.ok) {
+        if (data.error === "wrong_password") {
+          toast.error(t.toastPasswordWrongCurrent);
+          return;
+        }
+        if (data.error === "password_too_short") {
+          toast.error(t.toastPasswordTooShort);
+          return;
+        }
+        toast.error(t.toastPasswordChangeError);
+        return;
+      }
+      setCurrentPassword("");
+      setNewPassword("");
+      setNewPasswordConfirm("");
+      router.refresh();
+      toast.success(t.toastPasswordChanged);
+    } finally {
+      setPasswordBusy(false);
+    }
+  };
+
+  const saveAssistant = async () => {
+    setAssistantBusy(true);
+    try {
+      const payload: Record<string, unknown> = { ollamaModel: ollamaModelInput };
       if (ollamaKeyInput.trim()) payload.ollamaApiKey = ollamaKeyInput.trim();
       const res = await fetch("/api/users/me", {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(payload),
       });
-      if (!res.ok) return;
+      if (!res.ok) {
+        toast.error(t.toastAssistantSaveError);
+        return;
+      }
       const next = (await res.json()) as UserProfile;
       setUser(next);
       setOllamaKeyInput("");
       router.refresh();
+      toast.success(t.toastAssistantSaved);
     } finally {
-      setBusy(false);
+      setAssistantBusy(false);
     }
   };
 
   const clearOllamaKey = async () => {
     if (!window.confirm(t.ollamaClearConfirm)) return;
-    setBusy(true);
+    setAssistantBusy(true);
     try {
       const res = await fetch("/api/users/me", {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ ollamaApiKey: "" }),
       });
-      if (!res.ok) return;
+      if (!res.ok) {
+        toast.error(t.toastAssistantSaveError);
+        return;
+      }
       const next = (await res.json()) as UserProfile;
       setUser(next);
       setOllamaKeyInput("");
       router.refresh();
+      toast.success(t.toastOllamaKeyRemoved);
     } finally {
-      setBusy(false);
+      setAssistantBusy(false);
     }
   };
 
@@ -323,60 +393,16 @@ export default function ProfileSettingsForm({ initialUser }: ProfileSettingsForm
     setBusy(true);
     try {
       const res = await fetch("/api/users/avatar", { method: "POST", body: form });
-      if (!res.ok) return;
-      const next = (await res.json()) as UserProfile;
-      setUser(next);
+      if (!res.ok) {
+        toast.error(t.toastPhotoSaveError);
+        return;
+      }
+      const next = (await res.json()) as Partial<UserProfile>;
+      setUser((prev) => ({ ...prev, ...next }));
       router.refresh();
+      toast.success(t.toastPhotoSaved);
     } finally {
       setBusy(false);
-    }
-  };
-
-  const invite = async () => {
-    if (currentUserRole !== "OWNER") return;
-    const email = inviteEmail.trim().toLowerCase();
-    if (!email) return;
-    setFamilyBusy(true);
-    try {
-      const res = await fetch("/api/family/members", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email }),
-      });
-      if (!res.ok) return;
-      setInviteEmail("");
-      const listRes = await fetch("/api/family/members");
-      if (!listRes.ok) return;
-      const data = await listRes.json();
-      setFamilyMembers(data.members || []);
-      setPendingInvites(data.invitations || []);
-    } finally {
-      setFamilyBusy(false);
-    }
-  };
-
-  const leaveFamily = async () => {
-    if (currentUserRole !== "MEMBER" && currentUserRole !== "OWNER") return;
-    const ok = confirm(
-      currentUserRole === "OWNER" ? t.leaveFamilyOwnerConfirm : t.leaveFamilyMemberConfirm
-    );
-    if (!ok) return;
-    setFamilyBusy(true);
-    try {
-      const res = await fetch("/api/family/members", {
-        method: "DELETE",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ memberId: user.id }),
-      });
-      if (!res.ok) return;
-      const meRes = await fetch("/api/users/me");
-      if (!meRes.ok) return;
-      const next = (await meRes.json()) as UserProfile;
-      setUser(next);
-      router.push("/dashboard");
-      router.refresh();
-    } finally {
-      setFamilyBusy(false);
     }
   };
 
@@ -416,27 +442,6 @@ export default function ProfileSettingsForm({ initialUser }: ProfileSettingsForm
       window.location.href = "/login";
     } finally {
       setDeleteBusy(false);
-    }
-  };
-
-  const acceptInvite = async (inviteId: string, familyName: string) => {
-    const ok = confirm(t.acceptInviteConfirm.replace("{familyName}", familyName));
-    if (!ok) return;
-    setFamilyBusy(true);
-    try {
-      const res = await fetch("/api/family/members", {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ acceptInviteId: inviteId }),
-      });
-      if (!res.ok) return;
-      const meRes = await fetch("/api/users/me");
-      if (!meRes.ok) return;
-      const next = (await meRes.json()) as UserProfile;
-      setUser(next);
-      window.location.reload();
-    } finally {
-      setFamilyBusy(false);
     }
   };
 
@@ -552,147 +557,128 @@ export default function ProfileSettingsForm({ initialUser }: ProfileSettingsForm
             </div>
           </div>
         </div>
-        <div className="space-y-3 border-t border-warm-100 pt-4">
-          <p className="text-xs font-semibold text-warm-700">{t.ollamaSection}</p>
-          <p className="text-xs text-warm-500">{t.ollamaHint}</p>
-          <div
-            role="note"
-            className="rounded-2xl border border-amber-200/90 bg-amber-50/80 px-3 py-2.5 text-[11px] leading-snug text-amber-950/90"
-          >
-            {t.ollamaDataNotice}
-          </div>
-          <div className="space-y-1">
-            <div className="flex flex-wrap items-center justify-between gap-2">
-              <p className="text-[11px] text-warm-500">{t.ollamaKeyLabel}</p>
-              <a
-                href={OLLAMA_CLOUD_API_KEYS_URL}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="text-[11px] font-semibold text-sky-600 underline-offset-2 hover:text-sky-800 hover:underline"
-              >
-                {t.ollamaGetApiKeyLink}
-              </a>
-            </div>
-            <input
-              type="password"
-              value={ollamaKeyInput}
-              onChange={(e) => setOllamaKeyInput(e.target.value)}
-              autoComplete="off"
-              placeholder={t.ollamaKeyPlaceholder}
-              className="w-full rounded-xl border border-warm-200 bg-warm-50 px-3 py-2 text-sm text-warm-800 outline-none focus:border-rose-300"
-            />
-            {user.ollamaKeyConfigured ? (
-              <p className="text-[11px] text-sage-600">{t.ollamaKeySaved}</p>
-            ) : null}
-          </div>
-          <div className="space-y-1">
-            <p className="text-[11px] text-warm-500">{t.ollamaModelLabel}</p>
-            <select
-              value={ollamaModelInput}
-              onChange={(e) => setOllamaModelInput(e.target.value)}
-              className="w-full rounded-xl border border-warm-200 bg-warm-50 px-3 py-2 text-sm text-warm-800 outline-none focus:border-rose-300"
-            >
-              {OLLAMA_ASSISTANT_MODEL_OPTIONS.map((opt) => (
-                <option key={opt.id} value={opt.id}>
-                  {(t.ollamaModels as Record<string, string>)[opt.id] ?? opt.id}
-                </option>
-              ))}
-            </select>
-          </div>
-          {user.ollamaKeyConfigured ? (
-            <button
-              type="button"
-              disabled={busy}
-              onClick={() => void clearOllamaKey()}
-              className="text-sm text-rose-600 hover:text-rose-700 underline-offset-2 hover:underline"
-            >
-              {t.ollamaClearKey}
-            </button>
-          ) : null}
-        </div>
         <button
           type="button"
           disabled={busy}
-          onClick={() => void save()}
+          onClick={() => void saveProfile()}
           className="rounded-xl bg-sage-500 px-4 py-2 text-sm text-white hover:bg-sage-600 disabled:opacity-60"
         >
           {t.save}
         </button>
       </div>
 
-      <div className="space-y-4 rounded-3xl border border-warm-100 bg-white/80 p-5">
-        <h3 className="text-sm font-semibold text-warm-800">{t.familyTitle}</h3>
-        <div className="max-h-72 space-y-2 overflow-y-auto pr-1">
-          {familyMembers.map((m) => (
-            <div key={m.id} className="flex items-center gap-3 rounded-2xl bg-warm-50 px-3 py-2">
-              <div
-                className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-sm text-white"
-                style={{ backgroundColor: m.color || "#f43f5e" }}
-              >
-                <span className="leading-none">{normalizeProfileEmoji(m.emoji)}</span>
-              </div>
-              <p className="text-sm font-medium text-warm-800">{m.name || m.email || t.memberFallback}</p>
-            </div>
-          ))}
-          {pendingInvites.map((i) => (
-            <p key={i.id} className="text-sm text-warm-400">
-              {t.invitedLabel} {i.email}
-            </p>
-          ))}
-          {incomingInvites.map((i) => (
-            <div
-              key={i.id}
-              className="flex flex-col gap-3 rounded-2xl bg-warm-50 px-3 py-2.5 sm:flex-row sm:items-center sm:justify-between"
-            >
-              <div className="min-w-0">
-                <p className="break-words text-sm text-warm-700">
-                  {t.inviteToLabel} {i.family.name}
-                </p>
-                <p className="text-xs text-warm-400">{i.email}</p>
-              </div>
-              <button
-                type="button"
-                disabled={familyBusy}
-                onClick={() => acceptInvite(i.id, i.family.name)}
-                className="w-full rounded-lg bg-sage-500 px-3 py-2 text-xs text-white hover:bg-sage-600 disabled:opacity-60 sm:w-auto sm:py-1.5"
-              >
-                {t.accept}
-              </button>
-            </div>
-          ))}
-          {!familyBusy && familyMembers.length === 0 && (
-            <p className="text-sm text-warm-400">{t.onlyYouInFamily}</p>
-          )}
-        </div>
-        {currentUserRole === "OWNER" ? (
-          <div className="flex flex-col gap-2 sm:flex-row">
+      {user.canChangePassword ? (
+        <div className="space-y-4 rounded-3xl border border-warm-100 bg-white/80 p-5">
+          <h3 className="text-base font-semibold text-warm-800">{t.passwordSectionTitle}</h3>
+          <p className="text-sm text-warm-500">{t.passwordSectionHint}</p>
+          <div className="space-y-1">
+            <p className="text-xs text-warm-500">{t.passwordCurrentLabel}</p>
             <input
-              value={inviteEmail}
-              onChange={(e) => setInviteEmail(e.target.value)}
-              placeholder={t.inviteEmailPlaceholder}
-              className="w-full flex-1 rounded-xl border border-warm-200 bg-warm-50 px-3 py-2 text-sm text-warm-800 outline-none focus:border-rose-300"
+              type="password"
+              autoComplete="current-password"
+              value={currentPassword}
+              onChange={(e) => setCurrentPassword(e.target.value)}
+              className="w-full rounded-xl border border-warm-200 bg-warm-50 px-3 py-2 text-sm text-warm-800 outline-none focus:border-rose-300"
             />
-            <button
-              type="button"
-              disabled={familyBusy}
-              onClick={() => void invite()}
-              className="w-full rounded-xl bg-rose-500 px-4 py-2 text-sm text-white hover:bg-rose-600 disabled:opacity-60 sm:w-auto"
-            >
-              {t.add}
-            </button>
           </div>
-        ) : currentUserRole === "MEMBER" ? (
+          <div className="space-y-1">
+            <p className="text-xs text-warm-500">{t.passwordNewLabel}</p>
+            <input
+              type="password"
+              autoComplete="new-password"
+              value={newPassword}
+              onChange={(e) => setNewPassword(e.target.value)}
+              className="w-full rounded-xl border border-warm-200 bg-warm-50 px-3 py-2 text-sm text-warm-800 outline-none focus:border-rose-300"
+            />
+          </div>
+          <div className="space-y-1">
+            <p className="text-xs text-warm-500">{t.passwordConfirmLabel}</p>
+            <input
+              type="password"
+              autoComplete="new-password"
+              value={newPasswordConfirm}
+              onChange={(e) => setNewPasswordConfirm(e.target.value)}
+              className="w-full rounded-xl border border-warm-200 bg-warm-50 px-3 py-2 text-sm text-warm-800 outline-none focus:border-rose-300"
+            />
+          </div>
           <button
             type="button"
-            disabled={familyBusy}
-            onClick={() => void leaveFamily()}
-            className="rounded-xl bg-rose-500 px-4 py-2 text-sm text-white hover:bg-rose-600 disabled:opacity-60"
+            disabled={passwordBusy}
+            onClick={() => void changePassword()}
+            className="rounded-xl bg-sage-500 px-4 py-2 text-sm text-white hover:bg-sage-600 disabled:opacity-60"
           >
-            {t.leaveFamily}
+            {passwordBusy ? t.passwordChangeBusy : t.passwordChangeButton}
           </button>
-        ) : (
-          <div className="h-8 rounded-xl border border-warm-100 bg-warm-50" />
-        )}
+        </div>
+      ) : null}
+
+      <div className="space-y-4 rounded-3xl border border-warm-100 bg-white/80 p-5">
+        <h3 className="text-base font-semibold text-warm-800">{t.ollamaSection}</h3>
+        <p className="text-sm text-warm-500">{t.ollamaHint}</p>
+        <div
+          role="note"
+          className="rounded-2xl border border-amber-200/90 bg-amber-50/80 px-3 py-2.5 text-[11px] leading-snug text-amber-950/90"
+        >
+          {t.ollamaDataNotice}
+        </div>
+        <div className="space-y-1">
+          <div className="flex flex-wrap items-center justify-between gap-2">
+            <p className="text-[11px] text-warm-500">{t.ollamaKeyLabel}</p>
+            <a
+              href={OLLAMA_CLOUD_API_KEYS_URL}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-[11px] font-semibold text-sky-600 underline-offset-2 hover:text-sky-800 hover:underline"
+            >
+              {t.ollamaGetApiKeyLink}
+            </a>
+          </div>
+          <input
+            type="password"
+            value={ollamaKeyInput}
+            onChange={(e) => setOllamaKeyInput(e.target.value)}
+            autoComplete="off"
+            placeholder={t.ollamaKeyPlaceholder}
+            className="w-full rounded-xl border border-warm-200 bg-warm-50 px-3 py-2 text-sm text-warm-800 outline-none focus:border-rose-300"
+          />
+          {user.ollamaKeyConfigured ? (
+            <p className="text-[11px] text-sage-600">{t.ollamaKeySaved}</p>
+          ) : null}
+        </div>
+        <div className="space-y-1">
+          <p className="text-[11px] text-warm-500">{t.ollamaModelLabel}</p>
+          <select
+            value={ollamaModelInput}
+            onChange={(e) => setOllamaModelInput(e.target.value)}
+            className="w-full rounded-xl border border-warm-200 bg-warm-50 px-3 py-2 text-sm text-warm-800 outline-none focus:border-rose-300"
+          >
+            {OLLAMA_ASSISTANT_MODEL_OPTIONS.map((opt) => (
+              <option key={opt.id} value={opt.id}>
+                {(t.ollamaModels as Record<string, string>)[opt.id] ?? opt.id}
+              </option>
+            ))}
+          </select>
+        </div>
+        <div className="flex flex-wrap items-center gap-3">
+          <button
+            type="button"
+            disabled={assistantBusy}
+            onClick={() => void saveAssistant()}
+            className="rounded-xl bg-sage-500 px-4 py-2 text-sm text-white hover:bg-sage-600 disabled:opacity-60"
+          >
+            {t.save}
+          </button>
+          {user.ollamaKeyConfigured ? (
+            <button
+              type="button"
+              disabled={assistantBusy}
+              onClick={() => void clearOllamaKey()}
+              className="text-sm text-rose-600 hover:text-rose-700 underline-offset-2 hover:underline disabled:opacity-60"
+            >
+              {t.ollamaClearKey}
+            </button>
+          ) : null}
+        </div>
       </div>
 
       <div className="space-y-3 rounded-3xl border border-warm-100 bg-white/80 p-5">
