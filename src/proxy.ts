@@ -5,6 +5,15 @@ import { DEFAULT_PUBLIC_LOCALE, PUBLIC_LOCALES } from "@/lib/public-locales";
 
 const LEGACY_PUBLIC_PREFIXES = ["/blog", "/roadmap", "/privacy", "/feedback"];
 const LOCALE_PREFIX_RE = /^\/(en|uk|ja)(\/|$)/;
+const MOBILE_API_PREFIX = "/api/mobile/v1";
+
+function applyMobileCors(res: NextResponse) {
+  res.headers.set("Access-Control-Allow-Origin", "*");
+  res.headers.set("Access-Control-Allow-Methods", "GET,POST,PATCH,DELETE,OPTIONS");
+  res.headers.set("Access-Control-Allow-Headers", "Content-Type, Authorization");
+  res.headers.set("Access-Control-Max-Age", "86400");
+  return res;
+}
 
 function isLocalePath(p: string): boolean {
   return LOCALE_PREFIX_RE.test(p);
@@ -37,7 +46,15 @@ export const proxy = auth((req) => {
   const isLoggedIn = !!req.auth;
   const { pathname, search } = req.nextUrl;
   const isApiAuth = pathname.startsWith("/api/auth");
+  const isMobileApi = pathname.startsWith(MOBILE_API_PREFIX);
   const isPublicModelAsset = pathname.startsWith("/models/");
+
+  if (isMobileApi) {
+    if (req.method === "OPTIONS") {
+      return applyMobileCors(new NextResponse(null, { status: 204 }));
+    }
+    return applyMobileCors(NextResponse.next());
+  }
 
   if (isApiAuth || isPublicModelAsset) return NextResponse.next();
 
@@ -77,5 +94,5 @@ export const proxy = auth((req) => {
 });
 
 export const config = {
-  matcher: ["/((?!api|_next/static|_next/image|.*\\..*).*)"],
+  matcher: ["/api/mobile/v1/:path*", "/((?!api|_next/static|_next/image|.*\\..*).*)"],
 };
