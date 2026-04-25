@@ -10,6 +10,8 @@ import { resolveUiLanguageFromRequest } from "@/lib/languages";
 
 import { OG_ALT, OG_SIZE } from "@/lib/og-share-card";
 
+import { isPublicLocale, htmlLangFor, type PublicLocale } from "@/lib/public-locales";
+
 import { getMetadataBaseUrl } from "@/lib/site-url";
 
 import type { Metadata, Viewport } from "next";
@@ -40,10 +42,12 @@ const site = getMetadataBaseUrl();
 export async function generateMetadata(): Promise<Metadata> {
   const cookieStore = await cookies();
   const hdrs = await headers();
-  const { language } = await resolveUiLanguageFromRequest(
+  const { language: cookieLanguage } = await resolveUiLanguageFromRequest(
     cookieStore.get(APP_LANGUAGE_COOKIE_KEY)?.value,
     hdrs.get("accept-language")
   );
+  const urlLocale = urlLocaleFromPath(hdrs.get("x-nibbo-pathname"));
+  const language = urlLocale ?? cookieLanguage;
   const meta = I18N[messageLocale(language)].siteRoot;
   const ml = messageLocale(language);
   const ogLocale = ml === "uk" ? "uk_UA" : "en_US";
@@ -108,17 +112,54 @@ export const viewport: Viewport = {
   viewportFit: "cover",
 };
 
+function urlLocaleFromPath(pathname: string | null): PublicLocale | null {
+  if (!pathname) return null;
+  const m = pathname.match(/^\/([a-z]{2})(?:\/|$)/);
+  const code = m?.[1];
+  return code && isPublicLocale(code) ? code : null;
+}
+
 export default async function RootLayout({ children }: { children: React.ReactNode }) {
   const cookieStore = await cookies();
   const hdrs = await headers();
-  const { language, locales, resolveConfig } = await resolveUiLanguageFromRequest(
+  const { language: cookieLanguage, locales, resolveConfig } = await resolveUiLanguageFromRequest(
     cookieStore.get(APP_LANGUAGE_COOKIE_KEY)?.value,
     hdrs.get("accept-language")
   );
+  const urlLocale = urlLocaleFromPath(hdrs.get("x-nibbo-pathname"));
+  const language = urlLocale ?? cookieLanguage;
+  const htmlLang = isPublicLocale(language) ? htmlLangFor(language) : language;
+
+  const meta = I18N[messageLocale(language)].siteRoot;
+  const jsonLd = [
+    {
+      "@context": "https://schema.org",
+      "@type": "Organization",
+      name: "Nibbo",
+      url: site.href,
+      logo: new URL("/icon.svg", site).href,
+    },
+    {
+      "@context": "https://schema.org",
+      "@type": "WebSite",
+      name: "Nibbo",
+      url: site.href,
+      description: meta.defaultDescription,
+      potentialAction: {
+        "@type": "SearchAction",
+        target: `${site.href}blog?q={search_term_string}`,
+        "query-input": "required name=search_term_string",
+      },
+    },
+  ];
 
   return (
-    <html lang={language} className={`${inter.variable} ${nunito.variable}`}>
+    <html lang={htmlLang} className={`${inter.variable} ${nunito.variable}`}>
       <body className="m-0 min-h-dvh bg-gradient-to-br from-cream-50 via-rose-50/30 to-lavender-50/20 p-0 font-sans antialiased">
+        <script
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
+        />
         <AppLanguageProvider initialLanguage={language} locales={locales} defaultCode={resolveConfig.defaultCode}>
           {children}
           <CookieConsent />

@@ -34,14 +34,14 @@ export function NotFoundContent() {
 
         <div className="mt-8 flex flex-col gap-3 sm:flex-row sm:justify-center">
           <Link
-            href="/"
+            href={`/${language}`}
             className="inline-flex min-h-[48px] items-center justify-center gap-2 rounded-2xl bg-gradient-to-r from-rose-500 to-rose-600 px-5 py-3 text-sm font-semibold text-white shadow-md transition-opacity hover:opacity-95"
           >
             <House size={18} strokeWidth={2} aria-hidden />
             {t.homeCta}
           </Link>
           <Link
-            href="/feedback"
+            href={`/${language}/feedback`}
             className="inline-flex min-h-[48px] items-center justify-center gap-2 rounded-2xl border-2 border-warm-200 bg-white px-5 py-3 text-sm font-semibold text-warm-700 shadow-sm transition-colors hover:border-rose-200 hover:bg-rose-50/60"
           >
             <MessageSquareText size={18} strokeWidth={2} aria-hidden />

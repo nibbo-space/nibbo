@@ -50,13 +50,13 @@ export function BlogPostContent({
       <article className="min-h-screen px-4 py-10 md:py-14">
         <div className="mx-auto max-w-3xl">
           <Link
-            href="/blog"
+            href={`/${language}/blog`}
             className="text-sm font-semibold text-rose-600 underline-offset-2 transition-colors hover:text-rose-700 hover:underline"
           >
             ← {t.heading}
           </Link>
           <Link
-            href={signedIn ? "/dashboard" : "/landing"}
+            href={signedIn ? "/dashboard" : `/${language}`}
             className="ml-4 text-sm font-medium text-warm-500 underline-offset-2 hover:text-warm-700 hover:underline"
           >
             {signedIn ? nav.dashboard : t.backToSite}

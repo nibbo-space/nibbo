@@ -1,30 +1,39 @@
 import { BlogIndexContent } from "@/components/blog/BlogIndexContent";
 import { auth } from "@/lib/auth";
-import { messageLocale, APP_LANGUAGE_COOKIE_KEY, I18N } from "@/lib/i18n";
-import { resolveUiLanguageFromRequest } from "@/lib/languages";
+import { I18N, messageLocale } from "@/lib/i18n";
 import { prisma } from "@/lib/prisma";
+import { buildLanguageAlternates, isPublicLocale, localeHref, PUBLIC_LOCALES } from "@/lib/public-locales";
 import { getMetadataBaseUrl } from "@/lib/site-url";
 import type { Metadata } from "next";
-import { cookies, headers } from "next/headers";
+import { notFound } from "next/navigation";
 
-export async function generateMetadata(): Promise<Metadata> {
-  const cookieStore = await cookies();
-  const hdrs = await headers();
-  const { language } = await resolveUiLanguageFromRequest(
-    cookieStore.get(APP_LANGUAGE_COOKIE_KEY)?.value,
-    hdrs.get("accept-language")
-  );
+type Props = { params: Promise<{ locale: string }> };
+
+export const dynamicParams = false;
+export function generateStaticParams() {
+  return PUBLIC_LOCALES.map((locale) => ({ locale }));
+}
+
+export async function generateMetadata({ params }: Props): Promise<Metadata> {
+  const { locale } = await params;
+  if (!isPublicLocale(locale)) return {};
   const base = getMetadataBaseUrl();
-  const b = I18N[messageLocale(language)].blogPage;
+  const b = I18N[messageLocale(locale)].blogPage;
   return {
     title: b.metaTitle,
     description: b.metaDescription,
-    alternates: { canonical: new URL("/blog", base) },
+    alternates: {
+      canonical: new URL(localeHref(locale, "/blog"), base).href,
+      languages: buildLanguageAlternates("/blog"),
+    },
     robots: { index: true, follow: true },
   };
 }
 
-export default async function BlogPage() {
+export default async function BlogPage({ params }: Props) {
+  const { locale } = await params;
+  if (!isPublicLocale(locale)) notFound();
+
   let signedIn = false;
   try {
     const session = await auth();

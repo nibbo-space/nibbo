@@ -150,7 +150,7 @@ export function CookieConsent() {
                 <p className="mt-2 text-[11px] leading-relaxed text-warm-500 sm:text-xs md:text-[13px]">
                   {t.cookieAckBeforeLink}{" "}
                   <Link
-                    href="/privacy"
+                    href={`/${language}/privacy`}
                     className="font-semibold text-rose-600 underline-offset-2 hover:underline"
                   >
                     {t.cookieAckLinkLabel}
@@ -166,7 +166,7 @@ export function CookieConsent() {
                     {t.cookieAccept}
                   </button>
                   <Link
-                    href="/privacy"
+                    href={`/${language}/privacy`}
                     className="flex min-h-[44px] w-full items-center justify-center rounded-2xl px-3 py-2.5 text-sm font-semibold text-rose-600 transition-colors hover:bg-rose-50 active:bg-rose-100/80 sm:min-h-0 sm:w-auto sm:py-2"
                   >
                     {t.cookieLearnMore}

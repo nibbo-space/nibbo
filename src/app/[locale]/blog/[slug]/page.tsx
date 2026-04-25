@@ -1,26 +1,21 @@
 import { BlogPostContent, type BlogPostView } from "@/components/blog/BlogPostContent";
 import { auth } from "@/lib/auth";
 import { blogTranslationItemsFromPost, pickBlogLine } from "@/lib/blog-translations";
-import { messageLocale, APP_LANGUAGE_COOKIE_KEY, I18N } from "@/lib/i18n";
-import { resolveUiLanguageFromRequest } from "@/lib/languages";
+import { I18N, messageLocale } from "@/lib/i18n";
 import { prisma } from "@/lib/prisma";
 import { OG_ALT, OG_SIZE } from "@/lib/og-share-card";
+import { buildLanguageAlternates, isPublicLocale, localeHref } from "@/lib/public-locales";
 import { getMetadataBaseUrl } from "@/lib/site-url";
 import type { Metadata } from "next";
-import { cookies, headers } from "next/headers";
 import { notFound } from "next/navigation";
+import Script from "next/script";
 
-type Props = { params: Promise<{ slug: string }> };
+type Props = { params: Promise<{ locale: string; slug: string }> };
 
-export async function generateMetadata(props: Props): Promise<Metadata> {
-  const { slug } = await props.params;
-  const cookieStore = await cookies();
-  const hdrs = await headers();
-  const { language } = await resolveUiLanguageFromRequest(
-    cookieStore.get(APP_LANGUAGE_COOKIE_KEY)?.value,
-    hdrs.get("accept-language")
-  );
-  const ml = messageLocale(language);
+export async function generateMetadata({ params }: Props): Promise<Metadata> {
+  const { locale, slug } = await params;
+  if (!isPublicLocale(locale)) return {};
+  const ml = messageLocale(locale);
   const post = await prisma.blogPost.findFirst({
     where: { slug, published: true },
     select: {
@@ -41,19 +36,19 @@ export async function generateMetadata(props: Props): Promise<Metadata> {
       },
     },
   });
-  if (!post) {
-    return { title: I18N[messageLocale(language)].notFound.metaTitle };
-  }
-  const line = pickBlogLine(blogTranslationItemsFromPost(post), language);
+  if (!post) return { title: I18N[ml].notFound.metaTitle };
+
+  const line = pickBlogLine(blogTranslationItemsFromPost(post), locale);
   const title = line?.title ?? post.titleEn;
   const description =
     line?.excerpt ||
     (ml === "uk" ? post.excerptUk || post.excerptEn : post.excerptEn || post.excerptUk) ||
     I18N[ml].blogPage.metaDescription;
   const base = getMetadataBaseUrl();
-  const canonical = new URL(`/blog/${slug}`, base).href;
-  const ogLocale = ml === "uk" ? "uk_UA" : "en_US";
-  const alternateLocale = ml === "uk" ? ["en_US"] : ["uk_UA"];
+  const path = `/blog/${slug}`;
+  const canonical = new URL(localeHref(locale, path), base).href;
+  const ogLocale = ml === "uk" ? "uk_UA" : ml === "ja" ? "ja_JP" : "en_US";
+  const alternateLocale = ["uk_UA", "en_US", "ja_JP"].filter((l) => l !== ogLocale);
   const pageTitle = `${title} — Nibbo`;
 
   const coverAbs = post.coverImageUrl
@@ -79,7 +74,10 @@ export async function generateMetadata(props: Props): Promise<Metadata> {
   return {
     title: pageTitle,
     description,
-    alternates: { canonical },
+    alternates: {
+      canonical,
+      languages: buildLanguageAlternates(path),
+    },
     robots: { index: true, follow: true },
     openGraph: {
       type: "article",
@@ -100,8 +98,10 @@ export async function generateMetadata(props: Props): Promise<Metadata> {
   };
 }
 
-export default async function BlogPostPage(props: Props) {
-  const { slug } = await props.params;
+export default async function BlogPostPage({ params }: Props) {
+  const { locale, slug } = await params;
+  if (!isPublicLocale(locale)) notFound();
+
   const row = await prisma.blogPost.findFirst({
     where: { slug, published: true },
     select: {
@@ -114,6 +114,7 @@ export default async function BlogPostPage(props: Props) {
       bodyEn: true,
       coverImageUrl: true,
       publishedAt: true,
+      updatedAt: true,
       translations: {
         select: {
           title: true,
@@ -147,5 +148,46 @@ export default async function BlogPostPage(props: Props) {
     translations: row.translations,
   };
 
-  return <BlogPostContent post={post} signedIn={signedIn} />;
+  const ml = messageLocale(locale);
+  const line = pickBlogLine(blogTranslationItemsFromPost(row), locale);
+  const headline = line?.title ?? row.titleEn;
+  const description =
+    line?.excerpt || (ml === "uk" ? row.excerptUk || row.excerptEn : row.excerptEn || row.excerptUk) || "";
+  const base = getMetadataBaseUrl();
+  const url = new URL(localeHref(locale, `/blog/${slug}`), base).href;
+  const coverAbs = row.coverImageUrl
+    ? row.coverImageUrl.startsWith("http")
+      ? row.coverImageUrl
+      : new URL(row.coverImageUrl, base).href
+    : null;
+
+  const articleLd = {
+    "@context": "https://schema.org",
+    "@type": "Article",
+    headline,
+    description,
+    inLanguage: locale,
+    mainEntityOfPage: url,
+    url,
+    datePublished: row.publishedAt?.toISOString(),
+    dateModified: (row.publishedAt ?? row.updatedAt)?.toISOString(),
+    image: coverAbs ? [coverAbs] : undefined,
+    author: { "@type": "Organization", name: "Nibbo" },
+    publisher: {
+      "@type": "Organization",
+      name: "Nibbo",
+      logo: { "@type": "ImageObject", url: new URL("/icon.svg", base).href },
+    },
+  };
+
+  return (
+    <>
+      <Script
+        id={`article-ld-${slug}`}
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(articleLd) }}
+      />
+      <BlogPostContent post={post} signedIn={signedIn} />
+    </>
+  );
 }

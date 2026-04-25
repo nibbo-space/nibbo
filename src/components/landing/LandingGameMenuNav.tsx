@@ -2,14 +2,26 @@
 
 import { useAppLanguage } from "@/hooks/useAppLanguage";
 import { messageLocale, I18N } from "@/lib/i18n";
+import { isPublicLocale } from "@/lib/public-locales";
 import { cn } from "@/lib/utils";
 import Image from "next/image";
 import Link from "next/link";
+import { usePathname, useRouter } from "next/navigation";
 
 export function LandingGameMenuNav() {
   const { language, setLanguage, locales } = useAppLanguage();
+  const router = useRouter();
+  const pathname = usePathname() ?? "/";
   const t = I18N[messageLocale(language)].landing;
   const tRoot = I18N[messageLocale(language)];
+
+  const switchLocale = (code: string) => {
+    setLanguage(code);
+    if (!isPublicLocale(code)) return;
+    const m = pathname.match(/^\/([a-z]{2})(\/.*)?$/);
+    const tail = m && isPublicLocale(m[1]) ? m[2] ?? "" : pathname === "/" ? "" : pathname;
+    router.push(`/${code}${tail}`);
+  };
 
   return (
     <nav
@@ -17,7 +29,7 @@ export function LandingGameMenuNav() {
       aria-label="Nibbo"
     >
       <Link
-        href="/"
+        href={`/${language}`}
         className="flex shrink-0 items-center gap-2 rounded-xl border-2 border-rose-200/70 bg-white/80 px-2.5 py-1.5 shadow-sm backdrop-blur-sm"
       >
         <Image src="/favicon.svg" alt="" width={26} height={26} className="shrink-0" />
@@ -35,7 +47,7 @@ export function LandingGameMenuNav() {
                 key={loc.code}
                 type="button"
                 title={loc.name}
-                onClick={() => setLanguage(loc.code)}
+                onClick={() => switchLocale(loc.code)}
                 className={cn(
                   "rounded-md px-2 py-1 font-mono text-[10px] font-bold sm:px-2.5 sm:text-[11px]",
                   active ? "bg-rose-100 text-rose-700" : "text-warm-600 hover:bg-rose-50/80",

@@ -127,7 +127,7 @@ export function FeedbackForm(props: {
             ← {backLabel}
           </Link>
           <Link
-            href="/"
+            href={`/${language}`}
             className="flex items-center gap-2 rounded-2xl px-2 py-1.5 text-warm-800 outline-none ring-rose-200 transition-opacity hover:opacity-90 focus-visible:ring-2 focus-visible:ring-offset-2"
             aria-label={`Nibbo — ${tNav.dashboard}`}
           >

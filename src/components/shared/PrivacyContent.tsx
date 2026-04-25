@@ -63,7 +63,7 @@ export function PrivacyContent({ signedIn = false }: { signedIn?: boolean }) {
                 {signedIn ? (
                   <p className="mt-3">
                     <Link
-                      href="/feedback"
+                      href={`/${language}/feedback`}
                       className="inline-flex items-center gap-1 font-semibold text-rose-600 underline-offset-2 hover:text-rose-700 hover:underline"
                     >
                       {I18N[messageLocale(language)].feedback.pageTitle}

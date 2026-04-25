@@ -48,7 +48,7 @@ export function BlogIndexContent({
       <div className="min-h-screen px-4 py-10 md:py-14">
         <div className="mx-auto max-w-3xl">
           <Link
-            href={signedIn ? "/dashboard" : "/landing"}
+            href={signedIn ? "/dashboard" : `/${language}`}
             className="text-sm font-semibold text-rose-600 underline-offset-2 transition-colors hover:text-rose-700 hover:underline"
           >
             ← {signedIn ? nav.dashboard : t.backToSite}
@@ -83,7 +83,7 @@ export function BlogIndexContent({
                     transition={{ delay: i * 0.05, duration: 0.35 }}
                   >
                     <Link
-                      href={`/blog/${post.slug}`}
+                      href={`/${language}/blog/${post.slug}`}
                       className="group block overflow-hidden rounded-3xl border border-warm-100 bg-white/95 shadow-cozy transition-[box-shadow,transform] hover:-translate-y-0.5 hover:shadow-cozy-hover"
                     >
                       <div className="flex flex-col md:flex-row">

@@ -12,7 +12,10 @@ export async function generateMetadata(): Promise<Metadata> {
     cookieStore.get(APP_LANGUAGE_COOKIE_KEY)?.value,
     hdrs.get("accept-language")
   );
-  return { title: I18N[messageLocale(lang)].login.metaTitle };
+  return {
+    title: I18N[messageLocale(lang)].login.metaTitle,
+    robots: { index: false, follow: false },
+  };
 }
 
 export default async function LoginLayout({ children }: { children: React.ReactNode }) {
