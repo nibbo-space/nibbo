@@ -49,8 +49,10 @@
     "clsx": "^2.1.1",
     "date-fns": "^4.1.0",
     "date-fns-tz": "^3.2.0",
+    "firebase-admin": "^13.8.0",
     "framer-motion": "^11.11.17",
     "google-auth-library": "^10.6.2",
+    "jose": "^6.2.2",
     "jsonwebtoken": "^9.0.3",
     "lottie-react": "^2.4.1",
     "lucide-react": "^0.462.0",
@@ -69,6 +71,7 @@
     "tailwindcss-animate": "^1.0.7",
     "three": "^0.183.2",
     "web-push": "^3.6.7",
+    "zod": "^4.3.6",
     "zustand": "^5.0.1"
   },
   "prisma": {
