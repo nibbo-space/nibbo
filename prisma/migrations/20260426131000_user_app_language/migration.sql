@@ -1,0 +1,2 @@
+ALTER TABLE "User"
+ADD COLUMN "appLanguage" TEXT NOT NULL DEFAULT 'en';

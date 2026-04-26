@@ -53,6 +53,7 @@ model User {
   niboWelcomeCompletedAt DateTime?
   displayCurrency String  @default("USD")
   timeZone        String  @default("Europe/Kyiv")
+  appLanguage     String  @default("en")
   ollamaApiKeyEnc String?
   ollamaModel     String?
   personalApiEnabled Boolean @default(false)
