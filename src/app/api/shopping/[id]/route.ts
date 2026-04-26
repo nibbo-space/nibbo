@@ -2,6 +2,7 @@ import { auth } from "@/lib/auth";
 import { shoppingItemsVisibleWhere, shoppingListVisibleWhere } from "@/lib/family-private-scope";
 import { ensureUserFamily } from "@/lib/family";
 import { prisma } from "@/lib/prisma";
+import { awardXp, syncFamilyXpUnlocksFromLedger } from "@/lib/xp-ledger";
 import { NextRequest, NextResponse } from "next/server";
 
 export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
@@ -23,7 +24,7 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
         list: shoppingListVisibleWhere(familyId, userId),
         OR: [{ isPrivate: false }, { isPrivate: true, addedById: userId }],
       },
-      select: { id: true, addedById: true, isPrivate: true },
+      select: { id: true, addedById: true, isPrivate: true, checked: true },
     });
     if (!row) return NextResponse.json({ error: "Not found" }, { status: 404 });
     const data: Parameters<typeof prisma.shoppingItem.update>[0]["data"] = {};
@@ -42,7 +43,22 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
         addedBy: { select: { id: true, name: true, image: true, color: true, emoji: true } },
       },
     });
-    return NextResponse.json(item);
+    let awardedPoints = 0;
+    let newAchievementIds: string[] = [];
+    if (body.checked === true && row.checked === false) {
+      awardedPoints = await awardXp({
+        familyId,
+        userId,
+        eventType: "shopping_item_closed",
+        sourceType: "shopping_item",
+        sourceId: item.id,
+        dedupeKey: `shopping_item_closed:item:${item.id}`,
+      });
+      if (awardedPoints > 0) {
+        newAchievementIds = await syncFamilyXpUnlocksFromLedger(familyId);
+      }
+    }
+    return NextResponse.json({ ...item, awardedPoints, newAchievementIds });
   }
 
   if (type === "list") {

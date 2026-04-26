@@ -8,6 +8,7 @@ import { cn } from "@/lib/utils";
 import { useAppLanguage } from "@/hooks/useAppLanguage";
 import { messageLocale, I18N } from "@/lib/i18n";
 import { formatMinutesAsClock, isReminderPingDay } from "@/lib/task-reminder";
+import { dispatchXpAndAchievementEvents } from "@/lib/xp-client-events";
 
 type ScheduleMode = "DAILY_TIMES" | "INTERVAL_DAYS";
 
@@ -235,6 +236,8 @@ export default function MedicationsPageClient() {
         body: JSON.stringify({ dateYmd: todayYmd, slotIndex, taken }),
       });
       if (!res.ok) throw new Error("fail");
+      const data = await res.json();
+      dispatchXpAndAchievementEvents(data);
     } catch {
       setItems(prev);
       toast.error(t.saveError);

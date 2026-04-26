@@ -1,6 +1,7 @@
 import { auth } from "@/lib/auth";
 import { ensureUserFamily } from "@/lib/family";
 import { prisma } from "@/lib/prisma";
+import { awardXp, syncFamilyXpUnlocksFromLedger } from "@/lib/xp-ledger";
 import { NextRequest, NextResponse } from "next/server";
 
 export async function GET() {
@@ -54,5 +55,16 @@ export async function POST(req: NextRequest) {
     },
   });
 
-  return NextResponse.json(note);
+  const awardedPoints = await awardXp({
+    familyId,
+    userId: session.user.id,
+    eventType: "note_created",
+    sourceType: "note",
+    sourceId: note.id,
+    dedupeKey: `note_created:note:${note.id}`,
+    createdAt: note.createdAt,
+  });
+  const newAchievementIds = awardedPoints > 0 ? await syncFamilyXpUnlocksFromLedger(familyId) : [];
+
+  return NextResponse.json({ ...note, awardedPoints, newAchievementIds });
 }

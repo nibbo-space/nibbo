@@ -7,9 +7,9 @@ import {
   syncRegistrationRankUnlocks,
   syncUserStatUnlocks,
 } from "@/lib/achievements/evaluate";
-import { familyXpFromCompletedTaskCount } from "@/lib/achievements/registry";
 import { auth } from "@/lib/auth";
 import { ensureUserFamily } from "@/lib/family";
+import { getFamilyDisplayXp } from "@/lib/family-display-xp";
 import { prisma } from "@/lib/prisma";
 import { NextResponse } from "next/server";
 
@@ -25,10 +25,7 @@ export async function GET() {
 
   const userId = session.user.id;
 
-  const familyCompletedTasks = await prisma.task.count({
-    where: { completed: true, column: { board: { familyId } } },
-  });
-  const familyXp = familyXpFromCompletedTaskCount(familyCompletedTasks);
+  const familyXp = await getFamilyDisplayXp(familyId);
   const [newXp, newMembers, newStats, newRank] = await Promise.all([
     syncFamilyXpUnlocks(familyId, familyXp),
     syncFamilyMemberUnlocks(familyId),

@@ -1,6 +1,7 @@
 import { auth } from "@/lib/auth";
 import { ensureUserFamily } from "@/lib/family";
 import { prisma } from "@/lib/prisma";
+import { awardXp, syncFamilyXpUnlocksFromLedger } from "@/lib/xp-ledger";
 import { NextRequest, NextResponse } from "next/server";
 
 export async function POST(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
@@ -43,6 +44,13 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
     return NextResponse.json({ error: "slotIndex" }, { status: 400 });
   }
 
+  const existingIntake = await prisma.medicationIntake.findUnique({
+    where: {
+      medicationId_dateYmd_slotIndex: { medicationId, dateYmd, slotIndex },
+    },
+    select: { taken: true },
+  });
+
   const row = await prisma.medicationIntake.upsert({
     where: {
       medicationId_dateYmd_slotIndex: { medicationId, dateYmd, slotIndex },
@@ -59,5 +67,21 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
       takenAt: taken ? new Date() : null,
     },
   });
-  return NextResponse.json(row);
+  let awardedPoints = 0;
+  let newAchievementIds: string[] = [];
+  if (taken && !existingIntake?.taken) {
+    awardedPoints = await awardXp({
+      familyId,
+      userId: session.user.id,
+      eventType: "medication_taken",
+      sourceType: "medication_intake",
+      sourceId: row.id,
+      dedupeKey: `medication_taken:medication:${medicationId}:date:${dateYmd}:slot:${slotIndex}`,
+      createdAt: row.takenAt ?? undefined,
+    });
+    if (awardedPoints > 0) {
+      newAchievementIds = await syncFamilyXpUnlocksFromLedger(familyId);
+    }
+  }
+  return NextResponse.json({ ...row, awardedPoints, newAchievementIds });
 }

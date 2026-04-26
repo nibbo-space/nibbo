@@ -8,6 +8,7 @@ import toast from "react-hot-toast";
 import { createPortal } from "react-dom";
 import { useAppLanguage } from "@/hooks/useAppLanguage";
 import { messageLocale, I18N } from "@/lib/i18n";
+import { dispatchXpAndAchievementEvents } from "@/lib/xp-client-events";
 
 interface User {
   id: string;
@@ -158,6 +159,7 @@ export default function ShoppingView({
       body: JSON.stringify({ checked: !item.checked }),
     });
     const updated = await res.json();
+    dispatchXpAndAchievementEvents(updated);
     setLists((prev) =>
       prev.map((l) =>
         l.id === activeList

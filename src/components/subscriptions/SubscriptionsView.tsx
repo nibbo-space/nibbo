@@ -11,6 +11,7 @@ import { useUserPreferences } from "@/components/shared/UserPreferencesProvider"
 import { useAppLanguage } from "@/hooks/useAppLanguage";
 import { intlLocaleForUi, messageLocale, I18N } from "@/lib/i18n";
 import { formatCurrency, normalizeProfileEmoji } from "@/lib/utils";
+import { dispatchXpAndAchievementEvents } from "@/lib/xp-client-events";
 
 type FamilyRole = "OWNER" | "MEMBER";
 type BillingCycle = "MONTHLY" | "YEARLY";
@@ -316,6 +317,8 @@ export default function SubscriptionsView({
         const err = await res.json().catch(() => ({} as { error?: string }));
         throw new Error(err.error || t.deleteError);
       }
+      const data = await res.json();
+      dispatchXpAndAchievementEvents(data);
       setItems((prev) => prev.filter((item) => item.id !== id));
       toast.success(t.deleted);
     } catch (error) {

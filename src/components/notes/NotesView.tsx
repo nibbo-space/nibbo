@@ -15,6 +15,7 @@ import {
 import toast from "react-hot-toast";
 import { useAppLanguage } from "@/hooks/useAppLanguage";
 import { messageLocale, I18N } from "@/lib/i18n";
+import { dispatchXpAndAchievementEvents } from "@/lib/xp-client-events";
 
 interface User { id: string; name: string | null; image: string | null; color: string; emoji: string; }
 interface NoteCategory {
@@ -213,6 +214,7 @@ export default function NotesView({
       }),
     });
     const note = await res.json();
+    dispatchXpAndAchievementEvents(note);
     setNotes((prev) => [note, ...prev]);
     setShowAdd(false);
     setNewNote({ title: "", content: "", emoji: DEFAULT_NOTE_EMOJI, color: "#faf3e0", tags: "", categoryId: "" });

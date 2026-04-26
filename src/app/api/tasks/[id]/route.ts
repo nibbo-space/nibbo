@@ -1,14 +1,13 @@
 import { auth } from "@/lib/auth";
-import { syncFamilyMemberUnlocks, syncFamilyXpUnlocks, syncUserStatUnlocks } from "@/lib/achievements/evaluate";
-import { familyXpFromCompletedTaskCount } from "@/lib/achievements/registry";
-import { familyXpCompletedTasksWhere, taskAccessibleWhere, taskBoardVisibleWhere } from "@/lib/family-private-scope";
+import { syncFamilyMemberUnlocks, syncUserStatUnlocks } from "@/lib/achievements/evaluate";
+import { taskAccessibleWhere, taskBoardVisibleWhere } from "@/lib/family-private-scope";
 import { ensureUserFamily } from "@/lib/family";
 import { prisma } from "@/lib/prisma";
 import { taskRelationInclude } from "@/lib/task-prisma-include";
-import { POINTS_PER_TASK_COMPLETION } from "@/lib/task-points";
 import { fireAndForgetNotifyTaskAssigneeChanged } from "@/lib/notifications/task-assigned";
 import { kyivCalendarYmd } from "@/lib/kyiv-range";
 import { applyReminderFieldsFromBody } from "@/lib/task-reminder-api";
+import { awardXp, syncFamilyXpUnlocksFromLedger } from "@/lib/xp-ledger";
 import { NextRequest, NextResponse } from "next/server";
 
 export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
@@ -125,16 +124,22 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
     actorDisplayName: session.user.name,
   });
 
-  const awardedPoints =
-    body.completed === true && existing.completed === false ? POINTS_PER_TASK_COMPLETION : 0;
+  let awardedPoints = 0;
+  if (body.completed === true && existing.completed === false) {
+    awardedPoints = await awardXp({
+      familyId,
+      userId,
+      eventType: "task_completed",
+      sourceType: "task",
+      sourceId: task.id,
+      dedupeKey: `task_completed:task:${task.id}`,
+      createdAt: task.completedAt ?? new Date(),
+    });
+  }
 
   let newAchievementIds: string[] = [];
   if (body.completed === true && existing.completed === false) {
-    const familyCompletedTasks = await prisma.task.count({
-      where: familyXpCompletedTasksWhere(familyId),
-    });
-    const familyXp = familyXpFromCompletedTaskCount(familyCompletedTasks);
-    const xpNew = await syncFamilyXpUnlocks(familyId, familyXp);
+    const xpNew = await syncFamilyXpUnlocksFromLedger(familyId);
     const memNew = await syncFamilyMemberUnlocks(familyId);
     const statNew = await syncUserStatUnlocks(session.user.id, familyId);
     newAchievementIds = [...xpNew, ...memNew, ...statNew];

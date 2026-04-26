@@ -25,6 +25,7 @@ import toast from "react-hot-toast";
 import { createPortal } from "react-dom";
 import { useAppLanguage } from "@/hooks/useAppLanguage";
 import { intlLocaleForUi, messageLocale, I18N } from "@/lib/i18n";
+import { dispatchXpAndAchievementEvents } from "@/lib/xp-client-events";
 
 interface User { id: string; name: string | null; image: string | null; color: string; emoji: string; }
 interface Category {
@@ -431,6 +432,7 @@ export default function BudgetView({
       }
     );
     const credit = await res.json();
+    dispatchXpAndAchievementEvents(credit);
     if (editingCreditId) {
       setCredits((prev) => prev.map((item) => (item.id === credit.id ? credit : item)));
       toast.success(t.toastCreditUpdated);
@@ -510,6 +512,7 @@ export default function BudgetView({
       body: JSON.stringify({ lastPaidAt: new Date().toISOString() }),
     });
     const updated = await res.json();
+    dispatchXpAndAchievementEvents(updated);
     setCredits((prev) => prev.map((item) => (item.id === updated.id ? updated : item)));
     toast.success(t.toastCreditMarkedPaid);
   };

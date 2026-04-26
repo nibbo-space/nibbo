@@ -8,7 +8,7 @@ import {
   syncRegistrationRankUnlocks,
   syncUserStatUnlocks,
 } from "@/lib/achievements/evaluate";
-import { familyXpFromCompletedTaskCount, listAchievementsSorted } from "@/lib/achievements/registry";
+import { listAchievementsSorted } from "@/lib/achievements/registry";
 import { auth } from "@/lib/auth";
 import { ensureUserFamily } from "@/lib/family";
 import { getFamilyDisplayXp } from "@/lib/family-display-xp";
@@ -18,7 +18,7 @@ import { redirect } from "next/navigation";
 type LeaderboardRow = {
   familyId: string;
   familyName: string;
-  completedTasks: number;
+  points: number;
 };
 
 type FamilyInfoRow = {
@@ -35,13 +35,7 @@ export default async function AchievementsPage() {
   const familyId = await ensureUserFamily(userId);
   if (!familyId) redirect("/login");
 
-  const [familyCompletedTasks, familyInfoRows, leaderboard] = await Promise.all([
-    prisma.task.count({
-      where: {
-        completed: true,
-        column: { board: { familyId } },
-      },
-    }),
+  const [familyInfoRows, leaderboard] = await Promise.all([
     prisma.$queryRaw<FamilyInfoRow[]>`
       SELECT "id", "name", "shareInLeaderboard"
       FROM "Family"
@@ -52,14 +46,12 @@ export default async function AchievementsPage() {
       SELECT
         f."id" AS "familyId",
         f."name" AS "familyName",
-        COUNT(t."id")::int AS "completedTasks"
+        COALESCE(SUM(x."points"), 0)::int AS "points"
       FROM "Family" f
-      LEFT JOIN "TaskBoard" b ON b."familyId" = f."id"
-      LEFT JOIN "TaskColumn" c ON c."boardId" = b."id"
-      LEFT JOIN "Task" t ON t."columnId" = c."id" AND t."completed" = true
+      LEFT JOIN "XpLedgerEntry" x ON x."familyId" = f."id"
       WHERE f."shareInLeaderboard" = true
       GROUP BY f."id", f."name"
-      ORDER BY COUNT(t."id") DESC, f."name" ASC
+      ORDER BY COALESCE(SUM(x."points"), 0) DESC, f."name" ASC
     `,
   ]);
 
@@ -100,7 +92,7 @@ export default async function AchievementsPage() {
     rank: index + 1,
     familyId: row.familyId,
     familyName: row.familyName,
-    points: familyXpFromCompletedTaskCount(row.completedTasks),
+    points: row.points,
   }));
   const myRank = rows.find((row) => row.familyId === familyId) ?? null;
 

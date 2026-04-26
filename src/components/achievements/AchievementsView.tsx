@@ -125,6 +125,14 @@ export default function AchievementsView({
             <p className="text-xs font-semibold uppercase tracking-wide text-rose-500">{t.hudEyebrow}</p>
             <h1 className="mt-1 text-2xl font-bold tracking-tight text-warm-800 sm:text-3xl">{t.title}</h1>
             <p className="mt-2 max-w-2xl text-sm leading-relaxed text-warm-500">{t.subtitle}</p>
+            <div className="mt-4">
+              <Link
+                href="/achievements/xp"
+                className="inline-flex rounded-xl border border-warm-200 bg-white px-3 py-2 text-sm font-medium text-warm-700 hover:bg-warm-50"
+              >
+                XP rules and family history
+              </Link>
+            </div>
           </header>
 
           <Link

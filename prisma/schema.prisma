@@ -80,6 +80,7 @@ model User {
   mcpReadTokens McpReadToken[]
   achievementUnlocks   UserAchievementUnlock[]
   achievementCounters  UserAchievementCounter[]
+  xpLedgerEntries      XpLedgerEntry[]
   familyBattles        FamilyBattle[] @relation("FamilyBattlePlayer")
   pushSubscriptions    PushSubscription[]
   medications          Medication[]
@@ -258,6 +259,7 @@ model Family {
   shoppingLists     ShoppingList[]
   watchItems          WatchItem[]
   achievementUnlocks FamilyAchievementUnlock[]
+  xpLedgerEntries    XpLedgerEntry[]
   medications         Medication[]
 }
 
@@ -270,6 +272,34 @@ model FamilyAchievementUnlock {
 
   @@unique([familyId, achievementId])
   @@index([familyId])
+}
+
+enum XpEventType {
+  TASK_COMPLETED
+  SUBSCRIPTION_DELETED
+  CREDIT_CLOSED
+  SHOPPING_ITEM_CLOSED
+  MEDICATION_TAKEN
+  NOTE_CREATED
+}
+
+model XpLedgerEntry {
+  id         String      @id @default(cuid())
+  familyId   String
+  userId     String?
+  eventType  XpEventType
+  points     Int
+  sourceType String
+  sourceId   String
+  dedupeKey  String      @unique
+  createdAt  DateTime    @default(now())
+
+  family Family @relation(fields: [familyId], references: [id], onDelete: Cascade)
+  user   User?  @relation(fields: [userId], references: [id], onDelete: SetNull)
+
+  @@index([familyId, createdAt])
+  @@index([familyId, eventType, createdAt])
+  @@index([userId, createdAt])
 }
 
 model UserAchievementUnlock {

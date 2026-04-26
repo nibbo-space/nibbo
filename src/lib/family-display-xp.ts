@@ -1,6 +1,6 @@
-import { familyXpFromCompletedTaskCount } from "@/lib/achievements/registry";
 import { syncFamilyXpUnlocks } from "@/lib/achievements/evaluate";
 import { prisma } from "@/lib/prisma";
+import { getFamilyXpFromLedger } from "@/lib/xp-ledger";
 
 export const FAMILY_BATTLE_BONUS_XP_KEY = "family_battle_bonus_xp";
 
@@ -15,13 +15,8 @@ export async function familyBattleBonusXpForFamily(familyId: string): Promise<nu
 }
 
 export async function getFamilyDisplayXp(familyId: string): Promise<number> {
-  const [completed, bonus] = await Promise.all([
-    prisma.task.count({
-      where: { completed: true, column: { board: { familyId } } },
-    }),
-    familyBattleBonusXpForFamily(familyId),
-  ]);
-  return familyXpFromCompletedTaskCount(completed) + bonus;
+  const [ledgerXp, bonus] = await Promise.all([getFamilyXpFromLedger(familyId), familyBattleBonusXpForFamily(familyId)]);
+  return ledgerXp + bonus;
 }
 
 export async function incrementFamilyBattleBonusXp(

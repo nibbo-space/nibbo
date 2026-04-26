@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { useSortable } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
-import { AlarmClock, Calendar, Lock, Trash2, GripVertical, Pencil } from "lucide-react";
+import { AlarmClock, Calendar, Lock, Trash2, GripVertical, Pencil, Check } from "lucide-react";
 import { cn, formatDate, PRIORITY_CONFIG } from "@/lib/utils";
 import { useUserPreferences } from "@/components/shared/UserPreferencesProvider";
 import { useAppLanguage } from "@/hooks/useAppLanguage";
@@ -31,7 +31,6 @@ interface TaskCardProps {
 }
 
 const CARD_PRIORITIES: Task["priority"][] = ["LOW", "MEDIUM", "HIGH", "URGENT"];
-
 export default function TaskCard({
   task,
   users,
@@ -67,64 +66,37 @@ export default function TaskCard({
   };
 
   return (
-    <div
+    <article
       ref={setNodeRef}
       style={style}
       className={cn(
-        "bg-white rounded-2xl p-3 shadow-sm border border-warm-100 cursor-pointer group",
-        "hover:shadow-cozy hover:border-rose-100 transition-[box-shadow,border-color]",
-        isDragging && "rotate-2 scale-105 shadow-cozy-hover"
+        "group rounded-2xl border border-slate-200/80 bg-white p-3 shadow-[0_2px_10px_rgba(15,23,42,0.06)] transition-[transform,box-shadow,border-color]",
+        "hover:border-slate-300/80 hover:shadow-[0_6px_16px_rgba(15,23,42,0.1)]",
+        isDragging && "scale-[1.01]"
       )}
       onMouseEnter={() => setShowActions(true)}
       onMouseLeave={() => setShowActions(false)}
     >
       <div className="flex items-start gap-2">
-        {/* Drag handle */}
-        <div
+        <button
+          type="button"
           {...attributes}
           {...listeners}
-          className="mt-0.5 text-warm-300 hover:text-warm-500 cursor-grab active:cursor-grabbing opacity-100 md:opacity-0 md:group-hover:opacity-100 transition-opacity flex-shrink-0"
+          className="mt-1 shrink-0 text-slate-300 hover:text-slate-500 cursor-grab active:cursor-grabbing"
+          aria-label="Drag task"
         >
           <GripVertical size={14} />
-        </div>
+        </button>
 
-        <div className="flex-1 min-w-0">
-          <div className="flex items-start gap-2 mb-2">
-            {!isDragging && onCompletedChange && (
-              <input
-                type="checkbox"
-                checked={task.completed}
-                onChange={(e) => onCompletedChange(e.target.checked)}
-                onPointerDown={(e) => e.stopPropagation()}
-                className="mt-0.5 w-4 h-4 rounded border-warm-300 text-rose-500 focus:ring-rose-400 cursor-pointer flex-shrink-0"
-                aria-label={t.markCompletedAria}
-              />
-            )}
-            <div className="flex items-start gap-1 flex-1 min-w-0">
-              <p
-                className={cn(
-                  "text-sm font-medium text-warm-800 leading-snug flex-1 min-w-0",
-                  task.completed && "line-through text-warm-400"
-                )}
-              >
-                {task.title}
-              </p>
-              {task.isPrivate && (
-                <Lock size={12} className="text-warm-400 shrink-0 mt-0.5" aria-hidden />
-              )}
-              {task.reminderCadenceDays != null && task.reminderCadenceDays > 0 && (
-                <AlarmClock size={12} className="text-amber-600 shrink-0 mt-0.5" aria-hidden />
-              )}
-            </div>
-          </div>
-          <div className="flex items-center gap-2 mb-2">
+        <div className="min-w-0 flex-1 space-y-2.5">
+          <div className="flex items-start justify-between gap-2">
             {!isDragging && onPriorityChange ? (
               <select
                 value={task.priority}
                 onChange={(e) => onPriorityChange(e.target.value as Task["priority"])}
                 onPointerDown={(e) => e.stopPropagation()}
                 className={cn(
-                  "text-xs px-2 py-0.5 rounded-full font-medium border-0 cursor-pointer outline-none max-w-full",
+                  "rounded-full border-0 px-2.5 py-1 text-[11px] font-semibold outline-none max-w-[120px]",
                   priority.color
                 )}
               >
@@ -138,40 +110,13 @@ export default function TaskCard({
                 })}
               </select>
             ) : (
-              <span className={cn("text-xs px-2 py-0.5 rounded-full font-medium", priority.color)}>
+              <span className={cn("rounded-full px-2.5 py-1 text-[11px] font-semibold", priority.color)}>
                 {priority.emoji} {tp[task.priority]}
               </span>
             )}
-          </div>
 
-          {/* Description */}
-          {task.description && (
-            <p className="text-xs text-warm-400 mb-2 line-clamp-2">{task.description}</p>
-          )}
-
-          {/* Footer */}
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-2">
-              {task.dueDate && (
-                <div className="flex items-center gap-1 text-xs text-warm-400">
-                  <Calendar size={11} />
-                  <span>{formatDate(task.dueDate, dtOpts)}</span>
-                </div>
-              )}
-            </div>
-
-            <div className="flex items-center gap-1 min-w-[58px] justify-end">
-              {!onAssigneeChange && task.assignee && (
-                <div
-                  className="w-6 h-6 rounded-full flex items-center justify-center text-xs text-white font-medium ring-2 ring-white"
-                  style={{ backgroundColor: task.assignee.color }}
-                  title={task.assignee.name || ""}
-                >
-                  {task.assignee.emoji || task.assignee.name?.[0]}
-                </div>
-              )}
-
-              {onEdit && (
+            <div className="flex items-center gap-1 shrink-0">
+              {onEdit ? (
                 <button
                   type="button"
                   onClick={(e) => {
@@ -179,34 +124,52 @@ export default function TaskCard({
                     onEdit();
                   }}
                   className={cn(
-                    "w-6 h-6 rounded-lg bg-warm-100 hover:bg-warm-200 text-warm-500 flex items-center justify-center transition-[opacity,transform,background-color] ml-1",
-                    showActions ? "opacity-100 scale-100 pointer-events-auto" : "opacity-100 md:opacity-0 scale-100 md:scale-95 md:pointer-events-none"
+                    "h-6 w-6 rounded-md bg-slate-100 text-slate-400 hover:bg-slate-200 hover:text-slate-600 flex items-center justify-center transition-[opacity,color,background-color]",
+                    showActions ? "opacity-100" : "opacity-100 md:opacity-70"
                   )}
                 >
                   <Pencil size={11} />
                 </button>
-              )}
-              {onDelete && (
+              ) : null}
+              {onDelete ? (
                 <button
                   type="button"
-                  onClick={(e) => { e.stopPropagation(); onDelete(); }}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    onDelete();
+                  }}
                   className={cn(
-                    "w-6 h-6 rounded-lg bg-rose-50 hover:bg-rose-100 text-rose-400 hover:text-rose-600 flex items-center justify-center transition-[opacity,transform,background-color] ml-1",
-                    showActions ? "opacity-100 scale-100 pointer-events-auto" : "opacity-100 md:opacity-0 scale-100 md:scale-95 md:pointer-events-none"
+                    "h-6 w-6 rounded-md bg-rose-50 text-rose-300 hover:bg-rose-100 hover:text-rose-500 flex items-center justify-center transition-[opacity,color,background-color]",
+                    showActions ? "opacity-100" : "opacity-100 md:opacity-70"
                   )}
                 >
                   <Trash2 size={11} />
                 </button>
-              )}
+              ) : null}
             </div>
           </div>
 
-          {!isDragging && onAssigneeChange && users.length > 0 && !task.isPrivate && (
+          <div className="space-y-1.5">
+            <h4
+              className={cn(
+                "text-[15px] font-semibold leading-snug text-slate-800 break-words",
+                task.completed && "line-through text-slate-400"
+              )}
+            >
+              {task.title}
+            </h4>
+
+            {task.description ? (
+              <p className="text-sm leading-relaxed text-slate-500 line-clamp-2 break-words">{task.description}</p>
+            ) : null}
+          </div>
+
+          {!isDragging && onAssigneeChange && users.length > 0 && !task.isPrivate ? (
             <select
               value={task.assignee?.id ?? ""}
               onChange={(e) => onAssigneeChange(e.target.value || null)}
               onPointerDown={(e) => e.stopPropagation()}
-              className="mt-2 w-full bg-warm-50 rounded-xl px-2 py-1.5 text-xs text-warm-800 border border-warm-200 focus:border-rose-300 outline-none"
+              className="mt-2 w-full rounded-xl border border-slate-200 bg-slate-50 px-2.5 py-2 text-xs text-slate-700 outline-none focus:border-rose-300"
             >
               <option value="">{t.unassigned}</option>
               {users.map((u) => (
@@ -215,9 +178,50 @@ export default function TaskCard({
                 </option>
               ))}
             </select>
-          )}
+          ) : null}
+
+          <div className="flex items-start justify-between gap-2 pt-1">
+            <div className="flex flex-wrap items-center gap-2 text-xs text-slate-400">
+              {task.dueDate ? (
+                <span className="inline-flex items-center gap-1">
+                  <Calendar size={11} />
+                  <span>{formatDate(task.dueDate, dtOpts)}</span>
+                </span>
+              ) : null}
+              {task.isPrivate ? <Lock size={12} aria-hidden /> : null}
+              {task.reminderCadenceDays != null && task.reminderCadenceDays > 0 ? <AlarmClock size={12} aria-hidden /> : null}
+              {!onAssigneeChange && task.assignee ? (
+                <div
+                  className="h-6 w-6 rounded-full flex items-center justify-center text-xs text-white font-medium shrink-0"
+                  style={{ backgroundColor: task.assignee.color }}
+                  title={task.assignee.name || ""}
+                >
+                  {task.assignee.emoji || task.assignee.name?.[0]}
+                </div>
+              ) : null}
+            </div>
+            <div className="flex items-center gap-1 shrink-0">
+              {!isDragging && onCompletedChange && !task.completed ? (
+                <button
+                  type="button"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    onCompletedChange(true);
+                  }}
+                  onPointerDown={(e) => e.stopPropagation()}
+                  className="inline-flex h-8 w-8 items-center justify-center rounded-lg bg-emerald-600 text-white hover:bg-emerald-700 transition-colors"
+                  aria-label={t.markCompletedAria}
+                  title={t.markCompletedAria}
+                >
+                  <Check size={13} />
+                </button>
+              ) : task.completed ? (
+                <span className="text-[11px] font-medium text-emerald-600">{t.completed}</span>
+              ) : null}
+            </div>
+          </div>
         </div>
       </div>
-    </div>
+    </article>
   );
 }

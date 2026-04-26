@@ -6,15 +6,14 @@ import {
   syncFamilyXpUnlocks,
   syncUserStatUnlocks,
 } from "@/lib/achievements/evaluate";
-import { familyXpFromCompletedTaskCount } from "@/lib/achievements/registry";
 import {
-  familyXpCompletedTasksWhere,
   shoppingItemsVisibleWhere,
   shoppingListVisibleWhere,
   taskBoardVisibleWhere,
   userCreditedCompletedTasksWhere,
   userCreditedOpenTasksWhere,
 } from "@/lib/family-private-scope";
+import { getFamilyDisplayXp } from "@/lib/family-display-xp";
 import { kyivStartOfTodayUtc, kyivStartOfWeekUtc } from "@/lib/kyiv-range";
 import { prisma } from "@/lib/prisma";
 import { boardFullIncludeFor } from "@/lib/task-prisma-include";
@@ -95,7 +94,7 @@ export async function handleMcpReadResourceGet(
       const startToday = kyivStartOfTodayUtc(new Date(), tz);
       const startWeek = kyivStartOfWeekUtc(new Date(), tz);
 
-      const [myOpen, doneToday, doneWeek, doneTotal, familyCompletedTasks] = await Promise.all([
+      const [myOpen, doneToday, doneWeek, doneTotal] = await Promise.all([
         prisma.task.count({ where: userCreditedOpenTasksWhere(userId, familyId) }),
         prisma.task.count({
           where: userCreditedCompletedTasksWhere(userId, familyId, { gte: startToday }),
@@ -104,12 +103,9 @@ export async function handleMcpReadResourceGet(
           where: userCreditedCompletedTasksWhere(userId, familyId, { gte: startWeek }),
         }),
         prisma.task.count({ where: userCreditedCompletedTasksWhere(userId, familyId) }),
-        prisma.task.count({
-          where: familyXpCompletedTasksWhere(familyId),
-        }),
       ]);
 
-      const familyXp = familyXpFromCompletedTaskCount(familyCompletedTasks);
+      const familyXp = await getFamilyDisplayXp(familyId);
       await syncFamilyXpUnlocks(familyId, familyXp);
       await syncFamilyMemberUnlocks(familyId);
       await syncUserStatUnlocks(userId, familyId);

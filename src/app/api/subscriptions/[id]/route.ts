@@ -2,6 +2,7 @@ import { auth } from "@/lib/auth";
 import { ensureUserFamily } from "@/lib/family";
 import { prisma } from "@/lib/prisma";
 import { clearSubscriptionBillingEvents, syncSubscriptionBillingEvents } from "@/lib/subscription-calendar";
+import { awardXp, syncFamilyXpUnlocksFromLedger } from "@/lib/xp-ledger";
 import { SubscriptionBillingCycle, SubscriptionMemberRole, SubscriptionStatus } from "@prisma/client";
 import { NextRequest, NextResponse } from "next/server";
 
@@ -167,5 +168,14 @@ export async function DELETE(_req: NextRequest, { params }: { params: Promise<{ 
 
   await clearSubscriptionBillingEvents(id);
   await prisma.familySubscription.delete({ where: { id } });
-  return NextResponse.json({ success: true });
+  const awardedPoints = await awardXp({
+    familyId,
+    userId: session.user.id,
+    eventType: "subscription_deleted",
+    sourceType: "subscription",
+    sourceId: id,
+    dedupeKey: `subscription_deleted:subscription:${id}`,
+  });
+  const newAchievementIds = awardedPoints > 0 ? await syncFamilyXpUnlocksFromLedger(familyId) : [];
+  return NextResponse.json({ success: true, awardedPoints, newAchievementIds });
 }

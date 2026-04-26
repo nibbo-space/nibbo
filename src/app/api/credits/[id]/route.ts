@@ -1,6 +1,7 @@
 import { auth } from "@/lib/auth";
 import { ensureUserFamily } from "@/lib/family";
 import { prisma } from "@/lib/prisma";
+import { awardXp, syncFamilyXpUnlocksFromLedger } from "@/lib/xp-ledger";
 import { CreditBank, CreditStatus } from "@prisma/client";
 import { NextRequest, NextResponse } from "next/server";
 
@@ -14,7 +15,10 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
   if (!familyId) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
   const { id } = await params;
-  const existing = await prisma.credit.findFirst({ where: { id, familyId }, select: { id: true } });
+  const existing = await prisma.credit.findFirst({
+    where: { id, familyId },
+    select: { id: true, status: true },
+  });
   if (!existing) return NextResponse.json({ error: "Not found" }, { status: 404 });
 
   const body = await req.json().catch(() => ({} as Record<string, unknown>));
@@ -70,7 +74,23 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
     },
   });
 
-  return NextResponse.json(updated);
+  let awardedPoints = 0;
+  let newAchievementIds: string[] = [];
+  if (existing.status !== "CLOSED" && updated.status === "CLOSED") {
+    awardedPoints = await awardXp({
+      familyId,
+      userId: session.user.id,
+      eventType: "credit_closed",
+      sourceType: "credit",
+      sourceId: updated.id,
+      dedupeKey: `credit_closed:credit:${updated.id}`,
+    });
+    if (awardedPoints > 0) {
+      newAchievementIds = await syncFamilyXpUnlocksFromLedger(familyId);
+    }
+  }
+
+  return NextResponse.json({ ...updated, awardedPoints, newAchievementIds });
 }
 
 export async function DELETE(_req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
