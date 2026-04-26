@@ -217,7 +217,7 @@ export default function TaskCard({
                   <Check size={13} />
                 </button>
               ) : task.completed ? (
-                <span className="text-[11px] font-medium text-emerald-600">{taskMessages.completed}</span>
+                <span className="text-[11px] font-medium text-emerald-600">{taskMessages.editModal.completed}</span>
               ) : null}
             </div>
           </div>
