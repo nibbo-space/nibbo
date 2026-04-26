@@ -44,9 +44,10 @@ export default function TaskCard({
   const { language } = useAppLanguage();
   const { timeZone } = useUserPreferences();
   const dtOpts = { timeZone, locale: intlLocaleForUi(language) } as const;
-  const t = I18N[messageLocale(language)].task.card;
-  const tp = I18N[messageLocale(language)].task.priority;
-  const userFallback = I18N[messageLocale(language)].task.userFallback;
+  const taskMessages = I18N[messageLocale(language)].task;
+  const t = taskMessages.card;
+  const tp = taskMessages.priority;
+  const userFallback = taskMessages.userFallback;
   const [showActions, setShowActions] = useState(false);
   const priority = PRIORITY_CONFIG[task.priority];
 
@@ -216,7 +217,7 @@ export default function TaskCard({
                   <Check size={13} />
                 </button>
               ) : task.completed ? (
-                <span className="text-[11px] font-medium text-emerald-600">{t.completed}</span>
+                <span className="text-[11px] font-medium text-emerald-600">{taskMessages.completed}</span>
               ) : null}
             </div>
           </div>
