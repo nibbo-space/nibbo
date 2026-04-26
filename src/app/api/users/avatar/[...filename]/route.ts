@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/lib/auth";
+import { verifyMobileAccessToken } from "@/lib/auth-mobile/jwt";
 import { decodeBlobPath } from "@/lib/blob-path";
 import { ensureUserFamily } from "@/lib/family";
 import { readUploadFile } from "@/lib/upload-storage";
@@ -7,12 +8,31 @@ import { readUploadFile } from "@/lib/upload-storage";
 export const runtime = "nodejs";
 
 export async function GET(
-  _req: NextRequest,
+  req: NextRequest,
   { params }: { params: Promise<{ filename: string[] }> }
 ) {
+  let userId: string | null = null;
+
   const session = await auth();
-  if (!session?.user?.id) return new NextResponse(null, { status: 401 });
-  const familyId = await ensureUserFamily(session.user.id);
+  if (session?.user?.id) {
+    userId = session.user.id;
+  } else {
+    const header = req.headers.get("authorization") ?? "";
+    const match = header.match(/^Bearer\s+(.+)$/i);
+    const token = match?.[1]?.trim();
+    if (token) {
+      try {
+        const payload = await verifyMobileAccessToken(token);
+        userId = payload.sub;
+      } catch {
+        userId = null;
+      }
+    }
+  }
+
+  if (!userId) return new NextResponse(null, { status: 401 });
+
+  const familyId = await ensureUserFamily(userId);
   if (!familyId) return new NextResponse(null, { status: 401 });
 
   const { filename } = await params;
