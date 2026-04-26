@@ -35,6 +35,7 @@ export async function GET() {
     items: rows.map((m) => ({
       id: m.id,
       name: m.name,
+      startYmd: m.intervalAnchorYmd ?? kyivCalendarYmd(m.createdAt, tz),
       notes: m.notes,
       scheduleMode: m.scheduleMode,
       dailySlotMinutes: m.dailySlotMinutes,

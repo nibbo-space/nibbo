@@ -208,58 +208,78 @@ export default function WatchingView({
   };
 
   const list = tab === "active" ? active : history;
+  const featured = active[0] ?? history[0] ?? null;
+  const featuredSrc = featured ? posterSrc(featured.posterPath, "w500") : null;
+  const featuredSeason = featured ? seasonLabel(featured) : null;
 
   const communityScroll = (
-    <div className="mb-6">
-      <h3 className="mb-2 text-sm font-semibold text-warm-700">{t.communityTitle}</h3>
+    <div className="mb-5 rounded-3xl border border-warm-200/80 bg-white p-4 shadow-sm">
+      <h3 className="mb-3 text-base font-semibold text-warm-800">{t.communityTitle}</h3>
       {community.length === 0 ? (
-        <p className="text-sm text-warm-400">{t.communityEmpty}</p>
+        <div className="rounded-2xl border border-dashed border-warm-200 bg-warm-50/70 px-4 py-5">
+          <p className="text-sm font-medium text-warm-500">{t.communityEmpty}</p>
+          <p className="mt-1 text-xs text-warm-400">{t.communityHint}</p>
+        </div>
       ) : (
-        <div className="scrollbar-thin flex snap-x snap-mandatory gap-3 overflow-x-auto pb-2">
+        <div className="scrollbar-thin flex snap-x snap-mandatory gap-4 overflow-x-auto pb-2">
           {community.map((row) => {
-            const src = posterSrc(row.posterPath, "w342");
+            const src = posterSrc(row.posterPath, "w500");
             const seasonLine = row.mediaType === "TV" ? seasonLabel(row) : null;
             return (
               <div
                 key={row.id}
-                className="w-[140px] shrink-0 snap-start rounded-2xl border border-warm-100 bg-white/90 p-2 shadow-sm"
+                className="group relative w-[228px] shrink-0 snap-start overflow-hidden rounded-3xl border border-warm-200 bg-warm-100 shadow-sm"
               >
-                <div className="relative mb-2 aspect-[2/3] w-full overflow-hidden rounded-xl bg-warm-100">
-                  {src ? (
-                    <Image src={src} alt="" fill className="object-cover" sizes="140px" />
-                  ) : (
-                    <div className="flex h-full items-center justify-center text-warm-300">
-                      <Clapperboard className="h-8 w-8" />
-                    </div>
-                  )}
+                <div className="relative aspect-[2/3] w-full">
+                  {src ? <Image src={src} alt="" fill className="object-cover transition duration-500 group-hover:scale-[1.03]" sizes="228px" /> : null}
+                  <div className="pointer-events-none absolute inset-0 bg-gradient-to-t from-black/85 via-black/25 to-transparent" />
                 </div>
-                <p className="line-clamp-2 text-xs font-medium leading-tight text-warm-800">{row.title}</p>
-                {seasonLine && <p className="mt-0.5 text-[10px] text-warm-500">{seasonLine}</p>}
-                <p className="mt-1 truncate text-[10px] text-warm-400">
-                  {row.family.name} · {normalizeProfileEmoji(row.user.emoji)} {row.user.name || t.someone}
-                </p>
+                <div className="absolute inset-x-0 bottom-0 p-3">
+                  <p className="line-clamp-2 text-sm font-semibold leading-tight text-white">{row.title}</p>
+                  {seasonLine && <p className="mt-0.5 text-xs text-white/80">{seasonLine}</p>}
+                  <p className="mt-1 truncate text-xs text-white/80">
+                    {row.family.name} · {normalizeProfileEmoji(row.user.emoji)} {row.user.name || t.someone}
+                  </p>
+                </div>
               </div>
             );
           })}
         </div>
       )}
-      <p className="mt-1 text-[11px] text-warm-400">{t.communityHint}</p>
+      {community.length > 0 && <p className="mt-2 text-xs text-warm-400">{t.communityHint}</p>}
     </div>
   );
 
   return (
-    <div className="mx-auto flex max-w-5xl flex-col gap-4 pb-8">
+    <div className="mx-auto flex max-w-6xl flex-col gap-4 pb-8">
       <div>
-        <h1 className="text-2xl font-bold text-warm-800 flex items-center gap-2">
+        <h1 className="flex items-center gap-2 text-2xl font-bold text-warm-800">
           <Clapperboard className="h-7 w-7 text-rose-500" />
           {t.title}
         </h1>
         <p className="mt-1 text-sm text-warm-500">{t.subtitle}</p>
       </div>
 
+      {featured && (
+        <div className="relative overflow-hidden rounded-3xl border border-warm-200 bg-warm-100 shadow-sm">
+          {featuredSrc ? (
+            <Image src={featuredSrc} alt="" fill className="object-cover" sizes="(max-width: 1200px) 100vw, 1200px" />
+          ) : null}
+          <div className="pointer-events-none absolute inset-0 bg-gradient-to-r from-black/80 via-black/40 to-black/10" />
+          <div className="relative z-10 flex min-h-[220px] flex-col justify-end p-5 sm:min-h-[260px]">
+            <p className="max-w-xl text-2xl font-bold leading-tight text-white sm:text-3xl">{featured.title}</p>
+            <p className="mt-2 text-sm text-white/80">
+              {normalizeProfileEmoji(featured.user.emoji)} {featured.user.name || t.someone}
+              {featured.mediaType === "TV" && featuredSeason ? ` · ${featuredSeason}` : ""}
+              {featured.mediaType === "MOVIE" ? ` · ${t.badgeMovie}` : ""}
+            </p>
+          </div>
+        </div>
+      )}
+
       {communityScroll}
 
-      <div className="rounded-3xl border border-warm-100 bg-white/85 p-4 shadow-cozy">
+      <div className="rounded-3xl border border-warm-200/80 bg-white p-4 shadow-sm">
         {!hasTmdb && <p className="mb-3 text-sm text-amber-700">{t.searchNoKey}</p>}
         <div className="relative">
           <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-warm-400" />
@@ -338,7 +358,9 @@ export default function WatchingView({
           onClick={() => setTab("active")}
           className={cn(
             "rounded-2xl px-4 py-2 text-sm font-medium transition-colors",
-            tab === "active" ? "bg-rose-500 text-white" : "bg-white/80 text-warm-600 border border-warm-100"
+            tab === "active"
+              ? "bg-warm-900 text-white"
+              : "border border-warm-200 bg-white text-warm-600"
           )}
         >
           {t.tabActive} ({active.length})
@@ -348,7 +370,9 @@ export default function WatchingView({
           onClick={() => setTab("history")}
           className={cn(
             "rounded-2xl px-4 py-2 text-sm font-medium transition-colors",
-            tab === "history" ? "bg-rose-500 text-white" : "bg-white/80 text-warm-600 border border-warm-100"
+            tab === "history"
+              ? "bg-warm-900 text-white"
+              : "border border-warm-200 bg-white text-warm-600"
           )}
         >
           {t.tabHistory} ({history.length})
@@ -356,7 +380,7 @@ export default function WatchingView({
         <button
           type="button"
           onClick={() => void refreshCommunity()}
-          className="ml-auto rounded-2xl border border-warm-200 bg-white/80 px-3 py-2 text-xs text-warm-600"
+          className="ml-auto rounded-2xl border border-warm-200 bg-white px-3 py-2 text-xs text-warm-600"
         >
           {t.refreshCommunity}
         </button>
@@ -367,7 +391,7 @@ export default function WatchingView({
           {tab === "active" ? t.noActive : t.noHistory}
         </div>
       ) : (
-        <ul className="grid grid-cols-1 gap-5 sm:grid-cols-2">
+        <ul className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-3">
           {list.map((row) => {
             const src = posterSrc(row.posterPath, "w500");
             const seasonLine = seasonLabel(row);
@@ -375,109 +399,109 @@ export default function WatchingView({
             return (
               <li
                 key={row.id}
-                className="group flex flex-col overflow-hidden rounded-3xl border border-warm-100 bg-white/95 shadow-cozy"
+                className="group overflow-hidden rounded-3xl border border-warm-200 bg-white shadow-sm"
               >
-                <div className="relative aspect-[2/3] w-full bg-gradient-to-b from-warm-100 to-warm-200">
+                <div className="flex">
+                  <div className="relative aspect-[2/3] w-[42%] min-w-[140px] bg-gradient-to-b from-warm-100 to-warm-200">
                   {src ? (
                     <Image
                       src={src}
                       alt=""
                       fill
                       className="object-cover transition duration-500 ease-out group-hover:scale-[1.03]"
-                      sizes="(max-width: 640px) 100vw, (max-width: 896px) 50vw, 400px"
+                      sizes="(max-width: 640px) 42vw, 220px"
                     />
                   ) : (
                     <div className="flex h-full min-h-[200px] items-center justify-center">
                       <Clapperboard className="h-20 w-20 text-warm-300" strokeWidth={1.25} />
                     </div>
                   )}
-                  <div
-                    className="pointer-events-none absolute inset-x-0 bottom-0 h-1/3 bg-gradient-to-t from-black/35 to-transparent"
-                    aria-hidden
-                  />
-                  <button
-                    type="button"
-                    onClick={() => void remove(row.id)}
-                    className="absolute right-2 top-2 flex h-10 w-10 items-center justify-center rounded-2xl border border-white/40 bg-white/90 text-warm-500 shadow-md backdrop-blur-sm transition hover:border-rose-200 hover:bg-rose-50 hover:text-rose-600"
-                    aria-label={t.remove}
-                  >
-                    <Trash2 className="h-4 w-4" />
-                  </button>
-                </div>
-                <div className="flex flex-col gap-3 p-4 pt-3">
-                  <div>
-                    <p className="text-base font-bold leading-snug text-warm-900 line-clamp-2">{row.title}</p>
-                    <p className="mt-1 text-xs text-warm-500">
-                      {normalizeProfileEmoji(row.user.emoji)} {row.user.name || t.someone}
-                      {row.mediaType === "TV" && seasonLine ? ` · ${seasonLine}` : ""}
-                      {row.mediaType === "MOVIE" ? ` · ${t.badgeMovie}` : ""}
-                    </p>
                   </div>
-
-                  {isActiveTab && row.mediaType === "TV" && (
-                    <label className="flex items-center gap-2 text-xs text-warm-600">
-                      <span className="shrink-0 font-medium">{t.seasonField}</span>
-                      <input
-                        type="number"
-                        min={0}
-                        className="w-full max-w-[5.5rem] rounded-xl border border-warm-200 bg-warm-50 px-3 py-2 text-sm font-semibold text-warm-800 outline-none focus:border-rose-300"
-                        value={row.season != null ? row.season : ""}
-                        onChange={(e) => {
-                          const v = e.target.value === "" ? null : Number(e.target.value);
-                          setActive((prev) =>
-                            prev.map((r) => (r.id === row.id ? { ...r, season: v } : r))
-                          );
-                        }}
-                        onBlur={(e) => {
-                          const v = e.target.value === "" ? null : Math.max(0, Math.floor(Number(e.target.value)));
-                          void patch(row.id, { season: v });
-                        }}
-                      />
-                    </label>
-                  )}
-
-                  {isActiveTab && (
-                    <div className="flex flex-wrap gap-2">
-                      {row.status === "WATCHING" ? (
-                        <button
-                          type="button"
-                          onClick={() => void patch(row.id, { status: "PAUSED" })}
-                          className="inline-flex min-h-[40px] flex-1 items-center justify-center gap-1.5 rounded-2xl border border-warm-200 bg-warm-50/80 px-3 text-xs font-semibold text-warm-800 sm:flex-initial"
-                        >
-                          <Pause className="h-3.5 w-3.5 shrink-0" /> {t.pause}
-                        </button>
-                      ) : (
-                        <button
-                          type="button"
-                          onClick={() => void patch(row.id, { status: "WATCHING" })}
-                          className="inline-flex min-h-[40px] flex-1 items-center justify-center gap-1.5 rounded-2xl border border-warm-200 bg-warm-50/80 px-3 text-xs font-semibold text-warm-800 sm:flex-initial"
-                        >
-                          <Play className="h-3.5 w-3.5 shrink-0" /> {t.resume}
-                        </button>
-                      )}
+                  <div className="flex min-w-0 flex-1 flex-col gap-2.5 p-3">
+                    <div className="flex items-start gap-2">
+                      <div className="min-w-0 flex-1">
+                        <p className="line-clamp-2 text-base font-bold leading-snug text-warm-900">{row.title}</p>
+                        <p className="mt-1 text-xs text-warm-500">
+                          {normalizeProfileEmoji(row.user.emoji)} {row.user.name || t.someone}
+                          {row.mediaType === "TV" && seasonLine ? ` · ${seasonLine}` : ""}
+                          {row.mediaType === "MOVIE" ? ` · ${t.badgeMovie}` : ""}
+                        </p>
+                      </div>
                       <button
                         type="button"
-                        onClick={() => void patch(row.id, { status: "FINISHED" })}
-                        className="inline-flex min-h-[40px] flex-1 items-center justify-center gap-1.5 rounded-2xl bg-sage-500 px-3 text-xs font-semibold text-white shadow-sm sm:flex-initial"
+                        onClick={() => void remove(row.id)}
+                        className="flex h-8 w-8 shrink-0 items-center justify-center rounded-xl border border-warm-200 bg-white text-warm-500 transition hover:border-rose-200 hover:text-rose-600"
+                        aria-label={t.remove}
                       >
-                        <Check className="h-3.5 w-3.5 shrink-0" /> {t.finish}
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => void patch(row.id, { status: "DROPPED" })}
-                        className="inline-flex min-h-[40px] flex-1 items-center justify-center gap-1.5 rounded-2xl border border-warm-200 bg-white px-3 text-xs font-semibold text-warm-600 sm:flex-initial"
-                      >
-                        <X className="h-3.5 w-3.5 shrink-0" /> {t.drop}
+                        <Trash2 className="h-3.5 w-3.5" />
                       </button>
                     </div>
-                  )}
 
-                  {!isActiveTab && row.completedAt && (
-                    <p className="text-xs text-warm-500">
-                      {row.status === "FINISHED" ? t.statusFinished : t.statusDropped}:{" "}
-                      {new Date(row.completedAt).toLocaleDateString(intlLocaleForUi(language))}
-                    </p>
-                  )}
+                    {isActiveTab && row.mediaType === "TV" && (
+                      <label className="flex items-center gap-2 text-xs text-warm-600">
+                        <span className="shrink-0 font-medium">{t.seasonField}</span>
+                        <input
+                          type="number"
+                          min={0}
+                          className="w-full max-w-[5rem] rounded-xl border border-warm-200 bg-warm-50 px-2.5 py-1.5 text-xs font-semibold text-warm-800 outline-none focus:border-rose-300"
+                          value={row.season != null ? row.season : ""}
+                          onChange={(e) => {
+                            const v = e.target.value === "" ? null : Number(e.target.value);
+                            setActive((prev) =>
+                              prev.map((r) => (r.id === row.id ? { ...r, season: v } : r))
+                            );
+                          }}
+                          onBlur={(e) => {
+                            const v = e.target.value === "" ? null : Math.max(0, Math.floor(Number(e.target.value)));
+                            void patch(row.id, { season: v });
+                          }}
+                        />
+                      </label>
+                    )}
+
+                    {isActiveTab && (
+                      <div className="grid grid-cols-2 gap-2">
+                        {row.status === "WATCHING" ? (
+                          <button
+                            type="button"
+                            onClick={() => void patch(row.id, { status: "PAUSED" })}
+                            className="inline-flex min-h-[34px] items-center justify-center gap-1 rounded-xl border border-warm-200 bg-warm-50 px-2 text-xs font-semibold text-warm-800"
+                          >
+                            <Pause className="h-3 w-3 shrink-0" /> {t.pause}
+                          </button>
+                        ) : (
+                          <button
+                            type="button"
+                            onClick={() => void patch(row.id, { status: "WATCHING" })}
+                            className="inline-flex min-h-[34px] items-center justify-center gap-1 rounded-xl border border-warm-200 bg-warm-50 px-2 text-xs font-semibold text-warm-800"
+                          >
+                            <Play className="h-3 w-3 shrink-0" /> {t.resume}
+                          </button>
+                        )}
+                        <button
+                          type="button"
+                          onClick={() => void patch(row.id, { status: "FINISHED" })}
+                          className="inline-flex min-h-[34px] items-center justify-center gap-1 rounded-xl bg-sage-500 px-2 text-xs font-semibold text-white"
+                        >
+                          <Check className="h-3 w-3 shrink-0" /> {t.finish}
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => void patch(row.id, { status: "DROPPED" })}
+                          className="col-span-2 inline-flex min-h-[34px] items-center justify-center gap-1 rounded-xl border border-warm-200 bg-white px-2 text-xs font-semibold text-warm-600"
+                        >
+                          <X className="h-3 w-3 shrink-0" /> {t.drop}
+                        </button>
+                      </div>
+                    )}
+
+                    {!isActiveTab && row.completedAt && (
+                      <p className="text-xs text-warm-500">
+                        {row.status === "FINISHED" ? t.statusFinished : t.statusDropped}:{" "}
+                        {new Date(row.completedAt).toLocaleDateString(intlLocaleForUi(language))}
+                      </p>
+                    )}
+                  </div>
                 </div>
               </li>
             );

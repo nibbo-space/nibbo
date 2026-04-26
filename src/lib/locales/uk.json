@@ -811,6 +811,8 @@
     "scheduleInterval": "Раз на кілька днів",
     "doseAt": "Прийом о {time}",
     "taken": "Прийнято",
+    "notTaken": "Не прийнято",
+    "notDueTodayShort": "Не сьогодні",
     "intervalDueToday": "Сьогодні за розкладом",
     "intervalNotDue": "Сьогодні не день прийому за цим циклом",
     "intervalEvery": "Кожні {n} дн.",
@@ -835,7 +837,8 @@
     "toastDeleted": "Видалено",
     "nameRequired": "Вкажи назву",
     "dailyTimesRequired": "Додай хоча б один час",
-    "intervalInvalid": "Інтервал має бути від 1 дня"
+    "intervalInvalid": "Інтервал має бути від 1 дня",
+    "calendarTitle": "Календар прийому"
   },
   "budget": {
     "toastExpenseAdded": "Витрату додано!",

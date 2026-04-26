@@ -811,6 +811,8 @@
     "scheduleInterval": "N日ごと",
     "doseAt": "{time}に服用",
     "taken": "服用済み",
+    "notTaken": "未服用",
+    "notDueTodayShort": "今日は不要",
     "intervalDueToday": "今日はこのスケジュールの日",
     "intervalNotDue": "この周期の日ではありません",
     "intervalEvery": "{n}日ごと",
@@ -835,7 +837,8 @@
     "toastDeleted": "削除しました",
     "nameRequired": "名前を入力",
     "dailyTimesRequired": "少なくとも1つ時間を追加",
-    "intervalInvalid": "間隔は1日以上にしてください"
+    "intervalInvalid": "間隔は1日以上にしてください",
+    "calendarTitle": "服用カレンダー"
   },
   "budget": {
     "toastExpenseAdded": "支出を追加しました",

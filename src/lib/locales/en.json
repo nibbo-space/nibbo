@@ -811,6 +811,8 @@
     "scheduleInterval": "Every N days",
     "doseAt": "Dose at {time}",
     "taken": "Taken",
+    "notTaken": "Not taken",
+    "notDueTodayShort": "Not today",
     "intervalDueToday": "Due today on this schedule",
     "intervalNotDue": "Not a scheduled day for this cycle",
     "intervalEvery": "Every {n} days",
@@ -835,7 +837,8 @@
     "toastDeleted": "Deleted",
     "nameRequired": "Enter a name",
     "dailyTimesRequired": "Add at least one time",
-    "intervalInvalid": "Interval must be at least 1 day"
+    "intervalInvalid": "Interval must be at least 1 day",
+    "calendarTitle": "Intake calendar"
   },
   "budget": {
     "toastExpenseAdded": "Expense added!",
