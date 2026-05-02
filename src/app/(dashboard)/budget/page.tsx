@@ -1,7 +1,15 @@
+import { formatInTimeZone } from "date-fns-tz";
 import { auth } from "@/lib/auth";
+import { getPastMonthExpenseIncomeSummaries } from "@/lib/budget-past-month-summaries";
 import { getNbuExchangeRates, isSupportedCurrency, type SupportedCurrency } from "@/lib/exchange-rates";
 import { ensureUserFamily } from "@/lib/family";
-import { kyivCalendarYmd, kyivCalendarYmdMinusDays, kyivRangeUtcFromCalendarYmd } from "@/lib/kyiv-range";
+import {
+  calendarMonthRangeUtcFromYm,
+  calendarYmdMinusDays,
+  DEFAULT_TIME_ZONE,
+  formatYmdInTimeZone,
+  utcRangeFromCalendarYmd,
+} from "@/lib/calendar-tz";
 import { prisma } from "@/lib/prisma";
 import { SubscriptionBillingCycle } from "@prisma/client";
 import BudgetView from "@/components/budget/BudgetView";
@@ -12,16 +20,16 @@ export default async function BudgetPage() {
   const familyId = await ensureUserFamily(session.user.id);
   if (!familyId) return null;
 
-  const calendarTz = session.user.timeZone || "Europe/Kyiv";
+  const calendarTz = session.user.timeZone || DEFAULT_TIME_ZONE;
   const displayCurrencyRaw = String(session.user.displayCurrency || "USD").toUpperCase();
   const displayCurrency: SupportedCurrency = isSupportedCurrency(displayCurrencyRaw) ? displayCurrencyRaw : "USD";
 
   const now = new Date();
-  const monthStart = new Date(now.getFullYear(), now.getMonth(), 1);
-  const monthEnd = new Date(now.getFullYear(), now.getMonth() + 1, 0, 23, 59, 59);
-  const expenseWindowEndYmd = kyivCalendarYmd(now, calendarTz);
-  const expenseWindowStartYmd = kyivCalendarYmdMinusDays(expenseWindowEndYmd, 3, calendarTz);
-  const { start: expenseListStart, end: expenseListEnd } = kyivRangeUtcFromCalendarYmd(
+  const currentYm = formatInTimeZone(now, calendarTz, "yyyy-MM");
+  const { start: monthStart, end: monthEnd } = calendarMonthRangeUtcFromYm(currentYm, calendarTz);
+  const expenseWindowEndYmd = formatYmdInTimeZone(now, calendarTz);
+  const expenseWindowStartYmd = calendarYmdMinusDays(expenseWindowEndYmd, 3, calendarTz);
+  const { start: expenseListStart, end: expenseListEnd } = utcRangeFromCalendarYmd(
     expenseWindowStartYmd,
     expenseWindowEndYmd,
     calendarTz
@@ -37,6 +45,7 @@ export default async function BudgetPage() {
     subscriptions,
     exchangeRates,
     credits,
+    pastMonthSummaries,
   ] = await Promise.all([
     prisma.expenseCategory.findMany({
       where: { familyId },
@@ -89,6 +98,7 @@ export default async function BudgetPage() {
       where: { familyId },
       orderBy: [{ status: "asc" }, { paymentDay: "asc" }, { createdAt: "desc" }],
     }),
+    getPastMonthExpenseIncomeSummaries(familyId, calendarTz, 12),
   ]);
 
   const initialExpenses = expenses.map((e) => ({
@@ -147,6 +157,7 @@ export default async function BudgetPage() {
       initialCategorySpent={categorySpent}
       initialExpenseWindowStartYmd={expenseWindowStartYmd}
       initialIncomes={initialIncomes}
+      pastMonthSummaries={pastMonthSummaries}
       initialCredits={initialCredits}
       monthlySubscriptionsTotal={monthlySubscriptionsTotal}
       monthlySubscriptionsCount={subscriptions.length}

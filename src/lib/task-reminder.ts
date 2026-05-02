@@ -1,6 +1,6 @@
 import { addDays, differenceInCalendarDays } from "date-fns";
 import { formatInTimeZone } from "date-fns-tz";
-import { kyivCalendarYmd, kyivRangeUtcFromCalendarYmd } from "@/lib/kyiv-range";
+import { utcRangeFromCalendarYmd } from "@/lib/calendar-tz";
 
 export function minutesFromMidnightInTz(now: Date, timeZone: string): number {
   const h = Number.parseInt(formatInTimeZone(now, timeZone, "H"), 10);
@@ -15,8 +15,8 @@ export function formatMinutesAsClock(mins: number): string {
 }
 
 export function calendarDaysSinceAnchor(anchorYmd: string, todayYmd: string, timeZone: string): number {
-  const a = kyivRangeUtcFromCalendarYmd(anchorYmd, anchorYmd, timeZone).start;
-  const b = kyivRangeUtcFromCalendarYmd(todayYmd, todayYmd, timeZone).start;
+  const a = utcRangeFromCalendarYmd(anchorYmd, anchorYmd, timeZone).start;
+  const b = utcRangeFromCalendarYmd(todayYmd, todayYmd, timeZone).start;
   return differenceInCalendarDays(b, a);
 }
 
@@ -53,7 +53,7 @@ export function nextPingYmdFrom(
   if (d < 0) return anchorYmd;
   const mod = d % cadence;
   const add = mod === 0 ? 0 : cadence - mod;
-  const base = kyivRangeUtcFromCalendarYmd(fromYmd, fromYmd, timeZone).start;
+  const base = utcRangeFromCalendarYmd(fromYmd, fromYmd, timeZone).start;
   const target = addDays(base, add);
   return formatInTimeZone(target, timeZone, "yyyy-MM-dd");
 }

@@ -1,5 +1,6 @@
 import { type ClassValue, clsx } from "clsx";
 import { twMerge } from "tailwind-merge";
+import { DEFAULT_TIME_ZONE } from "@/lib/calendar-tz";
 import type { SupportedCurrency } from "@/lib/exchange-rates";
 
 export function cn(...inputs: ClassValue[]) {
@@ -54,7 +55,7 @@ export function dashboardHeaderLabels(now: Date = new Date()) {
     new Intl.DateTimeFormat("en-GB", {
       hour: "numeric",
       hour12: false,
-      timeZone: "Europe/Kyiv",
+      timeZone: DEFAULT_TIME_ZONE,
     }).format(now),
     10
   );
@@ -63,7 +64,7 @@ export function dashboardHeaderLabels(now: Date = new Date()) {
     day: "numeric",
     month: "long",
     year: "numeric",
-    timeZone: "Europe/Kyiv",
+    timeZone: DEFAULT_TIME_ZONE,
   }).format(now);
   return { greeting, dateLabel };
 }

@@ -1,5 +1,5 @@
 import { prisma } from "@/lib/prisma";
-import { kyivCalendarYmd } from "@/lib/kyiv-range";
+import { formatYmdInTimeZone } from "@/lib/calendar-tz";
 import {
   isInReminderWindow,
   isReminderPingDay,
@@ -14,7 +14,7 @@ export async function processReminderTicksForUser(
   timeZone: string,
   now = new Date()
 ): Promise<void> {
-  const todayYmd = kyivCalendarYmd(now, timeZone);
+  const todayYmd = formatYmdInTimeZone(now, timeZone);
   const tasks = await prisma.task.findMany({
     where: {
       assigneeId: userId,
@@ -86,7 +86,7 @@ export async function loadDashboardReminderDeck(
   now = new Date()
 ): Promise<DashboardReminderRow[]> {
   await processReminderTicksForUser(userId, familyId, timeZone, now);
-  const todayYmd = kyivCalendarYmd(now, timeZone);
+  const todayYmd = formatYmdInTimeZone(now, timeZone);
   const tasks = await prisma.task.findMany({
     where: {
       assigneeId: userId,

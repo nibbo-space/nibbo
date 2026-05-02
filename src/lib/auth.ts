@@ -3,6 +3,7 @@ import { randomUUID } from "crypto";
 import NextAuth from "next-auth";
 import { deriveCredentialGate, hasEmailMagicProvider } from "@/lib/auth-gate";
 import { buildProviders } from "@/lib/auth-providers";
+import { DEFAULT_TIME_ZONE } from "@/lib/calendar-tz";
 import { ensureUserFamily } from "./family";
 import { prisma } from "./prisma";
 
@@ -83,7 +84,7 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
         token.name = row.name;
       }
       token.displayCurrency = row?.displayCurrency ?? "USD";
-      token.timeZone = row?.timeZone ?? "Europe/Kyiv";
+      token.timeZone = row?.timeZone ?? DEFAULT_TIME_ZONE;
       const gate = deriveCredentialGate({
         passwordHash: row?.passwordHash ?? null,
         credentialSetupDeadline: row?.credentialSetupDeadline ?? null,
@@ -111,7 +112,7 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
         familyId: (token.familyId as string | null | undefined) ?? null,
         isAdmin: Boolean(token.isAdmin),
         displayCurrency: (token.displayCurrency as string | undefined) ?? "USD",
-        timeZone: (token.timeZone as string | undefined) ?? "Europe/Kyiv",
+        timeZone: (token.timeZone as string | undefined) ?? DEFAULT_TIME_ZONE,
         mustSetPassword: Boolean(token.mustSetPassword),
         credentialExpired: Boolean(token.credentialExpired),
       };

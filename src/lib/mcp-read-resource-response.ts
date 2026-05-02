@@ -14,7 +14,7 @@ import {
   userCreditedOpenTasksWhere,
 } from "@/lib/family-private-scope";
 import { getFamilyDisplayXp } from "@/lib/family-display-xp";
-import { kyivStartOfTodayUtc, kyivStartOfWeekUtc } from "@/lib/kyiv-range";
+import { DEFAULT_TIME_ZONE, zonedStartOfTodayUtc, zonedStartOfWeekUtc } from "@/lib/calendar-tz";
 import { prisma } from "@/lib/prisma";
 import { boardFullIncludeFor } from "@/lib/task-prisma-include";
 import { NextRequest, NextResponse } from "next/server";
@@ -90,9 +90,9 @@ export async function handleMcpReadResourceGet(
         where: { id: userId },
         select: { timeZone: true },
       });
-      const tz = userRow?.timeZone || "Europe/Kyiv";
-      const startToday = kyivStartOfTodayUtc(new Date(), tz);
-      const startWeek = kyivStartOfWeekUtc(new Date(), tz);
+      const tz = userRow?.timeZone || DEFAULT_TIME_ZONE;
+      const startToday = zonedStartOfTodayUtc(new Date(), tz);
+      const startWeek = zonedStartOfWeekUtc(new Date(), tz);
 
       const [myOpen, doneToday, doneWeek, doneTotal] = await Promise.all([
         prisma.task.count({ where: userCreditedOpenTasksWhere(userId, familyId) }),

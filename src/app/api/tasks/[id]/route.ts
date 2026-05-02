@@ -5,7 +5,7 @@ import { ensureUserFamily } from "@/lib/family";
 import { prisma } from "@/lib/prisma";
 import { taskRelationInclude } from "@/lib/task-prisma-include";
 import { fireAndForgetNotifyTaskAssigneeChanged } from "@/lib/notifications/task-assigned";
-import { kyivCalendarYmd } from "@/lib/kyiv-range";
+import { DEFAULT_TIME_ZONE, formatYmdInTimeZone } from "@/lib/calendar-tz";
 import { applyReminderFieldsFromBody } from "@/lib/task-reminder-api";
 import { awardXp, syncFamilyXpUnlocksFromLedger } from "@/lib/xp-ledger";
 import { NextRequest, NextResponse } from "next/server";
@@ -102,10 +102,10 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
     }
   }
 
-  const tz = session.user.timeZone || "Europe/Kyiv";
+  const tz = session.user.timeZone || DEFAULT_TIME_ZONE;
   const reminderPatch: Record<string, unknown> = {};
   applyReminderFieldsFromBody(reminderPatch, body as Record<string, unknown>, {
-    todayAnchorYmd: kyivCalendarYmd(new Date(), tz),
+    todayAnchorYmd: formatYmdInTimeZone(new Date(), tz),
     previousCadence: existing.reminderCadenceDays ?? null,
     previousAnchor: existing.reminderAnchorYmd ?? null,
   });

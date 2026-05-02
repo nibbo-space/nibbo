@@ -4,7 +4,7 @@ import { ensureUserFamily } from "@/lib/family";
 import { prisma } from "@/lib/prisma";
 import { boardFullIncludeFor, columnWithTasksIncludeFor, taskRelationInclude } from "@/lib/task-prisma-include";
 import { fireAndForgetNotifyTaskAssigneeChanged } from "@/lib/notifications/task-assigned";
-import { kyivCalendarYmd } from "@/lib/kyiv-range";
+import { DEFAULT_TIME_ZONE, formatYmdInTimeZone } from "@/lib/calendar-tz";
 import { reminderFieldsForCreate } from "@/lib/task-reminder-api";
 import { NextRequest, NextResponse } from "next/server";
 
@@ -93,9 +93,9 @@ export async function POST(req: NextRequest) {
     const assigneeSeenAt =
       assigneeId && assigneeId !== session.user.id ? null : assigneeId ? new Date() : null;
 
-    const tz = session.user.timeZone || "Europe/Kyiv";
+    const tz = session.user.timeZone || DEFAULT_TIME_ZONE;
     const reminderExtra =
-      reminderFieldsForCreate(body as Record<string, unknown>, kyivCalendarYmd(new Date(), tz)) ?? {};
+      reminderFieldsForCreate(body as Record<string, unknown>, formatYmdInTimeZone(new Date(), tz)) ?? {};
 
     const task = await prisma.task.create({
       data: {

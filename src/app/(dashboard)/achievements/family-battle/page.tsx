@@ -3,7 +3,7 @@ import { CozyPageBackground } from "@/components/shared/CozyPageBackground";
 import { auth } from "@/lib/auth";
 import { ensureUserFamily } from "@/lib/family";
 import { pickRandomElement } from "@/lib/family-battle";
-import { kyivStartOfTodayUtc, kyivStartOfWeekUtc } from "@/lib/kyiv-range";
+import { DEFAULT_TIME_ZONE, zonedStartOfTodayUtc, zonedStartOfWeekUtc } from "@/lib/calendar-tz";
 import { nibbyChargeStage, type NibbyChargeStage } from "@/lib/nibby-charge";
 import { createFamilyBattleRecord } from "@/lib/family-battle-session";
 import { prisma } from "@/lib/prisma";
@@ -36,9 +36,9 @@ export default async function FamilyBattlePage() {
 
   const opponent = pickRandomElement(candidates);
 
-  const timeZone = session.user.timeZone || "Europe/Kyiv";
-  const startToday = kyivStartOfTodayUtc(new Date(), timeZone);
-  const startWeek = kyivStartOfWeekUtc(new Date(), timeZone);
+  const timeZone = session.user.timeZone || DEFAULT_TIME_ZONE;
+  const startToday = zonedStartOfTodayUtc(new Date(), timeZone);
+  const startWeek = zonedStartOfWeekUtc(new Date(), timeZone);
   const mine = userCreditedTaskWhere(userId);
 
   const [playerDoneToday, playerDoneWeek, opponentStats] = await Promise.all([

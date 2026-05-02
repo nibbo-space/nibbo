@@ -11,6 +11,7 @@ import { TASK_POINTS_AWARDED_EVENT } from "@/lib/task-points";
 import { intlLocaleForUi, messageLocale, I18N } from "@/lib/i18n";
 import { useAppLanguage } from "@/hooks/useAppLanguage";
 import { useFocusModeActive } from "@/components/shared/FocusModeProvider";
+import { DEFAULT_TIME_ZONE } from "@/lib/calendar-tz";
 
 interface HeaderProps {
   user: {
@@ -48,7 +49,7 @@ export default function Header({ user: u, initialPoints, isAdmin = false }: Head
     void loadPoints();
   }, []);
 
-  const tz = u.timeZone || "Europe/Kyiv";
+  const tz = u.timeZone || DEFAULT_TIME_ZONE;
   const now = new Date();
   const hour = Number(
     new Intl.DateTimeFormat("en-GB", {

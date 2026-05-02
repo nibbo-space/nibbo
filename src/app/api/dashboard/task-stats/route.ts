@@ -14,7 +14,7 @@ import {
 } from "@/lib/family-private-scope";
 import { ensureUserFamily } from "@/lib/family";
 import { getFamilyDisplayXp } from "@/lib/family-display-xp";
-import { kyivStartOfTodayUtc, kyivStartOfWeekUtc } from "@/lib/kyiv-range";
+import { DEFAULT_TIME_ZONE, zonedStartOfTodayUtc, zonedStartOfWeekUtc } from "@/lib/calendar-tz";
 import { prisma } from "@/lib/prisma";
 import { NextResponse } from "next/server";
 
@@ -25,9 +25,9 @@ export async function GET() {
   if (!familyId) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
   const userId = session.user.id;
-  const tz = session.user.timeZone || "Europe/Kyiv";
-  const startToday = kyivStartOfTodayUtc(new Date(), tz);
-  const startWeek = kyivStartOfWeekUtc(new Date(), tz);
+  const tz = session.user.timeZone || DEFAULT_TIME_ZONE;
+  const startToday = zonedStartOfTodayUtc(new Date(), tz);
+  const startWeek = zonedStartOfWeekUtc(new Date(), tz);
 
   const [myOpen, doneToday, doneWeek, doneTotal] = await Promise.all([
     prisma.task.count({ where: userCreditedOpenTasksWhere(userId, familyId) }),

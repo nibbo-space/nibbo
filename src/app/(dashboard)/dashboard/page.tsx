@@ -1,7 +1,7 @@
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import DashboardClient from "@/components/shared/DashboardClient";
-import { kyivStartOfTodayUtc, kyivStartOfWeekUtc } from "@/lib/kyiv-range";
+import { DEFAULT_TIME_ZONE, zonedStartOfTodayUtc, zonedStartOfWeekUtc } from "@/lib/calendar-tz";
 import { redirect } from "next/navigation";
 import { ensureUserFamily } from "@/lib/family";
 import { AUTO_BILLING_MARKER } from "@/lib/subscription-calendar";
@@ -37,9 +37,9 @@ export default async function DashboardPage() {
   }
   const mine = userCreditedTaskWhere(userId);
 
-  const tz = session.user.timeZone || "Europe/Kyiv";
-  const startToday = kyivStartOfTodayUtc(new Date(), tz);
-  const startWeek = kyivStartOfWeekUtc(new Date(), tz);
+  const tz = session.user.timeZone || DEFAULT_TIME_ZONE;
+  const startToday = zonedStartOfTodayUtc(new Date(), tz);
+  const startWeek = zonedStartOfWeekUtc(new Date(), tz);
 
   const [taskCount, eventCount, shoppingCount, myOpen, doneToday, doneWeek, doneTotal] = await Promise.all([
     prisma.task.count({ where: { completed: false, column: { board: { familyId } } } }),

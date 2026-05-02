@@ -1,3 +1,4 @@
+import { DEFAULT_TIME_ZONE } from "@/lib/calendar-tz";
 import { auth } from "@/lib/auth";
 import { ensureUserFamily } from "@/lib/family";
 import { processMedicationTicksForUser } from "@/lib/medication-reminder-tick";
@@ -13,7 +14,7 @@ export async function GET() {
   if (!familyId) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
-  const tz = session.user.timeZone || "Europe/Kyiv";
+  const tz = session.user.timeZone || DEFAULT_TIME_ZONE;
   const now = new Date();
   await processMedicationTicksForUser(session.user.id, familyId, tz, now);
   const items = await loadDashboardReminderDeck(session.user.id, familyId, tz, now);

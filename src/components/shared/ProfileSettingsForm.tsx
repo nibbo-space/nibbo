@@ -7,7 +7,7 @@ import { Copy, Upload } from "lucide-react";
 import Image from "next/image";
 import { signOut } from "next-auth/react";
 import toast from "react-hot-toast";
-import { DEFAULT_APP_TIME_ZONE } from "@/lib/kyiv-range";
+import { DEFAULT_TIME_ZONE } from "@/lib/calendar-tz";
 import { DISPLAY_CURRENCY_CODES, PROFILE_TIME_ZONES } from "@/lib/profile-regional";
 import { USER_COLORS, USER_EMOJIS, normalizeProfileEmoji } from "@/lib/utils";
 import { useAppLanguage } from "@/hooks/useAppLanguage";
@@ -54,7 +54,7 @@ export default function ProfileSettingsForm({ initialUser }: ProfileSettingsForm
   const [emoji, setEmoji] = useState(() => normalizeProfileEmoji(user.emoji));
   const [color, setColor] = useState(user.color || "#f43f5e");
   const [displayCurrency, setDisplayCurrency] = useState(() => user.displayCurrency || "USD");
-  const [timeZone, setTimeZone] = useState(() => user.timeZone || DEFAULT_APP_TIME_ZONE);
+  const [timeZone, setTimeZone] = useState(() => user.timeZone || DEFAULT_TIME_ZONE);
   const [ollamaKeyInput, setOllamaKeyInput] = useState("");
   const [ollamaModelInput, setOllamaModelInput] = useState(() =>
     user.ollamaModel && isAllowedAssistantOllamaModel(user.ollamaModel)
@@ -97,7 +97,7 @@ export default function ProfileSettingsForm({ initialUser }: ProfileSettingsForm
     setEmoji(normalizeProfileEmoji(initialUser.emoji));
     setColor(initialUser.color || "#f43f5e");
     setDisplayCurrency(initialUser.displayCurrency || "USD");
-    setTimeZone(initialUser.timeZone || DEFAULT_APP_TIME_ZONE);
+    setTimeZone(initialUser.timeZone || DEFAULT_TIME_ZONE);
     setOllamaKeyInput("");
     setOllamaModelInput(
       initialUser.ollamaModel && isAllowedAssistantOllamaModel(initialUser.ollamaModel)

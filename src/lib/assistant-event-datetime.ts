@@ -1,6 +1,7 @@
 import { formatInTimeZone, fromZonedTime } from "date-fns-tz";
+import { DEFAULT_TIME_ZONE } from "@/lib/calendar-tz";
 
-export const DEFAULT_EVENT_TIME_ZONE = "Europe/Kyiv";
+export const DEFAULT_EVENT_TIME_ZONE = DEFAULT_TIME_ZONE;
 
 function hasExplicitUtcOrOffset(s: string): boolean {
   const t = s.trim();

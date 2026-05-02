@@ -1,4 +1,4 @@
-import { DEFAULT_APP_TIME_ZONE } from "@/lib/kyiv-range";
+import { DEFAULT_TIME_ZONE } from "@/lib/calendar-tz";
 
 export const DISPLAY_CURRENCY_CODES = ["UAH", "USD", "EUR", "GBP", "JPY"] as const;
 
@@ -47,12 +47,12 @@ export const PROFILE_TIME_ZONES: readonly string[] = [
 
 export function normalizeProfileTimeZone(value: string | null | undefined): string {
   const v = String(value || "").trim();
-  if (!v) return DEFAULT_APP_TIME_ZONE;
+  if (!v) return DEFAULT_TIME_ZONE;
   if (PROFILE_TIME_ZONES.includes(v)) return v;
   try {
     Intl.DateTimeFormat(undefined, { timeZone: v });
     return v;
   } catch {
-    return DEFAULT_APP_TIME_ZONE;
+    return DEFAULT_TIME_ZONE;
   }
 }

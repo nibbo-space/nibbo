@@ -8,6 +8,7 @@ import { cn } from "@/lib/utils";
 import { useAppLanguage } from "@/hooks/useAppLanguage";
 import { intlLocaleForUi, messageLocale, I18N } from "@/lib/i18n";
 import { formatMinutesAsClock, isReminderPingDay } from "@/lib/task-reminder";
+import { DEFAULT_TIME_ZONE } from "@/lib/calendar-tz";
 import { dispatchXpAndAchievementEvents } from "@/lib/xp-client-events";
 
 type ScheduleMode = "DAILY_TIMES" | "INTERVAL_DAYS";
@@ -24,7 +25,7 @@ type MedRow = {
   intervalAnchorYmd: string | null;
   intervalWindowStartMin: number | null;
   intervalWindowEndMin: number | null;
-  todayIntakes: { slotIndex: number; taken: boolean }[];
+  intakes: { dateYmd: string; slotIndex: number; taken: boolean }[];
 };
 
 type ApiList = {
@@ -159,7 +160,7 @@ export default function MedicationsPageClient() {
   const [busy, setBusy] = useState(false);
   const [items, setItems] = useState<MedRow[]>([]);
   const [todayYmd, setTodayYmd] = useState("");
-  const [timeZone, setTimeZone] = useState("Europe/Kyiv");
+  const [timeZone, setTimeZone] = useState(DEFAULT_TIME_ZONE);
   const [modalOpen, setModalOpen] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [form, setForm] = useState<FormState>(() => emptyForm());
@@ -172,7 +173,7 @@ export default function MedicationsPageClient() {
       const data = (await res.json()) as ApiList;
       setItems(data.items);
       setTodayYmd(data.todayYmd);
-      setTimeZone(data.timeZone || "Europe/Kyiv");
+      setTimeZone(data.timeZone || DEFAULT_TIME_ZONE);
     } catch {
       toast.error(t.loadError);
     } finally {
@@ -282,36 +283,6 @@ export default function MedicationsPageClient() {
     }
   };
 
-  const intakeTaken = useCallback(
-    (m: MedRow, slotIndex: number) => m.todayIntakes.find((i) => i.slotIndex === slotIndex)?.taken ?? false,
-    []
-  );
-
-  const setIntake = async (m: MedRow, slotIndex: number, taken: boolean) => {
-    if (!todayYmd) return;
-    const prev = items;
-    setItems((list) =>
-      list.map((row) => {
-        if (row.id !== m.id) return row;
-        const rest = row.todayIntakes.filter((i) => i.slotIndex !== slotIndex);
-        return { ...row, todayIntakes: [...rest, { slotIndex, taken }] };
-      })
-    );
-    try {
-      const res = await fetch(`/api/medications/${m.id}/intake`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ dateYmd: todayYmd, slotIndex, taken }),
-      });
-      if (!res.ok) throw new Error("fail");
-      const data = await res.json();
-      dispatchXpAndAchievementEvents(data);
-    } catch {
-      setItems(prev);
-      toast.error(t.saveError);
-    }
-  };
-
   const sortedItems = useMemo(() => [...items].sort((a, b) => a.name.localeCompare(b.name, language)), [items, language]);
   const baseYmd = todayYmd || new Date().toISOString().slice(0, 10);
   const isMedicationDueOnDay = useCallback(
@@ -322,6 +293,66 @@ export default function MedicationsPageClient() {
     },
     [timeZone]
   );
+
+  const intakeTaken = useCallback(
+    (m: MedRow, slotIndex: number) => {
+      if (!todayYmd) return false;
+      return m.intakes.find((i) => i.dateYmd === todayYmd && i.slotIndex === slotIndex)?.taken ?? false;
+    },
+    [todayYmd]
+  );
+
+  const isMedicationFullyTakenOnYmd = useCallback(
+    (m: MedRow, ymd: string) => {
+      if (!isMedicationDueOnDay(m, ymd)) return false;
+      if (m.scheduleMode === "DAILY_TIMES") {
+        return m.dailySlotMinutes.every((_, idx2) =>
+          m.intakes.some((i) => i.dateYmd === ymd && i.slotIndex === idx2 && i.taken)
+        );
+      }
+      return m.intakes.some((i) => i.dateYmd === ymd && i.slotIndex === 0 && i.taken);
+    },
+    [isMedicationDueOnDay]
+  );
+
+  const setIntake = async (m: MedRow, slotIndex: number, taken: boolean) => {
+    if (!todayYmd) return;
+    const prev = items;
+    const dateYmd = todayYmd;
+    setItems((list) =>
+      list.map((row) => {
+        if (row.id !== m.id) return row;
+        const rest = row.intakes.filter((i) => !(i.dateYmd === dateYmd && i.slotIndex === slotIndex));
+        return { ...row, intakes: [...rest, { dateYmd, slotIndex, taken }] };
+      })
+    );
+    try {
+      const res = await fetch(`/api/medications/${m.id}/intake`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ dateYmd, slotIndex, taken }),
+      });
+      if (!res.ok) throw new Error("fail");
+      const data = (await res.json()) as { dateYmd?: string; slotIndex?: number; taken?: boolean };
+      const ry = data.dateYmd;
+      const rsi = data.slotIndex;
+      const rt = data.taken;
+      if (typeof ry === "string" && typeof rsi === "number" && typeof rt === "boolean") {
+        setItems((list) =>
+          list.map((row) => {
+            if (row.id !== m.id) return row;
+            const rest = row.intakes.filter((i) => !(i.dateYmd === ry && i.slotIndex === rsi));
+            return { ...row, intakes: [...rest, { dateYmd: ry, slotIndex: rsi, taken: rt }] };
+          })
+        );
+      }
+      dispatchXpAndAchievementEvents(data);
+    } catch {
+      setItems(prev);
+      toast.error(t.saveError);
+    }
+  };
+
   const monthCalendar = useMemo(() => {
     const baseDate = new Date(`${baseYmd}T12:00:00`);
     const year = baseDate.getFullYear();
@@ -341,21 +372,17 @@ export default function MedicationsPageClient() {
       const ymd = `${year}-${String(month + 1).padStart(2, "0")}-${String(day).padStart(2, "0")}`;
       const isToday = ymd === baseYmd;
       const dueMeds = sortedItems.filter((m) => isMedicationDueOnDay(m, ymd));
-      const takenTodayCount = isToday
-        ? dueMeds.filter((m) =>
-            m.scheduleMode === "DAILY_TIMES" ? m.dailySlotMinutes.every((_, idx2) => intakeTaken(m, idx2)) : intakeTaken(m, 0)
-          ).length
-        : 0;
+      const takenDueCount = dueMeds.filter((m) => isMedicationFullyTakenOnYmd(m, ymd)).length;
       return {
         ymd,
         day,
         isToday,
         dueMeds,
-        takenTodayCount,
+        takenDueCount,
       };
     });
     return { monthLabel, weekdayLabels, cells };
-  }, [baseYmd, language, sortedItems, intakeTaken, isMedicationDueOnDay]);
+  }, [baseYmd, language, sortedItems, isMedicationDueOnDay, isMedicationFullyTakenOnYmd]);
 
   return (
     <div className="mx-auto max-w-3xl space-y-5">
@@ -529,7 +556,7 @@ export default function MedicationsPageClient() {
                 {monthCalendar.cells.map((cell, idx) => {
                   if (!cell) return <div key={`empty-${idx}`} className="hidden h-[110px] rounded-2xl bg-transparent sm:block" />;
                   const dueCount = cell.dueMeds.length;
-                  const done = cell.isToday && dueCount > 0 && cell.takenTodayCount === dueCount;
+                  const done = dueCount > 0 && cell.takenDueCount === dueCount;
                   return (
                     <div
                       key={cell.ymd}

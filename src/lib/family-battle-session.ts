@@ -1,7 +1,7 @@
 import { applyUserCounterIncrement } from "@/lib/achievements/evaluate";
 import { FAMILY_BATTLE_WINS_COUNTER_KEY } from "@/lib/achievements/registry";
 import { FAMILY_BATTLE_WIN_XP, incrementFamilyBattleBonusXp } from "@/lib/family-display-xp";
-import { kyivStartOfTodayUtc, kyivStartOfWeekUtc } from "@/lib/kyiv-range";
+import { zonedStartOfTodayUtc, zonedStartOfWeekUtc } from "@/lib/calendar-tz";
 import { nibbyChargeStage } from "@/lib/nibby-charge";
 import { prisma } from "@/lib/prisma";
 import { userCreditedTaskWhere } from "@/lib/task-xp";
@@ -26,8 +26,8 @@ export async function createFamilyBattleRecord(input: {
   });
   if (!opponent) return null;
 
-  const startToday = kyivStartOfTodayUtc(new Date(), input.timeZone);
-  const startWeek = kyivStartOfWeekUtc(new Date(), input.timeZone);
+  const startToday = zonedStartOfTodayUtc(new Date(), input.timeZone);
+  const startWeek = zonedStartOfWeekUtc(new Date(), input.timeZone);
   const mine = userCreditedTaskWhere(input.playerUserId);
 
   const [playerDoneToday, playerDoneWeek, oppDoneToday, oppDoneWeek] = await Promise.all([

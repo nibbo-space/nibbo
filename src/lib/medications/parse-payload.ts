@@ -1,5 +1,5 @@
 import { MedicationScheduleMode } from "@prisma/client";
-import { kyivCalendarYmd } from "@/lib/kyiv-range";
+import { formatYmdInTimeZone } from "@/lib/calendar-tz";
 import { clampReminderCadence, clampWindowMinutes } from "@/lib/task-reminder";
 
 function parseHmToMinutes(s: unknown): number | null {
@@ -89,7 +89,7 @@ export function parseMedicationPayload(
     const anchor =
       typeof body.intervalAnchorYmd === "string" && /^\d{4}-\d{2}-\d{2}$/.test(body.intervalAnchorYmd.trim())
         ? body.intervalAnchorYmd.trim()
-        : kyivCalendarYmd(now, timeZone);
+        : formatYmdInTimeZone(now, timeZone);
     intervalAnchorYmd = anchor;
     let sm =
       typeof body.intervalWindowStartMin === "number"

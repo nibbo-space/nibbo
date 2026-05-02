@@ -868,7 +868,7 @@
     "monthIncomes": "今月の収入",
     "incomeMonthHint": "今月のすべての記録",
     "monthExpenses": "支出",
-    "expenseListSubtitle": "直近3日（キーウ）・下へスクロールで過去分",
+    "expenseListSubtitle": "直近3日（設定タイムゾーン）・下へスクロールで過去分",
     "expenseDayTotal": "本日の合計：{amount}",
     "expensesLoadingOlder": "過去の記録を読み込み中…",
     "expensesEndOfHistory": "これ以上の記録はありません",
@@ -931,7 +931,12 @@
     "planModalTitle": "予定収入（今月）",
     "statusOnTrack": "順調",
     "statusRisk": "超過リスク",
-    "statusNoPlan": "プランなし"
+    "statusNoPlan": "プランなし",
+    "pastMonthsTitle": "過去の月",
+    "pastMonthsNote": "タイムゾーン内の暦月ごとの支出・収入の合計（サブスクとクレジットは含みません）。",
+    "pastMonthColumnMonth": "月",
+    "pastMonthIncomeLabel": "収入",
+    "pastMonthNetLabel": "収支"
   },
   "notes": {
     "toastSaved": "ノートを保存しました",

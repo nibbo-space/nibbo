@@ -1,4 +1,5 @@
 import { Prisma } from "@prisma/client";
+import { DEFAULT_TIME_ZONE } from "@/lib/calendar-tz";
 import { auth } from "@/lib/auth";
 import { ensureUserFamily } from "@/lib/family";
 import { parseMedicationPayload } from "@/lib/medications/parse-payload";
@@ -27,7 +28,7 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
   } catch {
     return NextResponse.json({ error: "Invalid JSON" }, { status: 400 });
   }
-  const tz = session.user.timeZone || "Europe/Kyiv";
+  const tz = session.user.timeZone || DEFAULT_TIME_ZONE;
   const merged: Record<string, unknown> = {
     name: body.name ?? existing.name,
     notes: body.notes !== undefined ? body.notes : existing.notes,

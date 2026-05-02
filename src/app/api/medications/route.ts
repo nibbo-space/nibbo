@@ -3,7 +3,7 @@ import { ensureUserFamily } from "@/lib/family";
 import { processMedicationTicksForUser } from "@/lib/medication-reminder-tick";
 import { parseMedicationPayload } from "@/lib/medications/parse-payload";
 import { prisma } from "@/lib/prisma";
-import { kyivCalendarYmd } from "@/lib/kyiv-range";
+import { DEFAULT_TIME_ZONE, formatYmdInTimeZone } from "@/lib/calendar-tz";
 import { NextRequest, NextResponse } from "next/server";
 
 export async function GET() {
@@ -15,16 +15,17 @@ export async function GET() {
   if (!familyId) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
-  const tz = session.user.timeZone || "Europe/Kyiv";
+  const tz = session.user.timeZone || DEFAULT_TIME_ZONE;
   const now = new Date();
   await processMedicationTicksForUser(session.user.id, familyId, tz, now);
-  const todayYmd = kyivCalendarYmd(now, tz);
+  const todayYmd = formatYmdInTimeZone(now, tz);
+  const monthStartYmd = `${todayYmd.slice(0, 7)}-01`;
   const rows = await prisma.medication.findMany({
     where: { userId: session.user.id, familyId },
     include: {
       intakes: {
-        where: { dateYmd: todayYmd },
-        select: { slotIndex: true, taken: true, takenAt: true },
+        where: { dateYmd: { gte: monthStartYmd, lte: todayYmd } },
+        select: { dateYmd: true, slotIndex: true, taken: true, takenAt: true },
       },
     },
     orderBy: { createdAt: "desc" },
@@ -35,7 +36,7 @@ export async function GET() {
     items: rows.map((m) => ({
       id: m.id,
       name: m.name,
-      startYmd: m.intervalAnchorYmd ?? kyivCalendarYmd(m.createdAt, tz),
+      startYmd: m.intervalAnchorYmd ?? formatYmdInTimeZone(m.createdAt, tz),
       notes: m.notes,
       scheduleMode: m.scheduleMode,
       dailySlotMinutes: m.dailySlotMinutes,
@@ -44,7 +45,7 @@ export async function GET() {
       intervalAnchorYmd: m.intervalAnchorYmd,
       intervalWindowStartMin: m.intervalWindowStartMin,
       intervalWindowEndMin: m.intervalWindowEndMin,
-      todayIntakes: m.intakes,
+      intakes: m.intakes.map((i) => ({ dateYmd: i.dateYmd, slotIndex: i.slotIndex, taken: i.taken })),
     })),
   });
 }
@@ -64,7 +65,7 @@ export async function POST(req: NextRequest) {
   } catch {
     return NextResponse.json({ error: "Invalid JSON" }, { status: 400 });
   }
-  const tz = session.user.timeZone || "Europe/Kyiv";
+  const tz = session.user.timeZone || DEFAULT_TIME_ZONE;
   const parsed = parseMedicationPayload(body, tz, new Date());
   if (!parsed) {
     return NextResponse.json({ error: "validation" }, { status: 400 });

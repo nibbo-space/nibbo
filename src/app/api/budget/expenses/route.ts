@@ -1,6 +1,11 @@
 import { auth } from "@/lib/auth";
 import { ensureUserFamily } from "@/lib/family";
-import { kyivCalendarYmd, kyivCalendarYmdMinusDays, kyivRangeUtcFromCalendarYmd } from "@/lib/kyiv-range";
+import {
+  calendarYmdMinusDays,
+  DEFAULT_TIME_ZONE,
+  formatYmdInTimeZone,
+  utcRangeFromCalendarYmd,
+} from "@/lib/calendar-tz";
 import { prisma } from "@/lib/prisma";
 import { NextRequest, NextResponse } from "next/server";
 
@@ -15,10 +20,10 @@ export async function GET(req: NextRequest) {
   const untilRaw = req.nextUrl.searchParams.get("until");
   const daysRaw = req.nextUrl.searchParams.get("days");
   const days = Math.min(31, Math.max(1, Number(daysRaw) || 7));
-  const tz = session.user.timeZone || "Europe/Kyiv";
-  const until = untilRaw && YMD.test(untilRaw) ? untilRaw : kyivCalendarYmd(new Date(), tz);
-  const startYmd = kyivCalendarYmdMinusDays(until, days, tz);
-  const { start, end } = kyivRangeUtcFromCalendarYmd(startYmd, until, tz);
+  const tz = session.user.timeZone || DEFAULT_TIME_ZONE;
+  const until = untilRaw && YMD.test(untilRaw) ? untilRaw : formatYmdInTimeZone(new Date(), tz);
+  const startYmd = calendarYmdMinusDays(until, days, tz);
+  const { start, end } = utcRangeFromCalendarYmd(startYmd, until, tz);
 
   const rows = await prisma.expense.findMany({
     where: { familyId, date: { gte: start, lte: end } },

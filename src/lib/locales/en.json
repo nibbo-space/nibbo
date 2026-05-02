@@ -868,7 +868,7 @@
     "monthIncomes": "Income this month",
     "incomeMonthHint": "All entries for the current month",
     "monthExpenses": "Expenses",
-    "expenseListSubtitle": "Last 3 days (Kyiv); scroll down for earlier",
+    "expenseListSubtitle": "Last 3 days in your time zone; scroll down for earlier",
     "expenseDayTotal": "Day total: {amount}",
     "expensesLoadingOlder": "Loading earlier days…",
     "expensesEndOfHistory": "No more records",
@@ -931,7 +931,12 @@
     "planModalTitle": "Planned monthly income",
     "statusOnTrack": "On track",
     "statusRisk": "Overrun risk",
-    "statusNoPlan": "No plan"
+    "statusNoPlan": "No plan",
+    "pastMonthsTitle": "Previous months",
+    "pastMonthsNote": "Totals from expense and income entries per calendar month in your time zone (excludes subscriptions and credits).",
+    "pastMonthColumnMonth": "Month",
+    "pastMonthIncomeLabel": "Income",
+    "pastMonthNetLabel": "Balance"
   },
   "notes": {
     "toastSaved": "Note saved!",

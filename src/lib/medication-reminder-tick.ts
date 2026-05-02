@@ -1,6 +1,6 @@
 import type { Prisma } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
-import { kyivCalendarYmd } from "@/lib/kyiv-range";
+import { formatYmdInTimeZone } from "@/lib/calendar-tz";
 import {
   formatMinutesAsClock,
   isInReminderWindow,
@@ -25,7 +25,7 @@ export async function processMedicationTicksForUser(
   timeZone: string,
   now = new Date()
 ): Promise<void> {
-  const todayYmd = kyivCalendarYmd(now, timeZone);
+  const todayYmd = formatYmdInTimeZone(now, timeZone);
   const meds = await prisma.medication.findMany({
     where: { userId, familyId },
   });

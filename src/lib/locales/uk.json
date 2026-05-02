@@ -868,7 +868,7 @@
     "monthIncomes": "Доходи цього місяця",
     "incomeMonthHint": "Усі записи за поточний місяць",
     "monthExpenses": "Витрати",
-    "expenseListSubtitle": "Останні 3 дні (Київ); раніше — при прокрутці вниз",
+    "expenseListSubtitle": "Останні 3 дні у твоєму часовому поясі; раніше — при прокрутці вниз",
     "expenseDayTotal": "За день: {amount}",
     "expensesLoadingOlder": "Завантажуємо попередні дні…",
     "expensesEndOfHistory": "Раніше записів немає",
@@ -931,7 +931,12 @@
     "planModalTitle": "Плановий дохід на місяць",
     "statusOnTrack": "В межах плану",
     "statusRisk": "Ризик перевищення",
-    "statusNoPlan": "План не задано"
+    "statusNoPlan": "План не задано",
+    "pastMonthsTitle": "Минулі місяці",
+    "pastMonthsNote": "Підсумки з записів витрат і доходів за календарний місяць у твоєму часовому поясі (без підписок і кредитів).",
+    "pastMonthColumnMonth": "Місяць",
+    "pastMonthIncomeLabel": "Дохід",
+    "pastMonthNetLabel": "Баланс"
   },
   "notes": {
     "toastSaved": "Нотатку збережено!",

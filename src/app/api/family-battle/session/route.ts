@@ -1,4 +1,5 @@
 import { achievementEventRateOk } from "@/lib/achievements/rate-limit";
+import { DEFAULT_TIME_ZONE } from "@/lib/calendar-tz";
 import { auth } from "@/lib/auth";
 import { ensureUserFamily } from "@/lib/family";
 import { createFamilyBattleRecord } from "@/lib/family-battle-session";
@@ -35,7 +36,7 @@ export async function POST(req: Request) {
     playerUserId: session.user.id,
     playerFamilyId: familyId,
     opponentFamilyId,
-    timeZone: session.user.timeZone || "Europe/Kyiv",
+    timeZone: session.user.timeZone || DEFAULT_TIME_ZONE,
   });
   if (!created) {
     return NextResponse.json({ error: "Invalid opponent" }, { status: 400 });
