@@ -41,6 +41,11 @@ export const PATCH = withMobileAuthParams<{ id: string }>(async (req, { id }, ct
   if (typeof body.color === "string") data.color = body.color;
   if (typeof body.pinned === "boolean") data.pinned = body.pinned;
   if (Array.isArray(body.tags)) data.tags = body.tags.map(String);
+  if (typeof body.categoryId === "string" && body.categoryId) {
+    data.categoryId = body.categoryId;
+  } else if (body.categoryId === null) {
+    data.categoryId = null;
+  }
 
   const note = await prisma.note.update({
     where: { id },
@@ -48,6 +53,7 @@ export const PATCH = withMobileAuthParams<{ id: string }>(async (req, { id }, ct
     select: {
       id: true, title: true, content: true, emoji: true, color: true,
       pinned: true, authorId: true, tags: true, createdAt: true, updatedAt: true,
+      category: { select: { id: true, name: true, emoji: true } },
     },
   });
   return NextResponse.json({ ...note, createdAt: note.createdAt.toISOString(), updatedAt: note.updatedAt.toISOString() });

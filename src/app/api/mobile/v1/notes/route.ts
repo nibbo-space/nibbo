@@ -43,6 +43,8 @@ export const POST = withMobileAuth(async (req: NextRequest, ctx) => {
   const title = String(body.title ?? "").trim();
   if (!title) return NextResponse.json({ error: "TITLE_REQUIRED" }, { status: 400 });
 
+  const categoryId = typeof body.categoryId === "string" && body.categoryId ? body.categoryId : undefined;
+
   const note = await prisma.note.create({
     data: {
       title,
@@ -53,11 +55,13 @@ export const POST = withMobileAuth(async (req: NextRequest, ctx) => {
       authorId: ctx.userId,
       familyId,
       tags: Array.isArray(body.tags) ? body.tags.map(String) : [],
+      ...(categoryId ? { categoryId } : {}),
     },
     select: {
       id: true, title: true, content: true, emoji: true, color: true,
       pinned: true, authorId: true, tags: true, createdAt: true, updatedAt: true,
       author: { select: { id: true, name: true, emoji: true } },
+      category: { select: { id: true, name: true, emoji: true } },
     },
   });
 
