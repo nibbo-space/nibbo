@@ -4,12 +4,13 @@ import { useCallback, useMemo } from "react";
 import { enUS, ja as jaDf, uk as ukDf } from "date-fns/locale";
 import { formatInTimeZone } from "date-fns-tz";
 import { motion } from "framer-motion";
-import { ArrowLeft, CalendarRange, Wallet } from "lucide-react";
+import { ArrowLeft, CalendarRange, Download, Wallet } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import type { ExchangeRates, SupportedCurrency } from "@/lib/exchange-rates";
 import { uahToDisplayAmount } from "@/lib/exchange-rates";
 import { utcRangeFromCalendarYmd } from "@/lib/calendar-tz";
+import { buildBudgetHistoryCsv, downloadTextFile, type BudgetHistoryCsvLabels } from "@/lib/budget-history-csv";
 import type { BudgetHistoryExpenseRow, BudgetMonthHistoryDetail } from "@/lib/budget-month-history-detail";
 import { displayEmojiToken, formatCurrency, formatDate } from "@/lib/utils";
 import { useAppLanguage } from "@/hooks/useAppLanguage";
@@ -106,6 +107,46 @@ export default function BudgetHistoryView({
     router.push(`/budget/history?ym=${encodeURIComponent(ym)}`);
   };
 
+  const handleExportCsv = useCallback(() => {
+    const labels: BudgetHistoryCsvLabels = {
+      sectionSummary: t.budgetHistoryCsvSectionSummary,
+      labelPeriodCode: t.budgetHistoryCsvLabelPeriodCode,
+      labelMonthTitle: t.budgetHistoryCsvLabelMonthTitle,
+      labelExpensesTotal: t.budgetHistoryCsvLabelExpensesTotal,
+      labelExpenseCount: t.budgetHistoryCsvLabelExpenseCount,
+      labelIncomeTotal: t.budgetHistoryCsvLabelIncomeTotal,
+      labelBalance: t.budgetHistoryCsvLabelBalance,
+      sectionCategories: t.budgetHistoryCsvSectionCategories,
+      colCategory: t.budgetHistoryCsvColCategory,
+      colAmountUah: t.budgetHistoryCsvColAmountUah,
+      sectionExpenses: t.budgetHistoryCsvSectionExpenses,
+      colDate: t.budgetHistoryCsvColDate,
+      colTitle: t.budgetHistoryCsvColTitle,
+      colUser: t.budgetHistoryCsvColUser,
+      colNote: t.budgetHistoryCsvColNote,
+      sectionIncomes: t.budgetHistoryCsvSectionIncomes,
+      colIncomeDate: t.budgetHistoryCsvColIncomeDate,
+      colIncomeTitle: t.budgetHistoryCsvColIncomeTitle,
+      colIncomeAmountUah: t.budgetHistoryCsvColIncomeAmountUah,
+      colIncomeUser: t.budgetHistoryCsvColIncomeUser,
+      colIncomeNote: t.budgetHistoryCsvColIncomeNote,
+    };
+    const categoryRows = byCategory.map((c) => ({ name: c.name, amountUah: c.spent }));
+    const unc =
+      detail.uncategorizedSpent > 0
+        ? { name: t.budgetHistoryUncategorized, amountUah: detail.uncategorizedSpent }
+        : null;
+    const csv = buildBudgetHistoryCsv(
+      detail,
+      selectedYm,
+      formatMonthLabel(selectedYm),
+      categoryRows,
+      unc,
+      labels
+    );
+    downloadTextFile(`nibbo-budget-${selectedYm}.csv`, csv);
+  }, [byCategory, detail, formatMonthLabel, selectedYm, t]);
+
   return (
     <div className="mx-auto max-w-3xl space-y-6 px-3 pb-10 pt-4 md:max-w-4xl md:px-4 md:pt-6">
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
@@ -136,9 +177,19 @@ export default function BudgetHistoryView({
         </div>
       </div>
 
-      <div>
-        <h1 className="text-2xl font-bold text-warm-900 md:text-3xl">{t.budgetHistoryTitle}</h1>
-        <p className="mt-2 max-w-2xl text-sm text-warm-500">{t.budgetHistoryIntro}</p>
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between sm:gap-6">
+        <div className="min-w-0">
+          <h1 className="text-2xl font-bold text-warm-900 md:text-3xl">{t.budgetHistoryTitle}</h1>
+          <p className="mt-2 max-w-2xl text-sm text-warm-500">{t.budgetHistoryIntro}</p>
+        </div>
+        <button
+          type="button"
+          onClick={handleExportCsv}
+          className="inline-flex shrink-0 items-center justify-center gap-2 self-start rounded-2xl border border-sage-200 bg-sage-50 px-4 py-2.5 text-sm font-semibold text-sage-800 shadow-sm transition hover:bg-sage-100 sm:self-auto"
+        >
+          <Download className="h-4 w-4 shrink-0" aria-hidden />
+          {t.budgetHistoryExportCsv}
+        </button>
       </div>
 
       <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
