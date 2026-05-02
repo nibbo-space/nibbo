@@ -1,12 +1,12 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { enUS, ja as jaDf, uk as ukDf } from "date-fns/locale";
 import { formatInTimeZone } from "date-fns-tz";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   Check,
   ChevronDown,
+  ChevronRight,
   ChevronUp,
   Landmark,
   Pencil,
@@ -18,11 +18,11 @@ import {
   TrendingUp,
   CalendarClock,
 } from "lucide-react";
+import Link from "next/link";
 import { DISPLAY_CURRENCY_CODES } from "@/lib/profile-regional";
 import type { ExchangeRates, SupportedCurrency } from "@/lib/exchange-rates";
 import { displayAmountToUah, uahToDisplayAmount } from "@/lib/exchange-rates";
-import type { PastMonthExpenseIncomeSummary } from "@/lib/budget-past-month-summaries";
-import { formatYmdInTimeZone, shiftCalendarYmd, utcRangeFromCalendarYmd } from "@/lib/calendar-tz";
+import { formatYmdInTimeZone, shiftCalendarYmd } from "@/lib/calendar-tz";
 import { displayEmojiToken, formatCurrency, formatDate } from "@/lib/utils";
 import toast from "react-hot-toast";
 import { createPortal } from "react-dom";
@@ -67,7 +67,6 @@ export default function BudgetView({
   initialCategorySpent,
   initialExpenseWindowStartYmd,
   initialIncomes,
-  pastMonthSummaries,
   initialCredits,
   monthlySubscriptionsTotal,
   monthlySubscriptionsCount,
@@ -85,7 +84,6 @@ export default function BudgetView({
   initialCategorySpent: Record<string, number>;
   initialExpenseWindowStartYmd: string;
   initialIncomes: Income[];
-  pastMonthSummaries: PastMonthExpenseIncomeSummary[];
   initialCredits: Credit[];
   monthlySubscriptionsTotal: number;
   monthlySubscriptionsCount: number;
@@ -164,19 +162,6 @@ export default function BudgetView({
   const monthKey = useMemo(
     () => formatInTimeZone(new Date(), calendarTimeZone, "yyyy-MM"),
     [calendarTimeZone]
-  );
-
-  const dateFnsMonthLocale = useMemo(() => {
-    const m = messageLocale(language);
-    return m === "uk" ? ukDf : m === "ja" ? jaDf : enUS;
-  }, [language]);
-
-  const formatPastMonthTitle = useCallback(
-    (ym: string) => {
-      const { start } = utcRangeFromCalendarYmd(`${ym}-15`, `${ym}-15`, calendarTimeZone);
-      return formatInTimeZone(start, calendarTimeZone, "LLLL yyyy", { locale: dateFnsMonthLocale });
-    },
-    [calendarTimeZone, dateFnsMonthLocale]
   );
 
   const expenseDayGroups = useMemo(() => {
@@ -687,77 +672,27 @@ export default function BudgetView({
           </div>
         </motion.div>
 
-        {pastMonthSummaries.length > 0 && (
-          <motion.div
-            initial={{ opacity: 0, y: 16 }}
-            animate={{ opacity: 1, y: 0 }}
-            className="bg-white/80 rounded-3xl p-4 md:p-5 shadow-cozy border border-warm-100"
+        <motion.div
+          initial={{ opacity: 0, y: 16 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="bg-white/80 rounded-3xl p-4 md:p-5 shadow-cozy border border-warm-100"
+        >
+          <Link
+            href="/budget/history"
+            className="flex items-center justify-between gap-3 rounded-2xl border border-transparent p-1 -m-1 transition hover:border-sage-200/80 hover:bg-sage-50/40"
           >
-            <div className="flex items-start gap-3">
+            <div className="flex min-w-0 items-start gap-3">
               <div className="mt-0.5 rounded-xl bg-sage-100 p-2 text-sage-600 shrink-0">
                 <CalendarClock size={20} strokeWidth={2} />
               </div>
-              <div className="min-w-0 flex-1">
-                <h3 className="font-bold text-warm-800">{t.pastMonthsTitle}</h3>
-                <p className="text-xs text-warm-500 mt-1">{t.pastMonthsNote}</p>
-                <div className="mt-4 rounded-2xl border border-warm-100 overflow-hidden">
-                  <div className="hidden md:grid md:grid-cols-[minmax(0,1.2fr)_repeat(4,minmax(0,1fr))] gap-2 px-3 py-2 bg-warm-50/80 text-[11px] font-semibold uppercase tracking-wide text-warm-500">
-                    <span>{t.pastMonthColumnMonth}</span>
-                    <span className="text-right">{t.monthExpenses}</span>
-                    <span className="text-right">{t.transactions}</span>
-                    <span className="text-right">{t.pastMonthIncomeLabel}</span>
-                    <span className="text-right">{t.pastMonthNetLabel}</span>
-                  </div>
-                  <ul className="divide-y divide-warm-100">
-                    {pastMonthSummaries.map((row) => {
-                      const net = row.incomeTotal - row.expenseTotal;
-                      return (
-                        <li key={row.ym}>
-                          <div className="md:hidden px-3 py-3 space-y-2">
-                            <p className="font-semibold text-warm-800 capitalize">{formatPastMonthTitle(row.ym)}</p>
-                            <div className="grid grid-cols-2 gap-x-3 gap-y-1.5 text-sm">
-                              <span className="text-warm-500">{t.monthExpenses}</span>
-                              <span className="font-medium text-warm-800 text-right tabular-nums">
-                                {formatUah(row.expenseTotal)}
-                              </span>
-                              <span className="text-warm-500">{t.transactions}</span>
-                              <span className="font-medium text-warm-800 text-right tabular-nums">{row.expenseCount}</span>
-                              <span className="text-warm-500">{t.pastMonthIncomeLabel}</span>
-                              <span className="font-medium text-warm-800 text-right tabular-nums">
-                                {formatUah(row.incomeTotal)}
-                              </span>
-                              <span className="text-warm-500">{t.pastMonthNetLabel}</span>
-                              <span
-                                className={`font-semibold text-right tabular-nums ${
-                                  net >= 0 ? "text-sky-700" : "text-rose-600"
-                                }`}
-                              >
-                                {formatUah(net)}
-                              </span>
-                            </div>
-                          </div>
-                          <div className="hidden md:grid md:grid-cols-[minmax(0,1.2fr)_repeat(4,minmax(0,1fr))] gap-2 px-3 py-2.5 items-center text-sm">
-                            <span className="font-medium text-warm-800 capitalize">{formatPastMonthTitle(row.ym)}</span>
-                            <span className="text-right tabular-nums text-warm-800">{formatUah(row.expenseTotal)}</span>
-                            <span className="text-right tabular-nums text-warm-800">{row.expenseCount}</span>
-                            <span className="text-right tabular-nums text-warm-800">{formatUah(row.incomeTotal)}</span>
-                            <span
-                              className={`text-right font-semibold tabular-nums ${
-                                net >= 0 ? "text-sky-700" : "text-rose-600"
-                              }`}
-                            >
-                              {formatUah(net)}
-                            </span>
-                          </div>
-                        </li>
-                      );
-                    })}
-                  </ul>
-                </div>
+              <div className="min-w-0">
+                <h3 className="font-bold text-warm-800">{t.budgetHistoryOpenTitle}</h3>
+                <p className="text-xs text-warm-500 mt-1">{t.budgetHistoryOpenHint}</p>
               </div>
             </div>
-          </motion.div>
-        )}
+            <ChevronRight className="h-5 w-5 shrink-0 text-warm-400" aria-hidden />
+          </Link>
+        </motion.div>
 
         <motion.div initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }}
           className="bg-white/80 rounded-3xl p-4 md:p-5 shadow-cozy border border-warm-100">

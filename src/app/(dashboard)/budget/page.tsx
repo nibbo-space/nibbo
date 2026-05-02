@@ -1,6 +1,5 @@
 import { formatInTimeZone } from "date-fns-tz";
 import { auth } from "@/lib/auth";
-import { getPastMonthExpenseIncomeSummaries } from "@/lib/budget-past-month-summaries";
 import { getNbuExchangeRates, isSupportedCurrency, type SupportedCurrency } from "@/lib/exchange-rates";
 import { ensureUserFamily } from "@/lib/family";
 import {
@@ -45,7 +44,6 @@ export default async function BudgetPage() {
     subscriptions,
     exchangeRates,
     credits,
-    pastMonthSummaries,
   ] = await Promise.all([
     prisma.expenseCategory.findMany({
       where: { familyId },
@@ -98,7 +96,6 @@ export default async function BudgetPage() {
       where: { familyId },
       orderBy: [{ status: "asc" }, { paymentDay: "asc" }, { createdAt: "desc" }],
     }),
-    getPastMonthExpenseIncomeSummaries(familyId, calendarTz, 12),
   ]);
 
   const initialExpenses = expenses.map((e) => ({
@@ -157,7 +154,6 @@ export default async function BudgetPage() {
       initialCategorySpent={categorySpent}
       initialExpenseWindowStartYmd={expenseWindowStartYmd}
       initialIncomes={initialIncomes}
-      pastMonthSummaries={pastMonthSummaries}
       initialCredits={initialCredits}
       monthlySubscriptionsTotal={monthlySubscriptionsTotal}
       monthlySubscriptionsCount={subscriptions.length}

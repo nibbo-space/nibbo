@@ -932,11 +932,18 @@
     "statusOnTrack": "On track",
     "statusRisk": "Overrun risk",
     "statusNoPlan": "No plan",
-    "pastMonthsTitle": "Previous months",
-    "pastMonthsNote": "Totals from expense and income entries per calendar month in your time zone (excludes subscriptions and credits).",
-    "pastMonthColumnMonth": "Month",
     "pastMonthIncomeLabel": "Income",
-    "pastMonthNetLabel": "Balance"
+    "pastMonthNetLabel": "Balance",
+    "budgetHistoryOpenTitle": "Monthly history",
+    "budgetHistoryOpenHint": "Categories, full expense list, and income for any month.",
+    "budgetHistoryBack": "Back to budget",
+    "budgetHistoryTitle": "Budget history",
+    "budgetHistoryIntro": "Totals from expense and income entries per calendar month in your time zone (excludes subscriptions and credits).",
+    "budgetHistoryMonthLabel": "Month",
+    "budgetHistoryCategories": "Spending by category",
+    "budgetHistoryIncomes": "Income this month",
+    "budgetHistoryExpenseList": "All expenses this month",
+    "budgetHistoryUncategorized": "Uncategorized"
   },
   "notes": {
     "toastSaved": "Note saved!",

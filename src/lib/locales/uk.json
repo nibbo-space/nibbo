@@ -932,11 +932,18 @@
     "statusOnTrack": "В межах плану",
     "statusRisk": "Ризик перевищення",
     "statusNoPlan": "План не задано",
-    "pastMonthsTitle": "Минулі місяці",
-    "pastMonthsNote": "Підсумки з записів витрат і доходів за календарний місяць у твоєму часовому поясі (без підписок і кредитів).",
-    "pastMonthColumnMonth": "Місяць",
     "pastMonthIncomeLabel": "Дохід",
-    "pastMonthNetLabel": "Баланс"
+    "pastMonthNetLabel": "Баланс",
+    "budgetHistoryOpenTitle": "Історія по місяцях",
+    "budgetHistoryOpenHint": "Категорії, список витрат і доходів за обраний місяць.",
+    "budgetHistoryBack": "Назад до бюджету",
+    "budgetHistoryTitle": "Історія бюджету",
+    "budgetHistoryIntro": "Підсумки з записів витрат і доходів за календарний місяць у твоєму часовому поясі (без підписок і кредитів).",
+    "budgetHistoryMonthLabel": "Місяць",
+    "budgetHistoryCategories": "Витрати по категоріях",
+    "budgetHistoryIncomes": "Доходи за місяць",
+    "budgetHistoryExpenseList": "Усі витрати за місяць",
+    "budgetHistoryUncategorized": "Без категорії"
   },
   "notes": {
     "toastSaved": "Нотатку збережено!",
