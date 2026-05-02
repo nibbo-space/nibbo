@@ -3,6 +3,33 @@ import { NextResponse, type NextRequest } from "next/server";
 import { APP_LANGUAGE_COOKIE_KEY, resolveAppLanguage } from "@/lib/i18n";
 import { DEFAULT_PUBLIC_LOCALE, PUBLIC_LOCALES } from "@/lib/public-locales";
 
+const GEO_BLOCKED_IMAGE_PATH = "/geo-blocked.png";
+
+function geoBlockedPageHtml(): string {
+  return `<!DOCTYPE html><html lang="uk"><head><meta charset="utf-8"/><meta name="viewport" content="width=device-width,initial-scale=1"/><meta name="robots" content="noindex,nofollow"/><title>403</title><style>html,body{margin:0;min-height:100%;background:#0c0f12}body{display:flex;flex-direction:column;align-items:center;justify-content:center;box-sizing:border-box;padding:max(12px,2vmin);min-height:100dvh}img{max-width:min(1100px,100%);height:auto;border-radius:10px;box-shadow:0 24px 80px rgba(0,0,0,.55)}</style></head><body><img src="${GEO_BLOCKED_IMAGE_PATH}" alt="" decoding="async" fetchpriority="high"/></body></html>`;
+}
+
+function blockedCountrySet(): Set<string> | null {
+  const raw = process.env.NIBBO_GEO_BLOCK_COUNTRIES?.trim();
+  if (!raw) return null;
+  const set = new Set(
+    raw
+      .split(",")
+      .map((c) => c.trim().toUpperCase())
+      .filter(Boolean)
+  );
+  return set.size ? set : null;
+}
+
+function clientCountry(request: NextRequest): string | undefined {
+  const fromHeader =
+    request.headers.get("x-vercel-ip-country")?.trim() ||
+    request.headers.get("cf-ipcountry")?.trim();
+  const c = fromHeader?.toUpperCase();
+  if (c && c !== "ZZ") return c;
+  return undefined;
+}
+
 const LEGACY_PUBLIC_PREFIXES = ["/blog", "/roadmap", "/privacy", "/feedback"];
 const LOCALE_PREFIX_RE = /^\/(en|uk|ja)(\/|$)/;
 const MOBILE_API_PREFIX = "/api/mobile/v1";
@@ -43,8 +70,27 @@ function detectLocale(req: NextRequest): string {
 }
 
 export const proxy = auth((req) => {
-  const isLoggedIn = !!req.auth;
   const { pathname, search } = req.nextUrl;
+
+  if (pathname === GEO_BLOCKED_IMAGE_PATH) {
+    return NextResponse.next();
+  }
+
+  const blocked = blockedCountrySet();
+  if (blocked) {
+    const country = clientCountry(req);
+    if (country && blocked.has(country)) {
+      return new NextResponse(geoBlockedPageHtml(), {
+        status: 403,
+        headers: {
+          "Content-Type": "text/html; charset=utf-8",
+          "Cache-Control": "no-store",
+        },
+      });
+    }
+  }
+
+  const isLoggedIn = !!req.auth;
   const isApiAuth = pathname.startsWith("/api/auth");
   const isMobileApi = pathname.startsWith(MOBILE_API_PREFIX);
   const isPublicModelAsset = pathname.startsWith("/models/");

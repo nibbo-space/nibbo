@@ -8,6 +8,7 @@ import { LandingNibbyIntroSlide } from "@/components/landing/LandingNibbyIntroSl
 import { LandingParallaxBackdrop } from "@/components/landing/LandingParallaxBackdrop";
 import { LandingParallaxSection } from "@/components/landing/LandingParallaxSection";
 import { LandingScrollJourney } from "@/components/landing/LandingScrollJourney";
+import { LandingSupportUkraineBanner } from "@/components/landing/LandingSupportUkraineBanner";
 import type { NibbyChatDrive } from "@/components/shared/NibbyAssistantStage";
 import { useRef } from "react";
 
@@ -37,6 +38,7 @@ export function LandingPageClient() {
           <LandingFooterCta />
         </LandingParallaxSection>
       </main>
+      <LandingSupportUkraineBanner />
     </div>
   );
 }
