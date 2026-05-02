@@ -17,9 +17,16 @@ export const GET = withMobileAuth(async (req: NextRequest, ctx) => {
     },
   } : {};
 
+  const expenseWhere = {
+    OR: [
+      { familyId, ...dateFilter },
+      { userId: ctx.userId, familyId: null, ...dateFilter },
+    ],
+  };
+
   const [expenses, categories] = await Promise.all([
     prisma.expense.findMany({
-      where: { familyId, ...dateFilter },
+      where: expenseWhere,
       orderBy: { date: "desc" },
       take: 100,
       select: {
@@ -29,7 +36,7 @@ export const GET = withMobileAuth(async (req: NextRequest, ctx) => {
       },
     }),
     prisma.expenseCategory.findMany({
-      where: { familyId },
+      where: { OR: [{ familyId }, { familyId: null }] },
       orderBy: { sortOrder: "asc" },
       select: { id: true, name: true, emoji: true, color: true, budget: true },
     }),
