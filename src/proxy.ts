@@ -1,4 +1,5 @@
 import { auth } from "@/lib/auth";
+import geoip from "geoip-lite";
 import { NextResponse, type NextRequest } from "next/server";
 import { APP_LANGUAGE_COOKIE_KEY, resolveAppLanguage } from "@/lib/i18n";
 import { DEFAULT_PUBLIC_LOCALE, PUBLIC_LOCALES } from "@/lib/public-locales";
@@ -21,12 +22,33 @@ function blockedCountrySet(): Set<string> | null {
   return set.size ? set : null;
 }
 
+function clientIpFromHeaders(h: Headers): string | undefined {
+  const xff = h.get("x-forwarded-for");
+  if (xff) {
+    const first = xff.split(",")[0]?.trim();
+    if (first) return first;
+  }
+  const real = h.get("x-real-ip")?.trim();
+  if (real) return real;
+  const cf = h.get("cf-connecting-ip")?.trim();
+  if (cf) return cf;
+  return undefined;
+}
+
 function clientCountry(request: NextRequest): string | undefined {
+  const h = request.headers;
   const fromHeader =
-    request.headers.get("x-vercel-ip-country")?.trim() ||
-    request.headers.get("cf-ipcountry")?.trim();
-  const c = fromHeader?.toUpperCase();
-  if (c && c !== "ZZ") return c;
+    h.get("x-nibbo-ip-country")?.trim() ||
+    h.get("x-vercel-ip-country")?.trim() ||
+    h.get("cf-ipcountry")?.trim();
+  const hc = fromHeader?.toUpperCase();
+  if (hc && hc !== "ZZ") return hc;
+
+  const ip = clientIpFromHeaders(h);
+  if (!ip) return undefined;
+  const geo = geoip.lookup(ip);
+  const gc = geo?.country?.toUpperCase();
+  if (gc && gc !== "ZZ") return gc;
   return undefined;
 }
 
