@@ -1,14 +1,14 @@
 import { NextRequest, NextResponse } from "next/server";
-import { withMobileAuth } from "@/lib/auth-mobile/middleware";
+import { withMobileAuthParams } from "@/lib/auth-mobile/middleware";
 import { ensureUserFamily } from "@/lib/family";
 import { taskBoardVisibleWhere } from "@/lib/family-private-scope";
 import { prisma } from "@/lib/prisma";
 
-export const POST = withMobileAuth(async (req: NextRequest, ctx, { params }) => {
+export const POST = withMobileAuthParams<{ id: string }>(async (req: NextRequest, { id }, ctx) => {
   const familyId = await ensureUserFamily(ctx.userId);
   if (!familyId) return NextResponse.json({ error: "UNAUTHORIZED" }, { status: 401 });
 
-  const boardId = (await params).id as string;
+  const boardId = id;
   const board = await prisma.taskBoard.findFirst({
     where: { id: boardId, ...taskBoardVisibleWhere(familyId, ctx.userId) },
     select: { id: true },
