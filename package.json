@@ -51,7 +51,7 @@
     "date-fns-tz": "^3.2.0",
     "firebase-admin": "^13.8.0",
     "framer-motion": "^11.11.17",
-    "geoip-lite": "^2.0.1",
+    "geoip-lite": "1.4.10",
     "google-auth-library": "^10.6.2",
     "jose": "^6.2.2",
     "jsonwebtoken": "^9.0.3",
