@@ -84,6 +84,7 @@ model User {
   xpLedgerEntries      XpLedgerEntry[]
   familyBattles        FamilyBattle[] @relation("FamilyBattlePlayer")
   pushSubscriptions    PushSubscription[]
+  mobilePushTokens     MobilePushToken[]
   medications          Medication[]
   blogPosts                 BlogPost[]
 }
@@ -179,6 +180,18 @@ model PushSubscription {
   auth      String
   locale    String   @default("uk")
   userAgent String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([userId])
+}
+
+model MobilePushToken {
+  id        String   @id @default(cuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  token     String   @unique
+  platform  String   @default("android")
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 

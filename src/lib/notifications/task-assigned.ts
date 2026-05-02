@@ -1,10 +1,11 @@
 import { getMetadataBaseUrl } from "@/lib/site-url";
 import { WebPushChannel } from "@/lib/notifications/channels/web-push-channel";
+import { FcmChannel } from "@/lib/notifications/channels/fcm-channel";
 import type { AppLanguage } from "@/lib/i18n";
-import { isWebPushConfigured } from "@/lib/push/vapid";
 import { prisma } from "@/lib/prisma";
 
 const webPush = new WebPushChannel();
+const fcm = new FcmChannel();
 
 function resolveLang(locale: string): AppLanguage {
   return locale === "en" ? "en" : "uk";
@@ -19,7 +20,6 @@ export async function notifyTaskAssigneeChanged(params: {
   const assigneeId = params.task.assigneeId;
   if (!assigneeId || assigneeId === params.actorUserId) return;
   if (params.previousAssigneeId === assigneeId) return;
-  if (!isWebPushConfigured()) return;
 
   const origin = getMetadataBaseUrl().origin;
   const tasksUrl = `${origin}/tasks`;
@@ -32,16 +32,17 @@ export async function notifyTaskAssigneeChanged(params: {
     actorLabel = u?.name?.trim() || "";
   }
 
-  await webPush.sendTaskAssigned(
-    {
-      assigneeUserId: assigneeId,
-      taskId: params.task.id,
-      taskTitle: params.task.title,
-      actorLabel,
-      tasksUrl,
-    },
-    resolveLang
-  );
+  const pushInput = {
+    assigneeUserId: assigneeId,
+    taskId: params.task.id,
+    taskTitle: params.task.title,
+    actorLabel,
+    tasksUrl,
+  };
+  await Promise.allSettled([
+    webPush.sendTaskAssigned(pushInput, resolveLang),
+    fcm.sendTaskAssigned(pushInput, resolveLang),
+  ]);
 }
 
 export function fireAndForgetNotifyTaskAssigneeChanged(params: Parameters<typeof notifyTaskAssigneeChanged>[0]): void {
