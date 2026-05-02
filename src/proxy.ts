@@ -1,13 +1,34 @@
 import { auth } from "@/lib/auth";
 import geoip from "geoip-lite";
+import { existsSync, readFileSync } from "fs";
+import path from "path";
 import { NextResponse, type NextRequest } from "next/server";
 import { APP_LANGUAGE_COOKIE_KEY, resolveAppLanguage } from "@/lib/i18n";
 import { DEFAULT_PUBLIC_LOCALE, PUBLIC_LOCALES } from "@/lib/public-locales";
 
 const GEO_BLOCKED_IMAGE_PATH = "/geo-blocked.png";
 
+let cachedGeoBlockedImgSrc: string | undefined;
+
+function geoBlockedImageSrc(): string {
+  if (cachedGeoBlockedImgSrc !== undefined) return cachedGeoBlockedImgSrc;
+  const filePath = path.join(process.cwd(), "public", "geo-blocked.png");
+  if (existsSync(filePath)) {
+    cachedGeoBlockedImgSrc =
+      "data:image/png;base64," + readFileSync(filePath).toString("base64");
+  } else {
+    cachedGeoBlockedImgSrc =
+      "data:image/svg+xml," +
+      encodeURIComponent(
+        '<svg xmlns="http://www.w3.org/2000/svg" width="880" height="460" viewBox="0 0 880 460"><rect fill="#0c0f12" width="880" height="460"/><rect fill="#0057B7" x="32" y="100" width="816" height="110"/><rect fill="#FFD700" x="32" y="210" width="816" height="110"/></svg>'
+      );
+  }
+  return cachedGeoBlockedImgSrc;
+}
+
 function geoBlockedPageHtml(): string {
-  return `<!DOCTYPE html><html lang="uk"><head><meta charset="utf-8"/><meta name="viewport" content="width=device-width,initial-scale=1"/><meta name="robots" content="noindex,nofollow"/><title>403</title><style>html,body{margin:0;min-height:100%;background:#0c0f12}body{display:flex;flex-direction:column;align-items:center;justify-content:center;box-sizing:border-box;padding:max(12px,2vmin);min-height:100dvh}img{max-width:min(1100px,100%);height:auto;border-radius:10px;box-shadow:0 24px 80px rgba(0,0,0,.55)}</style></head><body><img src="${GEO_BLOCKED_IMAGE_PATH}" alt="" decoding="async" fetchpriority="high"/></body></html>`;
+  const src = geoBlockedImageSrc();
+  return `<!DOCTYPE html><html lang="uk"><head><meta charset="utf-8"/><meta name="viewport" content="width=device-width,initial-scale=1"/><meta name="robots" content="noindex,nofollow"/><meta name="color-scheme" content="dark"/><title>403</title><style>html,body{margin:0;min-height:100%;background:#0c0f12;color-scheme:dark}body{display:flex;flex-direction:column;align-items:center;justify-content:center;box-sizing:border-box;padding:max(12px,2vmin);min-height:100dvh}img{max-width:min(1100px,100%);height:auto;display:block;border-radius:10px;box-shadow:0 24px 80px rgba(0,0,0,.55)}</style></head><body><img src="${src}" alt="" decoding="sync"/></body></html>`;
 }
 
 function blockedCountrySet(): Set<string> | null {
