@@ -1,77 +1,7 @@
 import { auth } from "@/lib/auth";
-import geoip from "geoip-lite";
-import { existsSync, readFileSync } from "fs";
-import path from "path";
-import { NextResponse, type NextRequest } from "next/server";
 import { APP_LANGUAGE_COOKIE_KEY, resolveAppLanguage } from "@/lib/i18n";
 import { DEFAULT_PUBLIC_LOCALE, PUBLIC_LOCALES } from "@/lib/public-locales";
-
-const GEO_BLOCKED_IMAGE_PATH = "/geo-blocked.png";
-
-let cachedGeoBlockedImgSrc: string | undefined;
-
-function geoBlockedImageSrc(): string {
-  if (cachedGeoBlockedImgSrc !== undefined) return cachedGeoBlockedImgSrc;
-  const filePath = path.join(process.cwd(), "public", "geo-blocked.png");
-  if (existsSync(filePath)) {
-    cachedGeoBlockedImgSrc =
-      "data:image/png;base64," + readFileSync(filePath).toString("base64");
-  } else {
-    cachedGeoBlockedImgSrc =
-      "data:image/svg+xml," +
-      encodeURIComponent(
-        '<svg xmlns="http://www.w3.org/2000/svg" width="880" height="460" viewBox="0 0 880 460"><rect fill="#0c0f12" width="880" height="460"/><rect fill="#0057B7" x="32" y="100" width="816" height="110"/><rect fill="#FFD700" x="32" y="210" width="816" height="110"/></svg>'
-      );
-  }
-  return cachedGeoBlockedImgSrc;
-}
-
-function geoBlockedPageHtml(): string {
-  const src = geoBlockedImageSrc();
-  return `<!DOCTYPE html><html lang="uk"><head><meta charset="utf-8"/><meta name="viewport" content="width=device-width,initial-scale=1"/><meta name="robots" content="noindex,nofollow"/><meta name="color-scheme" content="dark"/><title>403</title><style>html,body{margin:0;min-height:100%;background:#0c0f12;color-scheme:dark}body{display:flex;flex-direction:column;align-items:center;justify-content:center;box-sizing:border-box;padding:max(12px,2vmin);min-height:100dvh}img{max-width:min(1100px,100%);height:auto;display:block;border-radius:10px;box-shadow:0 24px 80px rgba(0,0,0,.55)}</style></head><body><img src="${src}" alt="" decoding="sync"/></body></html>`;
-}
-
-function blockedCountrySet(): Set<string> | null {
-  const raw = process.env.NIBBO_GEO_BLOCK_COUNTRIES?.trim();
-  if (!raw) return null;
-  const set = new Set(
-    raw
-      .split(",")
-      .map((c) => c.trim().toUpperCase())
-      .filter(Boolean)
-  );
-  return set.size ? set : null;
-}
-
-function clientIpFromHeaders(h: Headers): string | undefined {
-  const xff = h.get("x-forwarded-for");
-  if (xff) {
-    const first = xff.split(",")[0]?.trim();
-    if (first) return first;
-  }
-  const real = h.get("x-real-ip")?.trim();
-  if (real) return real;
-  const cf = h.get("cf-connecting-ip")?.trim();
-  if (cf) return cf;
-  return undefined;
-}
-
-function clientCountry(request: NextRequest): string | undefined {
-  const h = request.headers;
-  const fromHeader =
-    h.get("x-nibbo-ip-country")?.trim() ||
-    h.get("x-vercel-ip-country")?.trim() ||
-    h.get("cf-ipcountry")?.trim();
-  const hc = fromHeader?.toUpperCase();
-  if (hc && hc !== "ZZ") return hc;
-
-  const ip = clientIpFromHeaders(h);
-  if (!ip) return undefined;
-  const geo = geoip.lookup(ip);
-  const gc = geo?.country?.toUpperCase();
-  if (gc && gc !== "ZZ") return gc;
-  return undefined;
-}
+import { NextResponse, type NextRequest } from "next/server";
 
 const LEGACY_PUBLIC_PREFIXES = ["/blog", "/roadmap", "/privacy", "/feedback"];
 const LOCALE_PREFIX_RE = /^\/(en|uk|ja)(\/|$)/;
@@ -79,8 +9,14 @@ const MOBILE_API_PREFIX = "/api/mobile/v1";
 
 function applyMobileCors(res: NextResponse) {
   res.headers.set("Access-Control-Allow-Origin", "*");
-  res.headers.set("Access-Control-Allow-Methods", "GET,POST,PATCH,DELETE,OPTIONS");
-  res.headers.set("Access-Control-Allow-Headers", "Content-Type, Authorization");
+  res.headers.set(
+    "Access-Control-Allow-Methods",
+    "GET,POST,PATCH,DELETE,OPTIONS",
+  );
+  res.headers.set(
+    "Access-Control-Allow-Headers",
+    "Content-Type, Authorization",
+  );
   res.headers.set("Access-Control-Max-Age", "86400");
   return res;
 }
@@ -94,12 +30,13 @@ function isPublicPath(pathname: string): boolean {
   if (pathname === "/" || isLocalePath(pathname)) return true;
   if (
     LEGACY_PUBLIC_PREFIXES.some(
-      (p) => pathname === p || pathname.startsWith(p + "/")
+      (p) => pathname === p || pathname.startsWith(p + "/"),
     )
   )
     return true;
   if (pathname === "/landing" || pathname.startsWith("/landing/")) return true;
-  if (pathname === "/opengraph-image" || pathname === "/twitter-image") return true;
+  if (pathname === "/opengraph-image" || pathname === "/twitter-image")
+    return true;
   return false;
 }
 
@@ -113,27 +50,8 @@ function detectLocale(req: NextRequest): string {
 }
 
 export const proxy = auth((req) => {
-  const { pathname, search } = req.nextUrl;
-
-  if (pathname === GEO_BLOCKED_IMAGE_PATH) {
-    return NextResponse.next();
-  }
-
-  const blocked = blockedCountrySet();
-  if (blocked) {
-    const country = clientCountry(req);
-    if (country && blocked.has(country)) {
-      return new NextResponse(geoBlockedPageHtml(), {
-        status: 403,
-        headers: {
-          "Content-Type": "text/html; charset=utf-8",
-          "Cache-Control": "no-store",
-        },
-      });
-    }
-  }
-
   const isLoggedIn = !!req.auth;
+  const { pathname, search } = req.nextUrl;
   const isApiAuth = pathname.startsWith("/api/auth");
   const isMobileApi = pathname.startsWith(MOBILE_API_PREFIX);
   const isPublicModelAsset = pathname.startsWith("/models/");
@@ -148,15 +66,20 @@ export const proxy = auth((req) => {
   if (isApiAuth || isPublicModelAsset) return NextResponse.next();
 
   if (pathname === "/") {
-    if (isLoggedIn) return NextResponse.redirect(new URL("/dashboard", req.url));
+    if (isLoggedIn)
+      return NextResponse.redirect(new URL("/dashboard", req.url));
     const locale = detectLocale(req);
     return NextResponse.redirect(new URL(`/${locale}${search}`, req.url));
   }
 
   if (pathname === "/landing" || pathname.startsWith("/landing/")) {
     const locale = detectLocale(req);
-    const tail = pathname === "/landing" ? "" : pathname.slice("/landing".length);
-    return NextResponse.redirect(new URL(`/${locale}${tail}${search}`, req.url), 308);
+    const tail =
+      pathname === "/landing" ? "" : pathname.slice("/landing".length);
+    return NextResponse.redirect(
+      new URL(`/${locale}${tail}${search}`, req.url),
+      308,
+    );
   }
 
   for (const prefix of LEGACY_PUBLIC_PREFIXES) {
@@ -164,7 +87,7 @@ export const proxy = auth((req) => {
       const locale = detectLocale(req);
       return NextResponse.redirect(
         new URL(`/${locale}${pathname}${search}`, req.url),
-        308
+        308,
       );
     }
   }
@@ -183,5 +106,8 @@ export const proxy = auth((req) => {
 });
 
 export const config = {
-  matcher: ["/api/mobile/v1/:path*", "/((?!api|_next/static|_next/image|.*\\..*).*)"],
+  matcher: [
+    "/api/mobile/v1/:path*",
+    "/((?!api|_next/static|_next/image|.*\\..*).*)",
+  ],
 };
