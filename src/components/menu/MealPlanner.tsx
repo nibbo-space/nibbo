@@ -1,12 +1,12 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import Image from "next/image";
 import { motion, AnimatePresence } from "framer-motion";
 import { format, addDays, startOfWeek } from "date-fns";
 import { uk, enUS } from "date-fns/locale";
 import Link from "next/link";
-import { Plus, X, Copy, ClipboardList, ImagePlus, Pencil, Trash2, Eye, UtensilsCrossed, CalendarDays, BookOpen, Flame, Users, ChefHat } from "lucide-react";
+import { Plus, X, Copy, ClipboardList, ImagePlus, Pencil, Trash2, Eye, UtensilsCrossed, CalendarDays, BookOpen, Flame, Users, ChefHat, ListTree, Check } from "lucide-react";
 import { DEFAULT_RECIPE_EMOJI, MEAL_TYPE_CONFIG, displayEmojiToken, normalizeProfileEmoji } from "@/lib/utils";
 import toast from "react-hot-toast";
 import { createPortal } from "react-dom";
@@ -17,6 +17,15 @@ import {
   mealLineTotalKcal,
   recipeCaloriesPerServing,
 } from "@/lib/meal-plan-calories";
+import {
+  mergeRecipeAndFamilyCatalog,
+  nutritionFillScore,
+  emptyIngredientFormRow,
+  formRowToApiPayload,
+  recipeIngredientToFormRow,
+  type IngredientFormRow,
+  type RecipeIngredientRecord,
+} from "@/lib/recipe-ingredients";
 
 function isLocalUpload(src: string | null | undefined) {
   return Boolean(
@@ -27,7 +36,7 @@ function isLocalUpload(src: string | null | undefined) {
 }
 
 interface User { id: string; name: string | null; image: string | null; color: string; emoji: string; }
-interface Ingredient { id: string; name: string; amount: string; unit: string | null; }
+type Ingredient = RecipeIngredientRecord;
 interface Recipe {
   id: string;
   name: string;
@@ -52,15 +61,104 @@ interface MealPlan {
   eaterIds: string[];
 }
 
+function ingredientLineText(i: { name: string; amount: string; unit: string | null }): string {
+  return `${i.name.trim()} — ${i.amount}${i.unit ? " " + i.unit : ""}`.trim();
+}
+
+/** Rough kcal from macros when `kcal` is not stored (legacy / estimate). */
+function ingredientKcalFromMacros(i: {
+  protein: number | null;
+  fat: number | null;
+  carbs: number | null;
+}): number | null {
+  const p = i.protein ?? 0;
+  const f = i.fat ?? 0;
+  const c = i.carbs ?? 0;
+  if (![p, f, c].some((v) => Number.isFinite(v) && v > 0)) return null;
+  return Math.round(p * 4 + f * 9 + c * 4);
+}
+
+function ingredientDisplayKcal(ing: RecipeIngredientRecord): number | null {
+  if (ing.kcal != null && Number.isFinite(ing.kcal)) return Math.round(ing.kcal);
+  return ingredientKcalFromMacros(ing);
+}
+
+function dedupeIngredientLines(raw: string[]): string[] {
+  const seen = new Set<string>();
+  const unique: string[] = [];
+  for (const line of raw) {
+    const key = line.toLowerCase();
+    if (!seen.has(key)) {
+      seen.add(key);
+      unique.push(line);
+    }
+  }
+  return unique;
+}
+
+function getWeeklyMenuIngredientLines(mealPlans: MealPlan[]): string[] {
+  const raw = mealPlans
+    .filter((p) => p.recipe)
+    .flatMap((p) => p.recipe!.ingredients.map((i) => ingredientLineText(i)));
+  return dedupeIngredientLines(raw);
+}
+
+function formRowToRecordForNutritionScore(row: IngredientFormRow): RecipeIngredientRecord {
+  const p = formRowToApiPayload(row);
+  return {
+    id: "",
+    name: p.name,
+    amount: p.amount,
+    unit: p.unit,
+    referenceAmount: p.referenceAmount,
+    referenceUnit: p.referenceUnit,
+    protein: p.protein,
+    fat: p.fat,
+    saturatedFat: p.saturatedFat,
+    carbs: p.carbs,
+    sugar: p.sugar,
+    salt: p.salt,
+    kcal: p.kcal,
+  };
+}
+
+/** Unique ingredient names across recipes + family pantry; template row prefers richer nutrition data */
+function buildIngredientPickerData(
+  familyCatalog: RecipeIngredientRecord[],
+): {
+  names: string[];
+  defaultsByKey: Map<string, IngredientFormRow>;
+} {
+  const bestByKey = new Map<string, IngredientFormRow>();
+  const upsert = (key: string, row: IngredientFormRow) => {
+    const prev = bestByKey.get(key);
+    if (!prev || nutritionFillScore(formRowToRecordForNutritionScore(row)) > nutritionFillScore(formRowToRecordForNutritionScore(prev))) {
+      bestByKey.set(key, row);
+    }
+  };
+  for (const ing of familyCatalog) {
+    const raw = ing.name.trim();
+    if (!raw) continue;
+    upsert(raw.toLowerCase(), recipeIngredientToFormRow(ing));
+  }
+  const names = [...bestByKey.values()]
+    .map((v) => v.name)
+    .sort((a, b) => a.localeCompare(b, undefined, { sensitivity: "base" }));
+  const defaultsByKey = new Map([...bestByKey.entries()]);
+  return { names, defaultsByKey };
+}
+
+
 interface MealPlannerProps {
   initialRecipes: Recipe[];
   initialMealPlans: MealPlan[];
+  initialFamilyCatalog: RecipeIngredientRecord[];
   users: User[];
   currentUserId: string;
   isAdmin: boolean;
 }
 
-type Tab = "planner" | "recipes";
+type Tab = "planner" | "recipes" | "ingredients";
 type RecipeForm = {
   name: string;
   description: string;
@@ -70,8 +168,128 @@ type RecipeForm = {
   cookTime: string;
   calories: string;
   servings: string;
-  ingredients: Array<{ name: string; amount: string; unit: string }>;
+  ingredients: IngredientFormRow[];
 };
+
+type MealPlannerT = (typeof I18N)["en"]["mealPlanner"];
+
+function IngredientMacroFields({
+  row,
+  onPatch,
+  t,
+}: {
+  row: IngredientFormRow;
+  onPatch: (p: Partial<IngredientFormRow>) => void;
+  t: MealPlannerT;
+}) {
+  return (
+    <div className="space-y-2 pt-2 border-t border-warm-100/80">
+      <p className="text-xs font-semibold text-warm-600">{t.ingredientNutritionSection}</p>
+      <p className="text-[10px] text-warm-400 leading-snug">{t.ingredientNutritionHint}</p>
+      <div className="grid grid-cols-2 gap-2">
+        <input
+          value={row.referenceAmount}
+          onChange={(e) => onPatch({ referenceAmount: e.target.value })}
+          placeholder={t.ingredientRefAmountPlaceholder}
+          className="bg-warm-50 rounded-xl px-2 py-2 text-xs outline-none border border-warm-200 focus:border-peach-400"
+        />
+        <input
+          value={row.referenceUnit}
+          onChange={(e) => onPatch({ referenceUnit: e.target.value })}
+          placeholder={t.ingredientRefUnitPlaceholder}
+          className="bg-warm-50 rounded-xl px-2 py-2 text-xs outline-none border border-warm-200 focus:border-peach-400"
+        />
+      </div>
+      <label className="block space-y-0.5">
+        <span className="text-[10px] font-medium text-warm-500">{t.ingredientCaloriesKcal}</span>
+        <input
+          type="text"
+          inputMode="decimal"
+          value={row.kcal}
+          onChange={(e) => onPatch({ kcal: e.target.value })}
+          placeholder={t.ingredientKcalPlaceholder}
+          className="w-full bg-warm-50 rounded-xl px-2 py-1.5 text-xs outline-none border border-warm-200 focus:border-peach-400"
+        />
+      </label>
+      <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
+        <label className="block space-y-0.5">
+          <span className="text-[10px] font-medium text-warm-500">{t.macroProtein}</span>
+          <input
+            type="text"
+            inputMode="decimal"
+            value={row.protein}
+            onChange={(e) => onPatch({ protein: e.target.value })}
+            className="w-full bg-warm-50 rounded-xl px-2 py-1.5 text-xs outline-none border border-warm-200 focus:border-peach-400"
+          />
+        </label>
+        <label className="block space-y-0.5">
+          <span className="text-[10px] font-medium text-warm-500">{t.macroFat}</span>
+          <input
+            type="text"
+            inputMode="decimal"
+            value={row.fat}
+            onChange={(e) => onPatch({ fat: e.target.value })}
+            className="w-full bg-warm-50 rounded-xl px-2 py-1.5 text-xs outline-none border border-warm-200 focus:border-peach-400"
+          />
+        </label>
+        <label className="block space-y-0.5">
+          <span className="text-[10px] font-medium text-warm-500">{t.macroSaturatedFat}</span>
+          <input
+            type="text"
+            inputMode="decimal"
+            value={row.saturatedFat}
+            onChange={(e) => onPatch({ saturatedFat: e.target.value })}
+            className="w-full bg-warm-50 rounded-xl px-2 py-1.5 text-xs outline-none border border-warm-200 focus:border-peach-400"
+          />
+        </label>
+        <label className="block space-y-0.5">
+          <span className="text-[10px] font-medium text-warm-500">{t.macroCarbs}</span>
+          <input
+            type="text"
+            inputMode="decimal"
+            value={row.carbs}
+            onChange={(e) => onPatch({ carbs: e.target.value })}
+            className="w-full bg-warm-50 rounded-xl px-2 py-1.5 text-xs outline-none border border-warm-200 focus:border-peach-400"
+          />
+        </label>
+        <label className="block space-y-0.5">
+          <span className="text-[10px] font-medium text-warm-500">{t.macroSugar}</span>
+          <input
+            type="text"
+            inputMode="decimal"
+            value={row.sugar}
+            onChange={(e) => onPatch({ sugar: e.target.value })}
+            className="w-full bg-warm-50 rounded-xl px-2 py-1.5 text-xs outline-none border border-warm-200 focus:border-peach-400"
+          />
+        </label>
+        <label className="block space-y-0.5">
+          <span className="text-[10px] font-medium text-warm-500">{t.macroSalt}</span>
+          <input
+            type="text"
+            inputMode="decimal"
+            value={row.salt}
+            onChange={(e) => onPatch({ salt: e.target.value })}
+            className="w-full bg-warm-50 rounded-xl px-2 py-1.5 text-xs outline-none border border-warm-200 focus:border-peach-400"
+          />
+        </label>
+      </div>
+    </div>
+  );
+}
+
+function recipeIngredientHasNutrition(ing: RecipeIngredientRecord): boolean {
+  return Boolean(
+    (ing.referenceAmount ?? "").trim() ||
+      (ing.referenceUnit ?? "").trim() ||
+      (ing.kcal != null && Number.isFinite(ing.kcal)) ||
+      (ing.protein != null && Number.isFinite(ing.protein)) ||
+      (ing.fat != null && Number.isFinite(ing.fat)) ||
+      (ing.saturatedFat != null && Number.isFinite(ing.saturatedFat)) ||
+      (ing.carbs != null && Number.isFinite(ing.carbs)) ||
+      (ing.sugar != null && Number.isFinite(ing.sugar)) ||
+      (ing.salt != null && Number.isFinite(ing.salt))
+  );
+}
 
 function AnimatedRecipeImage({
   src,
@@ -121,7 +339,14 @@ function AnimatedRecipeImage({
   );
 }
 
-export default function MealPlanner({ initialRecipes, initialMealPlans, users, currentUserId, isAdmin }: MealPlannerProps) {
+export default function MealPlanner({
+  initialRecipes,
+  initialMealPlans,
+  initialFamilyCatalog,
+  users,
+  currentUserId,
+  isAdmin,
+}: MealPlannerProps) {
   const { language } = useAppLanguage();
   const ml = messageLocale(language);
   const t = I18N[ml].mealPlanner;
@@ -129,6 +354,47 @@ export default function MealPlanner({ initialRecipes, initialMealPlans, users, c
   const [tab, setTab] = useState<Tab>("planner");
   const [recipes, setRecipes] = useState(initialRecipes);
   const [mealPlans, setMealPlans] = useState(initialMealPlans);
+  const [familyCatalogIngredients, setFamilyCatalogIngredients] =
+    useState<RecipeIngredientRecord[]>(initialFamilyCatalog);
+
+  const refreshFamilyCatalog = async () => {
+    const res = await fetch("/api/family/catalog-ingredients");
+    if (!res.ok) return;
+    const data = (await res.json()) as RecipeIngredientRecord[];
+    setFamilyCatalogIngredients(data);
+  };
+
+  const catalogIngredientsByName = useMemo(
+    () => familyCatalogIngredients,
+    [familyCatalogIngredients],
+  );
+  const recipeCatalogIngredientLines = useMemo(
+    () => catalogIngredientsByName.map((i) => i.name.trim()).filter(Boolean),
+    [catalogIngredientsByName],
+  );
+  const recipeCatalogCopyBlocks = useMemo(
+    () =>
+      catalogIngredientsByName.map((i) => {
+        const lines = [i.name.trim()].filter(Boolean);
+        const refParts = [i.referenceAmount?.trim(), i.referenceUnit?.trim()].filter(Boolean);
+        if (refParts.length) lines.push(`${t.ingredientRefShort}: ${refParts.join(" ")}`);
+        const kcalLine = ingredientDisplayKcal(i);
+        if (kcalLine != null) lines.push(`${t.ingredientCaloriesKcal}: ${kcalLine}`);
+        if (i.protein != null && Number.isFinite(i.protein)) lines.push(`${t.macroProtein}: ${i.protein}`);
+        if (i.fat != null && Number.isFinite(i.fat)) lines.push(`${t.macroFat}: ${i.fat}`);
+        if (i.saturatedFat != null && Number.isFinite(i.saturatedFat)) lines.push(`${t.macroSaturatedFat}: ${i.saturatedFat}`);
+        if (i.carbs != null && Number.isFinite(i.carbs)) lines.push(`${t.macroCarbs}: ${i.carbs}`);
+        if (i.sugar != null && Number.isFinite(i.sugar)) lines.push(`${t.macroSugar}: ${i.sugar}`);
+        if (i.salt != null && Number.isFinite(i.salt)) lines.push(`${t.macroSalt}: ${i.salt}`);
+        return lines.join("\n");
+      }),
+    [catalogIngredientsByName, t],
+  );
+  const ingredientPickerData = useMemo(
+    () => buildIngredientPickerData(familyCatalogIngredients),
+    [familyCatalogIngredients],
+  );
+
   const [weekStart, setWeekStart] = useState(() => {
     const d = startOfWeek(new Date(), { weekStartsOn: 1 });
     return d;
@@ -154,8 +420,140 @@ export default function MealPlanner({ initialRecipes, initialMealPlans, users, c
   const [newRecipe, setNewRecipe] = useState<RecipeForm>({
     name: "", description: "", emoji: DEFAULT_RECIPE_EMOJI, category: t.categories[1] ?? "",
     prepTime: "", cookTime: "", calories: "", servings: "4",
-    ingredients: [{ name: "", amount: "", unit: "" }],
+    ingredients: [],
   });
+
+  const [showSavedIngredientPicker, setShowSavedIngredientPicker] = useState(false);
+  const [savedIngredientChoice, setSavedIngredientChoice] = useState("");
+  const [catalogIngredientForm, setCatalogIngredientForm] = useState<IngredientFormRow>(emptyIngredientFormRow());
+  const [catalogIngredientKey, setCatalogIngredientKey] = useState("");
+  const [catalogIngredientSaving, setCatalogIngredientSaving] = useState(false);
+  const [showFamilyCatalogCreate, setShowFamilyCatalogCreate] = useState(false);
+  const [familyCatalogCreateDraft, setFamilyCatalogCreateDraft] = useState<IngredientFormRow>(() =>
+    emptyIngredientFormRow(),
+  );
+  const [familyCatalogCreateSaving, setFamilyCatalogCreateSaving] = useState(false);
+
+
+  const resetIngredientFormUi = () => {
+    setShowSavedIngredientPicker(false);
+    setSavedIngredientChoice("");
+  };
+
+  const pickSavedIngredient = (displayName: string) => {
+    const trimmed = displayName.trim();
+    if (!trimmed) return;
+    const row = ingredientPickerData.defaultsByKey.get(trimmed.toLowerCase());
+    const newIng = row ? { ...row, name: row.name || trimmed } : { ...emptyIngredientFormRow(), name: trimmed };
+    
+    setNewRecipe((p) => {
+      const next = [...p.ingredients];
+      const last = next[next.length - 1];
+      if (last && !last.name && !last.amount && !last.unit) {
+        next[next.length - 1] = newIng;
+      } else {
+        next.push(newIng);
+      }
+      next.push(emptyIngredientFormRow());
+      return { ...p, ingredients: next };
+    });
+  };
+
+  const openCatalogIngredientEdit = (ing: RecipeIngredientRecord) => {
+    setCatalogIngredientKey(ing.name.trim().toLowerCase());
+    setCatalogIngredientForm({
+      ...recipeIngredientToFormRow(ing),
+      amount: "",
+      unit: "",
+    });
+  };
+
+  const closeCatalogIngredientEdit = () => {
+    setCatalogIngredientKey("");
+    setCatalogIngredientForm(emptyIngredientFormRow());
+  };
+
+  const saveCatalogIngredientEdit = async () => {
+    if (!catalogIngredientKey || !catalogIngredientForm.name.trim()) {
+      toast.error(t.newIngredientNameRequired);
+      return;
+    }
+    setCatalogIngredientSaving(true);
+    const oldKey = catalogIngredientKey;
+    try {
+      const syncRes = await fetch("/api/family/catalog-ingredients", {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          previousNameKey: oldKey,
+          ingredient: formRowToApiPayload(catalogIngredientForm),
+        }),
+      });
+      if (!syncRes.ok) {
+        let msg = "";
+        try {
+          const j = (await syncRes.json()) as { error?: string };
+          msg = j.error ?? "";
+        } catch {
+          msg = await syncRes.text();
+        }
+        throw new Error(msg || `HTTP ${syncRes.status}`);
+      }
+
+      await refreshFamilyCatalog();
+      toast.success(t.catalogIngredientSaved);
+      closeCatalogIngredientEdit();
+    } catch {
+      toast.error(t.catalogIngredientSaveFailed);
+    } finally {
+      setCatalogIngredientSaving(false);
+    }
+  };
+
+  const openFamilyCatalogCreate = () => {
+    setFamilyCatalogCreateDraft(emptyIngredientFormRow());
+    setShowFamilyCatalogCreate(true);
+  };
+
+  const closeFamilyCatalogCreate = () => {
+    setShowFamilyCatalogCreate(false);
+    setFamilyCatalogCreateDraft(emptyIngredientFormRow());
+  };
+
+  const saveFamilyCatalogCreate = async () => {
+    if (!familyCatalogCreateDraft.name.trim()) {
+      toast.error(t.newIngredientNameRequired);
+      return;
+    }
+    setFamilyCatalogCreateSaving(true);
+    try {
+      const res = await fetch("/api/family/catalog-ingredients", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(formRowToApiPayload(familyCatalogCreateDraft)),
+      });
+      if (!res.ok) {
+        toast.error(t.catalogIngredientCreateFailed);
+        return;
+      }
+      await refreshFamilyCatalog();
+      toast.success(t.catalogIngredientCreated);
+      closeFamilyCatalogCreate();
+    } finally {
+      setFamilyCatalogCreateSaving(false);
+    }
+  };
+
+  const deleteFamilyCatalogRow = async (id: string) => {
+    if (!confirm(t.catalogIngredientDeleteConfirm)) return;
+    const res = await fetch(`/api/family/catalog-ingredients/${id}`, { method: "DELETE" });
+    if (!res.ok) {
+      toast.error(t.catalogIngredientSaveFailed);
+      return;
+    }
+    await refreshFamilyCatalog();
+    toast.success(t.catalogIngredientDeleted);
+  };
 
   const clearBlobOnly = () => {
     if (recipeImagePreview) URL.revokeObjectURL(recipeImagePreview);
@@ -182,8 +580,9 @@ export default function MealPlanner({ initialRecipes, initialMealPlans, users, c
       cookTime: "",
       calories: "",
       servings: "4",
-      ingredients: [{ name: "", amount: "", unit: "" }],
+      ingredients: [emptyIngredientFormRow()],
     });
+    resetIngredientFormUi();
     setShowAddRecipe(true);
   };
 
@@ -200,15 +599,12 @@ export default function MealPlanner({ initialRecipes, initialMealPlans, users, c
       cookTime: recipe.cookTime != null ? String(recipe.cookTime) : "",
       calories: recipe.calories != null ? String(recipe.calories) : "",
       servings: String(recipe.servings),
-      ingredients:
-        recipe.ingredients.length > 0
-          ? recipe.ingredients.map((i) => ({
-              name: i.name,
-              amount: i.amount,
-              unit: i.unit ?? "",
-            }))
-          : [{ name: "", amount: "", unit: "" }],
+      ingredients: [
+        ...recipe.ingredients.map((i) => recipeIngredientToFormRow(i)),
+        emptyIngredientFormRow(),
+      ],
     });
+    resetIngredientFormUi();
     setShowAddRecipe(true);
   };
 
@@ -223,6 +619,7 @@ export default function MealPlanner({ initialRecipes, initialMealPlans, users, c
     clearBlobOnly();
     setEditInitialImageUrl(null);
     setEditingRecipeId(null);
+    resetIngredientFormUi();
     setShowAddRecipe(false);
   };
 
@@ -319,7 +716,7 @@ export default function MealPlanner({ initialRecipes, initialMealPlans, users, c
     if (!newRecipe.name) return;
     const ingredientsPayload = newRecipe.ingredients
       .filter((i) => i.name.trim())
-      .map((i) => ({ name: i.name.trim(), amount: i.amount.trim(), unit: i.unit.trim() || null }));
+      .map(formRowToApiPayload);
 
     let uploadedUrl: string | undefined;
     if (recipeImageFile) {
@@ -412,6 +809,7 @@ export default function MealPlanner({ initialRecipes, initialMealPlans, users, c
     setMealPlans((prev) =>
       prev.map((p) => (p.recipe?.id === recipe.id ? { ...p, recipe: null } : p))
     );
+    await refreshFamilyCatalog();
     toast.success(t.recipeDeleted);
   };
 
@@ -434,22 +832,7 @@ export default function MealPlanner({ initialRecipes, initialMealPlans, users, c
   };
 
   const openShopFromMenu = () => {
-    const raw = mealPlans
-      .filter((p) => p.recipe)
-      .flatMap((p) =>
-        p.recipe!.ingredients.map(
-          (i) => `${i.name.trim()} — ${i.amount}${i.unit ? " " + i.unit : ""}`.trim()
-        )
-      );
-    const seen = new Set<string>();
-    const unique: string[] = [];
-    for (const line of raw) {
-      const key = line.toLowerCase();
-      if (!seen.has(key)) {
-        seen.add(key);
-        unique.push(line);
-      }
-    }
+    const unique = getWeeklyMenuIngredientLines(mealPlans);
     if (!unique.length) {
       toast.error(t.noMenuRecipes);
       return;
@@ -458,16 +841,19 @@ export default function MealPlanner({ initialRecipes, initialMealPlans, users, c
     setShowShopModal(true);
   };
 
-  const copyShopLines = async () => {
+  const copyIngredientLines = async (lines: string[], separator = "\n") => {
     try {
-      await navigator.clipboard.writeText(shopLines.join("\n"));
+      await navigator.clipboard.writeText(lines.join(separator));
       toast.success(t.copied);
     } catch {
       toast.error(t.copyFailed);
     }
   };
 
-  const addShopToShoppingLists = async () => {
+  const copyShopLines = () => copyIngredientLines(shopLines);
+
+  const addLinesToShoppingLists = async (lines: string[]) => {
+    if (!lines.length) return;
     setShopLoading(true);
     try {
       const listsRes = await fetch("/api/shopping");
@@ -484,7 +870,7 @@ export default function MealPlanner({ initialRecipes, initialMealPlans, users, c
         const list = await create.json();
         listId = list.id;
       }
-      for (const line of shopLines) {
+      for (const line of lines) {
         const res = await fetch("/api/shopping", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
@@ -496,7 +882,7 @@ export default function MealPlanner({ initialRecipes, initialMealPlans, users, c
         });
         if (!res.ok) throw new Error();
       }
-      toast.success(t.addedToShopping.replace("{count}", String(shopLines.length)));
+      toast.success(t.addedToShopping.replace("{count}", String(lines.length)));
       setShowShopModal(false);
     } catch {
       toast.error(t.addToListFailed);
@@ -504,6 +890,8 @@ export default function MealPlanner({ initialRecipes, initialMealPlans, users, c
       setShopLoading(false);
     }
   };
+
+  const addShopToShoppingLists = () => addLinesToShoppingLists(shopLines);
 
   const FOOD_EMOJIS = [DEFAULT_RECIPE_EMOJI, "🥗", "🍝", "🥘"];
   const CATEGORIES = t.categories;
@@ -605,7 +993,7 @@ export default function MealPlanner({ initialRecipes, initialMealPlans, users, c
             </p>
             {meal.recipe && lineKcal != null && (
               <p className="text-[10px] text-warm-500 mt-1 leading-snug">
-                {Math.round(lineKcal)} kcal
+                {Math.round(lineKcal)} {t.caloriesKcalAbbrev}
                 {meal.portionCount && meal.portionCount !== 1 ? (
                   <span className="text-warm-400"> · {t.portionsInPlan}: {meal.portionCount}</span>
                 ) : null}
@@ -691,7 +1079,11 @@ export default function MealPlanner({ initialRecipes, initialMealPlans, users, c
       {/* Tabs */}
       <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-3 mb-4 md:mb-6">
         <div className="flex gap-2 overflow-x-auto pb-1">
-          {[{ id: "planner", label: t.tabPlanner, Icon: CalendarDays }, { id: "recipes", label: t.tabRecipes, Icon: BookOpen }].map((tabItem) => (
+          {[
+            { id: "planner", label: t.tabPlanner, Icon: CalendarDays },
+            { id: "recipes", label: t.tabRecipes, Icon: BookOpen },
+            { id: "ingredients", label: t.tabIngredients, Icon: ListTree },
+          ].map((tabItem) => (
             <motion.button key={tabItem.id} whileHover={{ y: -1 }} whileTap={{ scale: 0.97 }}
               onClick={() => setTab(tabItem.id as Tab)}
               className={`flex items-center gap-2 px-4 py-2.5 rounded-2xl text-sm font-medium transition-all ${
@@ -729,7 +1121,7 @@ export default function MealPlanner({ initialRecipes, initialMealPlans, users, c
         </div>
       </div>
 
-      {tab === "planner" ? (
+      {tab === "planner" && (
         <div className="flex-1 min-h-0">
           <div className="md:hidden space-y-3 overflow-y-auto pb-2">
             {weekDays.map((day) => (
@@ -755,7 +1147,7 @@ export default function MealPlanner({ initialRecipes, initialMealPlans, users, c
                 </div>
                 <div className="mt-3 rounded-2xl bg-white border border-warm-100 px-3 py-2 flex items-center justify-between">
                   <span className="text-xs font-semibold text-warm-500">{t.caloriesLabel}</span>
-                  <span className="text-sm font-bold text-peach-600">{Math.round(getDayCalories(day))} kcal</span>
+                  <span className="text-sm font-bold text-peach-600">{Math.round(getDayCalories(day))} {t.caloriesKcalAbbrev}</span>
                 </div>
               </div>
             ))}
@@ -800,14 +1192,16 @@ export default function MealPlanner({ initialRecipes, initialMealPlans, users, c
                 </div>
                 {weekDays.map((day) => (
                   <div key={`calories-${format(day, "yyyy-MM-dd")}`} className="rounded-2xl bg-white border border-warm-100 px-3 py-3 text-center">
-                    <span className="text-sm font-bold text-peach-600">{Math.round(getDayCalories(day))} kcal</span>
+                    <span className="text-sm font-bold text-peach-600">{Math.round(getDayCalories(day))} {t.caloriesKcalAbbrev}</span>
                   </div>
                 ))}
               </div>
             </div>
           </div>
         </div>
-      ) : (
+      )}
+
+      {tab === "recipes" && (
         <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-4 overflow-y-auto overflow-x-visible p-1 -m-1">
           {recipes.map((recipe) => (
             <motion.div
@@ -817,7 +1211,7 @@ export default function MealPlanner({ initialRecipes, initialMealPlans, users, c
               whileHover={{ y: -4 }}
               className="bg-white/80 rounded-3xl p-5 shadow-cozy border border-warm-100 relative"
             >
-              <div className="absolute top-3 right-3 z-10 flex gap-1">
+              <div className="absolute top-3 right-3 z-10 flex flex-row flex-wrap justify-end gap-1 max-w-[min(100%,11rem)]">
                 {isAdmin && (
                   <button
                     type="button"
@@ -875,7 +1269,7 @@ export default function MealPlanner({ initialRecipes, initialMealPlans, users, c
                 {recipe.prepTime && <span className="text-xs bg-sage-50 text-sage-600 px-2 py-1 rounded-full">⏱ {recipe.prepTime}m</span>}
                 {recipe.calories != null && (
                   <span className="text-xs bg-amber-50 text-amber-700 px-2 py-1 rounded-full inline-flex items-center gap-1">
-                    <Flame size={12} /> {recipe.calories} kcal
+                    <Flame size={12} /> {recipe.calories} {t.caloriesKcalAbbrev}
                     {recipeCaloriesPerServing(recipe.calories, recipe.servings) != null && (
                       <span className="opacity-80">
                         {" "}
@@ -915,6 +1309,157 @@ export default function MealPlanner({ initialRecipes, initialMealPlans, users, c
             <span className="text-sm font-medium">{t.addRecipe}</span>
           </motion.button>
 
+        </div>
+      )}
+
+      {tab === "ingredients" && (
+        <div className="flex-1 min-h-0 flex flex-col rounded-3xl bg-white/80 border border-warm-100 shadow-cozy overflow-hidden">
+          <div className="px-4 py-3 border-b border-warm-100 shrink-0 md:px-5 md:py-4 flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+            <div className="min-w-0">
+              <h2 className="text-base font-bold text-warm-800 md:text-lg">{t.ingredientsTabTitle}</h2>
+              <p className="text-xs text-warm-500 mt-1">{t.ingredientsTabHint}</p>
+            </div>
+            <motion.button
+              type="button"
+              whileTap={{ scale: 0.98 }}
+              onClick={openFamilyCatalogCreate}
+              className="shrink-0 flex items-center justify-center gap-2 px-4 py-2.5 rounded-2xl text-sm font-medium border border-peach-300 bg-peach-50 text-peach-800 hover:bg-peach-100 whitespace-nowrap"
+            >
+              <Plus size={16} />
+              {t.catalogAddIngredient}
+            </motion.button>
+          </div>
+          {catalogIngredientsByName.length === 0 ? (
+            <div className="flex-1 flex flex-col items-center justify-center gap-4 px-6 py-12">
+              <p className="text-sm text-warm-400 text-center max-w-sm">{t.ingredientsTabEmpty}</p>
+              <motion.button
+                type="button"
+                whileTap={{ scale: 0.98 }}
+                onClick={openFamilyCatalogCreate}
+                className="flex items-center justify-center gap-2 px-4 py-2.5 rounded-2xl text-sm font-medium border border-peach-300 bg-peach-50 text-peach-800 hover:bg-peach-100"
+              >
+                <Plus size={16} />
+                {t.catalogAddIngredient}
+              </motion.button>
+            </div>
+          ) : (
+            <>
+              <ul className="overflow-y-auto overscroll-contain flex-1 min-h-0 px-4 py-3 space-y-3 md:px-5">
+                {catalogIngredientsByName.map((ing) => {
+                  const nk = ing.name.trim().toLowerCase();
+                  const pantryRow = familyCatalogIngredients.find(
+                    (c) => c.name.trim().toLowerCase() === nk,
+                  );
+                  const showPantryDelete = Boolean(pantryRow);
+                  return (
+                    <li
+                      key={nk}
+                      className="text-sm text-warm-700 py-3 px-3 rounded-xl bg-warm-50 border border-warm-100"
+                    >
+                      <div className="flex items-start justify-between gap-2">
+                        <div className="min-w-0 flex-1 space-y-2">
+                          <p className="font-medium text-warm-800">{ing.name.trim()}</p>
+                          <div className="text-xs text-warm-600 space-y-1.5">
+                            {(((ing.referenceAmount ?? "").trim() || (ing.referenceUnit ?? "").trim()) ||
+                              (ing.kcal != null && Number.isFinite(ing.kcal)) ||
+                              ingredientDisplayKcal(ing) != null ||
+                              (ing.protein != null && Number.isFinite(ing.protein)) ||
+                              (ing.fat != null && Number.isFinite(ing.fat)) ||
+                              (ing.saturatedFat != null && Number.isFinite(ing.saturatedFat)) ||
+                              (ing.carbs != null && Number.isFinite(ing.carbs)) ||
+                              (ing.sugar != null && Number.isFinite(ing.sugar)) ||
+                              (ing.salt != null && Number.isFinite(ing.salt))) && (
+                              <>
+                                {(ing.referenceAmount?.trim() || ing.referenceUnit?.trim()) && (
+                                  <p>
+                                    <span>{t.ingredientRefShort}: </span>
+                                    {[ing.referenceAmount?.trim(), ing.referenceUnit?.trim()]
+                                      .filter(Boolean)
+                                      .join(" ")}
+                                  </p>
+                                )}
+                                {ingredientDisplayKcal(ing) != null && (
+                                  <p>
+                                    <span>{t.ingredientCaloriesKcal}: </span>
+                                    {ingredientDisplayKcal(ing)}
+                                  </p>
+                                )}
+                                <p className="flex flex-wrap gap-x-3 gap-y-0.5">
+                                  {ing.protein != null && Number.isFinite(ing.protein) && (
+                                    <span>
+                                      {t.macroProtein}: {ing.protein}
+                                    </span>
+                                  )}
+                                  {ing.fat != null && Number.isFinite(ing.fat) && (
+                                    <span>
+                                      {t.macroFat}: {ing.fat}
+                                    </span>
+                                  )}
+                                  {ing.saturatedFat != null && Number.isFinite(ing.saturatedFat) && (
+                                    <span>
+                                      {t.macroSaturatedFat}: {ing.saturatedFat}
+                                    </span>
+                                  )}
+                                  {ing.carbs != null && Number.isFinite(ing.carbs) && (
+                                    <span>
+                                      {t.macroCarbs}: {ing.carbs}
+                                    </span>
+                                  )}
+                                  {ing.sugar != null && Number.isFinite(ing.sugar) && (
+                                    <span>
+                                      {t.macroSugar}: {ing.sugar}
+                                    </span>
+                                  )}
+                                  {ing.salt != null && Number.isFinite(ing.salt) && (
+                                    <span>
+                                      {t.macroSalt}: {ing.salt}
+                                    </span>
+                                  )}
+                                </p>
+                              </>
+                            )}
+                          </div>
+                        </div>
+                        <div className="flex shrink-0 flex-row items-center gap-1.5">
+                          <button
+                            type="button"
+                            onClick={() => openCatalogIngredientEdit(ing)}
+                            className="w-9 h-9 rounded-xl bg-white border border-warm-200 text-warm-600 hover:text-peach-600 hover:border-peach-300 flex items-center justify-center shadow-sm"
+                            title={t.edit}
+                            aria-label={t.catalogIngredientEditTitle}
+                          >
+                            <Pencil size={15} />
+                          </button>
+                          {showPantryDelete && pantryRow ? (
+                            <button
+                              type="button"
+                              onClick={() => void deleteFamilyCatalogRow(pantryRow.id)}
+                              className="w-9 h-9 rounded-xl bg-white border border-warm-200 text-warm-500 hover:text-rose-600 hover:border-rose-200 flex items-center justify-center shadow-sm"
+                              title={t.delete}
+                              aria-label={t.catalogDeletePantryOnly}
+                            >
+                              <Trash2 size={15} />
+                            </button>
+                          ) : null}
+                        </div>
+                      </div>
+                    </li>
+                  );
+                })}
+              </ul>
+              <div className="p-4 border-t border-warm-100 shrink-0 bg-cream-50/50">
+                <motion.button
+                  type="button"
+                  whileTap={{ scale: 0.98 }}
+                  disabled={shopLoading}
+                  onClick={() => void addLinesToShoppingLists(recipeCatalogIngredientLines)}
+                  className="w-full flex items-center justify-center gap-2 py-3 rounded-2xl bg-sage-500 text-white font-medium text-sm disabled:opacity-60"
+                >
+                  {shopLoading ? "…" : t.toShoppingList}
+                </motion.button>
+              </div>
+            </>
+          )}
         </div>
       )}
 
@@ -1075,7 +1620,9 @@ export default function MealPlanner({ initialRecipes, initialMealPlans, users, c
                     <span className="text-xs bg-amber-50 text-amber-700 px-2.5 py-1 rounded-full">{t.cooking} {viewRecipe.cookTime} m</span>
                   )}
                   {viewRecipe.calories != null && (
-                    <span className="text-xs bg-rose-50 text-rose-700 px-2.5 py-1 rounded-full">{t.calories} {viewRecipe.calories} kcal</span>
+                    <span className="text-xs bg-rose-50 text-rose-700 px-2.5 py-1 rounded-full">
+                      {t.calories}: {viewRecipe.calories} {t.caloriesKcalAbbrev}
+                    </span>
                   )}
                   <span className="text-xs bg-sky-50 text-sky-600 px-2.5 py-1 rounded-full">{t.servings}: {viewRecipe.servings}</span>
                   {viewRecipe.calories != null &&
@@ -1096,18 +1643,69 @@ export default function MealPlanner({ initialRecipes, initialMealPlans, users, c
                 <div>
                   <p className="text-xs font-semibold text-warm-500 uppercase tracking-wide mb-2">{t.ingredientsTitle}</p>
                   {viewRecipe.ingredients.length > 0 ? (
-                    <ul className="space-y-2">
+                    <ul className="space-y-3">
                       {viewRecipe.ingredients.map((ing) => (
                         <li
                           key={ing.id}
-                          className="text-sm text-warm-700 py-2 px-3 rounded-xl bg-warm-50 border border-warm-100"
+                          className="text-sm text-warm-700 py-3 px-3 rounded-xl bg-warm-50 border border-warm-100 space-y-2"
                         >
-                          <span className="font-medium text-warm-800">{ing.name}</span>
-                          <span className="text-warm-500">
-                            {" "}
-                            — {ing.amount}
-                            {ing.unit ? ` ${ing.unit}` : ""}
-                          </span>
+                          <p>
+                            <span className="font-medium text-warm-800">{ing.name}</span>
+                            <span className="text-warm-500">
+                              {" "}
+                              — {ing.amount}
+                              {ing.unit ? ` ${ing.unit}` : ""}
+                            </span>
+                          </p>
+                          {recipeIngredientHasNutrition(ing) && (
+                            <div className="text-xs text-warm-600 space-y-1 border-l-2 border-peach-200/70 pl-2">
+                              {(ing.referenceAmount?.trim() || ing.referenceUnit?.trim()) && (
+                                <p>
+                                  <span>{t.ingredientRefShort}: </span>
+                                  {[ing.referenceAmount?.trim(), ing.referenceUnit?.trim()]
+                                    .filter(Boolean)
+                                    .join(" ")}
+                                </p>
+                              )}
+                              <p className="flex flex-wrap gap-x-3 gap-y-0.5">
+                                {ingredientDisplayKcal(ing) != null && (
+                                  <span>
+                                    {t.ingredientCaloriesKcal}: {ingredientDisplayKcal(ing)}
+                                  </span>
+                                )}
+                                {ing.protein != null && Number.isFinite(ing.protein) && (
+                                  <span>
+                                    {t.macroProtein}: {ing.protein}
+                                  </span>
+                                )}
+                                {ing.fat != null && Number.isFinite(ing.fat) && (
+                                  <span>
+                                    {t.macroFat}: {ing.fat}
+                                  </span>
+                                )}
+                                {ing.saturatedFat != null && Number.isFinite(ing.saturatedFat) && (
+                                  <span>
+                                    {t.macroSaturatedFat}: {ing.saturatedFat}
+                                  </span>
+                                )}
+                                {ing.carbs != null && Number.isFinite(ing.carbs) && (
+                                  <span>
+                                    {t.macroCarbs}: {ing.carbs}
+                                  </span>
+                                )}
+                                {ing.sugar != null && Number.isFinite(ing.sugar) && (
+                                  <span>
+                                    {t.macroSugar}: {ing.sugar}
+                                  </span>
+                                )}
+                                {ing.salt != null && Number.isFinite(ing.salt) && (
+                                  <span>
+                                    {t.macroSalt}: {ing.salt}
+                                  </span>
+                                )}
+                              </p>
+                            </div>
+                          )}
                         </li>
                       ))}
                     </ul>
@@ -1116,11 +1714,11 @@ export default function MealPlanner({ initialRecipes, initialMealPlans, users, c
                   )}
                 </div>
               </div>
-              <div className="flex flex-col-reverse sm:flex-row gap-2 p-4 border-t border-warm-100 shrink-0 bg-cream-50/50">
+              <div className="flex flex-row flex-wrap gap-2 p-4 border-t border-warm-100 shrink-0 bg-cream-50/50">
                 <button
                   type="button"
                   onClick={() => setViewRecipe(null)}
-                  className="flex-1 py-3 rounded-2xl bg-white border border-warm-200 text-warm-800 font-medium text-sm"
+                  className="flex-1 min-w-[8rem] py-3 rounded-2xl bg-white border border-warm-200 text-warm-800 font-medium text-sm"
                 >
                   {t.close}
                 </button>
@@ -1128,12 +1726,162 @@ export default function MealPlanner({ initialRecipes, initialMealPlans, users, c
                   type="button"
                   whileTap={{ scale: 0.98 }}
                   onClick={openEditFromView}
-                  className="flex-1 py-3 rounded-2xl bg-gradient-to-r from-peach-500 to-peach-400 text-white font-semibold text-sm"
+                  className="flex-1 min-w-[8rem] py-3 rounded-2xl bg-gradient-to-r from-peach-500 to-peach-400 text-white font-semibold text-sm"
                 >
                   {t.edit}
                 </motion.button>
               </div>
             </motion.div>
+            </div>
+          )}
+        </AnimatePresence>,
+        document.body
+      )}
+
+      {typeof document !== "undefined" && createPortal(
+        <AnimatePresence>
+          {catalogIngredientKey && (
+            <div className="fixed inset-0 z-[65] flex items-center justify-center p-4">
+              <motion.div
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+                onClick={closeCatalogIngredientEdit}
+                className="absolute inset-0 bg-black/25 backdrop-blur-[2px]"
+              />
+              <motion.div
+                initial={{ opacity: 0, scale: 0.97 }}
+                animate={{ opacity: 1, scale: 1 }}
+                exit={{ opacity: 0, scale: 0.97 }}
+                transition={{ duration: 0.2 }}
+                onClick={(e) => e.stopPropagation()}
+                className="relative z-10 w-full max-w-md max-h-[min(92dvh,720px)] flex flex-col rounded-3xl bg-white shadow-cozy-lg overflow-hidden border border-warm-100"
+              >
+                <div className="flex items-start justify-between gap-3 px-5 py-4 border-b border-warm-100 shrink-0">
+                  <div className="min-w-0">
+                    <h2 className="text-lg font-bold text-warm-800">{t.catalogIngredientEditTitle}</h2>
+                    <p className="text-xs text-warm-500 mt-1 leading-relaxed">{t.catalogIngredientEditHint}</p>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={closeCatalogIngredientEdit}
+                    className="shrink-0 w-9 h-9 rounded-xl bg-warm-100 hover:bg-warm-200 text-warm-500 flex items-center justify-center"
+                  >
+                    <X size={16} />
+                  </button>
+                </div>
+                <div className="overflow-y-auto overscroll-contain px-5 py-4 flex-1 min-h-0 space-y-3">
+                  <input
+                    value={catalogIngredientForm.name}
+                    onChange={(e) =>
+                      setCatalogIngredientForm((f) => ({ ...f, name: e.target.value }))
+                    }
+                    placeholder={t.ingredientName}
+                    className="w-full bg-warm-50 rounded-xl px-3 py-2.5 text-sm outline-none border border-warm-200 focus:border-peach-400"
+                  />
+                  <IngredientMacroFields
+                    row={catalogIngredientForm}
+                    onPatch={(patch) =>
+                      setCatalogIngredientForm((f) => ({ ...f, ...patch }))
+                    }
+                    t={t}
+                  />
+                </div>
+                <div className="flex flex-row flex-wrap gap-2 p-4 border-t border-warm-100 shrink-0 bg-cream-50/50">
+                  <button
+                    type="button"
+                    onClick={closeCatalogIngredientEdit}
+                    className="flex-1 min-w-[8rem] py-3 rounded-2xl bg-white border border-warm-200 text-warm-800 font-medium text-sm"
+                  >
+                    {t.close}
+                  </button>
+                  <motion.button
+                    type="button"
+                    whileTap={{ scale: 0.98 }}
+                    disabled={catalogIngredientSaving}
+                    onClick={() => void saveCatalogIngredientEdit()}
+                    className="flex-1 min-w-[8rem] py-3 rounded-2xl bg-gradient-to-r from-peach-500 to-peach-400 text-white font-semibold text-sm disabled:opacity-60"
+                  >
+                    {catalogIngredientSaving ? "…" : t.saveChanges}
+                  </motion.button>
+                </div>
+              </motion.div>
+            </div>
+          )}
+        </AnimatePresence>,
+        document.body
+      )}
+
+      {typeof document !== "undefined" && createPortal(
+        <AnimatePresence>
+          {showFamilyCatalogCreate && (
+            <div className="fixed inset-0 z-[64] flex items-center justify-center p-4">
+              <motion.div
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+                onClick={closeFamilyCatalogCreate}
+                className="absolute inset-0 bg-black/25 backdrop-blur-[2px]"
+              />
+              <motion.div
+                initial={{ opacity: 0, scale: 0.97 }}
+                animate={{ opacity: 1, scale: 1 }}
+                exit={{ opacity: 0, scale: 0.97 }}
+                transition={{ duration: 0.2 }}
+                onClick={(e) => e.stopPropagation()}
+                className="relative z-10 w-full max-w-md max-h-[min(92dvh,720px)] flex flex-col rounded-3xl bg-white shadow-cozy-lg overflow-hidden border border-warm-100"
+              >
+                <div className="flex items-start justify-between gap-3 px-5 py-4 border-b border-warm-100 shrink-0">
+                  <div className="min-w-0">
+                    <h2 className="text-lg font-bold text-warm-800">{t.catalogAddIngredientTitle}</h2>
+                    <p className="text-xs text-warm-500 mt-1 leading-relaxed">{t.catalogAddIngredientHint}</p>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={closeFamilyCatalogCreate}
+                    className="shrink-0 w-9 h-9 rounded-xl bg-warm-100 hover:bg-warm-200 text-warm-500 flex items-center justify-center"
+                  >
+                    <X size={16} />
+                  </button>
+                </div>
+                <div className="overflow-y-auto overscroll-contain px-5 py-4 flex-1 min-h-0 space-y-3">
+                  <input
+                    value={familyCatalogCreateDraft.name}
+                    onChange={(e) =>
+                      setFamilyCatalogCreateDraft((d) => ({ ...d, name: e.target.value }))
+                    }
+                    placeholder={t.ingredientName}
+                    className="w-full bg-warm-50 rounded-xl px-3 py-2.5 text-sm outline-none border border-warm-200 focus:border-peach-400"
+                  />
+                  <div className="rounded-xl border border-warm-100 bg-white/90 p-2">
+                    <IngredientMacroFields
+                      row={familyCatalogCreateDraft}
+                      onPatch={(patch) =>
+                        setFamilyCatalogCreateDraft((d) => ({ ...d, ...patch }))
+                      }
+                      t={t}
+                    />
+                  </div>
+                </div>
+                <div className="flex flex-row flex-wrap gap-2 p-4 border-t border-warm-100 shrink-0 bg-cream-50/50">
+                  <button
+                    type="button"
+                    onClick={closeFamilyCatalogCreate}
+                    className="flex-1 min-w-[8rem] py-3 rounded-2xl bg-white border border-warm-200 text-warm-800 font-medium text-sm"
+                  >
+                    {t.close}
+                  </button>
+                  <motion.button
+                    type="button"
+                    whileTap={{ scale: 0.98 }}
+                    disabled={familyCatalogCreateSaving}
+                    onClick={() => void saveFamilyCatalogCreate()}
+                    className="flex-1 min-w-[8rem] py-3 rounded-2xl bg-gradient-to-r from-peach-500 to-peach-400 text-white font-semibold text-sm disabled:opacity-60"
+                  >
+                    {familyCatalogCreateSaving ? "…" : t.ingredientFormAdd}
+                  </motion.button>
+                </div>
+              </motion.div>
             </div>
           )}
         </AnimatePresence>,
@@ -1254,20 +2002,150 @@ export default function MealPlanner({ initialRecipes, initialMealPlans, users, c
                   {/* Ingredients */}
                   <div>
                     <p className="text-sm font-semibold text-warm-700 mb-2">{t.ingredientsTitle}</p>
-                    {newRecipe.ingredients.map((ing, i) => (
-                      <div key={i} className="flex gap-2 mb-2">
-                        <input value={ing.name} onChange={(e) => setNewRecipe((p) => ({ ...p, ingredients: p.ingredients.map((x, j) => j === i ? { ...x, name: e.target.value } : x) }))}
-                          placeholder={t.ingredientName} className="flex-1 bg-warm-50 rounded-xl px-3 py-2 text-sm outline-none border border-warm-200 focus:border-peach-400" />
-                        <input value={ing.amount} onChange={(e) => setNewRecipe((p) => ({ ...p, ingredients: p.ingredients.map((x, j) => j === i ? { ...x, amount: e.target.value } : x) }))}
-                          placeholder={t.ingredientAmount} className="w-24 bg-warm-50 rounded-xl px-3 py-2 text-sm outline-none border border-warm-200 focus:border-peach-400" />
-                        <input value={ing.unit} onChange={(e) => setNewRecipe((p) => ({ ...p, ingredients: p.ingredients.map((x, j) => j === i ? { ...x, unit: e.target.value } : x) }))}
-                          placeholder={t.unitShort} className="w-16 bg-warm-50 rounded-xl px-3 py-2 text-sm outline-none border border-warm-200 focus:border-peach-400" />
-                      </div>
-                    ))}
-                    <button onClick={() => setNewRecipe((p) => ({ ...p, ingredients: [...p.ingredients, { name: "", amount: "", unit: "" }] }))}
-                      className="text-xs text-peach-500 hover:text-peach-600 font-medium">
-                      {t.addIngredient}
-                    </button>
+                    {newRecipe.ingredients.length === 0 ? (
+                      <p className="text-xs text-warm-400 mb-3 rounded-xl border border-dashed border-warm-200 bg-warm-50/50 px-3 py-3">
+                        {t.ingredientsNoneYet}
+                      </p>
+                    ) : (
+                      <ul className="space-y-3 mb-3">
+                        {newRecipe.ingredients.map((ing, i) => (
+                          <li
+                            key={i}
+                            className="rounded-2xl border border-warm-200 bg-white p-3 shadow-sm space-y-2"
+                          >
+                            <div className="flex items-start justify-between gap-2">
+                              <div className="flex-1 min-w-0 space-y-2">
+                                <div className="flex flex-wrap gap-2">
+                                  <input
+                                    value={ing.name}
+                                    onChange={(e) =>
+                                      setNewRecipe((p) => {
+                                        const next = p.ingredients.map((x, j) =>
+                                          j === i ? { ...x, name: e.target.value } : x
+                                        );
+                                        const last = next[next.length - 1];
+                                        if (last && (last.name || last.amount || last.unit)) next.push(emptyIngredientFormRow());
+                                        return { ...p, ingredients: next };
+                                      })
+                                    }
+                                    placeholder={t.ingredientName}
+                                    className="flex-1 min-w-[8rem] bg-warm-50 rounded-xl px-3 py-2 text-sm outline-none border border-warm-200 focus:border-peach-400"
+                                  />
+                                  <input
+                                    value={ing.amount}
+                                    onChange={(e) =>
+                                      setNewRecipe((p) => {
+                                        const next = p.ingredients.map((x, j) =>
+                                          j === i ? { ...x, amount: e.target.value } : x
+                                        );
+                                        const last = next[next.length - 1];
+                                        if (last && (last.name || last.amount || last.unit)) next.push(emptyIngredientFormRow());
+                                        return { ...p, ingredients: next };
+                                      })
+                                    }
+                                    placeholder={t.ingredientAmount}
+                                    className="w-20 shrink-0 bg-warm-50 rounded-xl px-2 py-2 text-sm outline-none border border-warm-200 focus:border-peach-400"
+                                  />
+                                  <input
+                                    value={ing.unit}
+                                    onChange={(e) =>
+                                      setNewRecipe((p) => {
+                                        const next = p.ingredients.map((x, j) =>
+                                          j === i ? { ...x, unit: e.target.value } : x
+                                        );
+                                        const last = next[next.length - 1];
+                                        if (last && (last.name || last.amount || last.unit)) next.push(emptyIngredientFormRow());
+                                        return { ...p, ingredients: next };
+                                      })
+                                    }
+                                    placeholder={t.unitShort}
+                                    className="w-16 shrink-0 bg-warm-50 rounded-xl px-2 py-2 text-sm outline-none border border-warm-200 focus:border-peach-400"
+                                  />
+                                </div>
+                              </div>
+                              <div className="flex shrink-0 flex-row items-center gap-1.5">
+                                <button
+                                  type="button"
+                                  onClick={() => {
+                                    setNewRecipe((p) => {
+                                      const next = p.ingredients.filter((_, j) => j !== i);
+                                      const last = next[next.length - 1];
+                                      if (!last || last.name || last.amount || last.unit) next.push(emptyIngredientFormRow());
+                                      return { ...p, ingredients: next };
+                                    });
+                                  }}
+                                  className="w-9 h-9 rounded-xl bg-warm-100 hover:bg-rose-100 text-warm-500 hover:text-rose-600 flex items-center justify-center"
+                                  aria-label={t.removeIngredientRow}
+                                >
+                                  <X size={14} />
+                                </button>
+                              </div>
+                            </div>
+                          </li>
+                        ))}
+                      </ul>
+                    )}
+
+                    <div className="mt-3">
+                      <motion.button
+                        type="button"
+                        whileTap={{ scale: 0.98 }}
+                        onClick={() => setShowSavedIngredientPicker((prev) => !prev)}
+                        className={`w-full flex items-center justify-center gap-2 px-3 py-2.5 rounded-2xl text-sm font-medium border transition-colors ${
+                          showSavedIngredientPicker
+                            ? "border-peach-400 bg-peach-50 text-warm-800"
+                            : "border-warm-200 bg-white text-warm-700 hover:border-peach-300"
+                        }`}
+                      >
+                        {t.addSavedIngredient}
+                      </motion.button>
+                    </div>
+
+                    <AnimatePresence>
+                      {showSavedIngredientPicker && (
+                        <motion.div
+                          initial={{ opacity: 0, height: 0 }}
+                          animate={{ opacity: 1, height: "auto" }}
+                          exit={{ opacity: 0, height: 0 }}
+                          className="mt-3 rounded-2xl border border-warm-200 bg-warm-50/80 p-3 space-y-3 overflow-hidden"
+                        >
+                          {ingredientPickerData.names.length === 0 ? (
+                            <p className="text-xs text-warm-500 leading-relaxed">{t.savedIngredientsEmpty}</p>
+                          ) : (
+                            <>
+                              <select
+                                value={savedIngredientChoice}
+                                onChange={(e) => setSavedIngredientChoice(e.target.value)}
+                                className="w-full bg-white rounded-xl px-3 py-2.5 text-sm outline-none border border-warm-200 focus:border-peach-400 text-warm-800"
+                              >
+                                <option value="">{t.selectSavedIngredient}</option>
+                                {ingredientPickerData.names.map((n) => (
+                                  <option key={n} value={n}>
+                                    {n}
+                                  </option>
+                                ))}
+                              </select>
+                              <motion.button
+                                type="button"
+                                whileTap={{ scale: 0.98 }}
+                                onClick={() => {
+                                  if (!savedIngredientChoice.trim()) {
+                                    toast.error(t.chooseIngredientFirst);
+                                    return;
+                                  }
+                                  pickSavedIngredient(savedIngredientChoice);
+                                  setSavedIngredientChoice("");
+                                  setShowSavedIngredientPicker(false);
+                                }}
+                                className="w-full py-2.5 rounded-xl bg-gradient-to-r from-peach-500 to-peach-400 text-white text-sm font-semibold"
+                              >
+                                {t.ingredientFormAdd}
+                              </motion.button>
+                            </>
+                          )}
+                        </motion.div>
+                      )}
+                    </AnimatePresence>
                   </div>
 
                   <motion.button
@@ -1331,12 +2209,12 @@ export default function MealPlanner({ initialRecipes, initialMealPlans, users, c
                   </li>
                 ))}
               </ul>
-              <div className="flex flex-col sm:flex-row gap-2 p-4 border-t border-warm-100 shrink-0 bg-cream-50/50">
+              <div className="flex flex-row flex-wrap gap-2 p-4 border-t border-warm-100 shrink-0 bg-cream-50/50">
                 <motion.button
                   type="button"
                   whileTap={{ scale: 0.98 }}
                   onClick={copyShopLines}
-                  className="flex-1 flex items-center justify-center gap-2 py-3 rounded-2xl bg-white border border-warm-200 text-warm-800 font-medium text-sm"
+                  className="flex-1 min-w-[8rem] flex items-center justify-center gap-2 py-3 rounded-2xl bg-white border border-warm-200 text-warm-800 font-medium text-sm"
                 >
                   <Copy size={16} /> {t.copyText}
                 </motion.button>
@@ -1345,7 +2223,7 @@ export default function MealPlanner({ initialRecipes, initialMealPlans, users, c
                   whileTap={{ scale: 0.98 }}
                   disabled={shopLoading}
                   onClick={addShopToShoppingLists}
-                  className="flex-1 flex items-center justify-center gap-2 py-3 rounded-2xl bg-sage-500 text-white font-medium text-sm disabled:opacity-60"
+                  className="flex-1 min-w-[8rem] flex items-center justify-center gap-2 py-3 rounded-2xl bg-sage-500 text-white font-medium text-sm disabled:opacity-60"
                 >
                   {shopLoading ? "…" : t.toShoppingList}
                 </motion.button>

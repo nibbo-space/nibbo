@@ -1,6 +1,7 @@
 import MealPlanner from "@/components/menu/MealPlanner";
 import { isUserAdmin } from "@/lib/admin";
 import { auth } from "@/lib/auth";
+import { prismaFamilyCatalogToRecord } from "@/lib/family-ingredient-catalog";
 import { ensureUserFamily } from "@/lib/family";
 import { prisma } from "@/lib/prisma";
 
@@ -10,7 +11,7 @@ export default async function MenuPage() {
   const familyId = await ensureUserFamily(session.user.id);
   if (!familyId) return null;
 
-  const [recipes, users, admin] = await Promise.all([
+  const [recipes, users, admin, familyCatalogRows] = await Promise.all([
     prisma.recipe.findMany({
       where: { familyId },
       include: { ingredients: true },
@@ -21,7 +22,13 @@ export default async function MenuPage() {
       select: { id: true, name: true, image: true, color: true, emoji: true },
     }),
     isUserAdmin(session.user.id),
+    prisma.familyIngredientCatalog.findMany({
+      where: { familyId },
+      orderBy: { name: "asc" },
+    }),
   ]);
+
+  const initialFamilyCatalog = familyCatalogRows.map(prismaFamilyCatalogToRecord);
 
   const weekStart = new Date();
   weekStart.setDate(weekStart.getDate() - weekStart.getDay() + 1);
@@ -51,6 +58,7 @@ export default async function MenuPage() {
     <MealPlanner
       initialRecipes={recipes}
       initialMealPlans={initialMealPlans}
+      initialFamilyCatalog={initialFamilyCatalog}
       users={users}
       currentUserId={session.user.id}
       isAdmin={admin}
