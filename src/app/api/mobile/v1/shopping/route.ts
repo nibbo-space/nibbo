@@ -74,7 +74,6 @@ export const POST = withMobileAuth(async (req: NextRequest, ctx) => {
     data: {
       name,
       quantity: body.quantity ? String(body.quantity) : null,
-      unit: body.unit ? String(body.unit) : null,
       category: body.category ? String(body.category) : null,
       listId,
       addedById: ctx.userId,

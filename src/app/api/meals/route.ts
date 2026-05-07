@@ -1,5 +1,9 @@
 import { auth } from "@/lib/auth";
 import { ensureUserFamily } from "@/lib/family";
+import {
+  parseIngredientFromClient,
+  type RecipeIngredientCreatePayload,
+} from "@/lib/recipe-ingredients";
 import { prisma } from "@/lib/prisma";
 import { NextRequest, NextResponse } from "next/server";
 
@@ -73,7 +77,11 @@ export async function POST(req: NextRequest) {
             ? body.imageUrl.trim()
             : undefined,
         ingredients: {
-          create: body.ingredients || [],
+          create: Array.isArray(body.ingredients)
+            ? (body.ingredients as unknown[])
+                .map((i: unknown) => parseIngredientFromClient(i))
+                .filter((x): x is RecipeIngredientCreatePayload => x != null)
+            : [],
         },
       },
       include: { ingredients: true },

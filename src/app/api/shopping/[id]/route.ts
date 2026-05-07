@@ -31,7 +31,6 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
     if (body.checked !== undefined) data.checked = body.checked;
     if (body.name !== undefined) data.name = body.name;
     if (body.quantity !== undefined) data.quantity = body.quantity;
-    if (body.unit !== undefined) data.unit = body.unit;
     if (body.isPrivate !== undefined) {
       if (row.addedById !== userId) return NextResponse.json({ error: "Forbidden" }, { status: 403 });
       data.isPrivate = Boolean(body.isPrivate);

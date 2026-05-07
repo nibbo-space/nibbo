@@ -275,6 +275,32 @@ model Family {
   achievementUnlocks FamilyAchievementUnlock[]
   xpLedgerEntries    XpLedgerEntry[]
   medications         Medication[]
+  ingredientCatalog   FamilyIngredientCatalog[]
+}
+
+/// Family-level ingredient entries (survive recipe deletion; merged into Ingredients tab + picker).
+model FamilyIngredientCatalog {
+  id                String   @id @default(cuid())
+  familyId          String
+  name              String
+  nameKey           String
+  quantity          String   @default("")
+  referenceAmount   String?
+  referenceUnit     String?
+  protein           Float?
+  fat               Float?
+  saturatedFat      Float?
+  carbs             Float?
+  sugar             Float?
+  salt              Float?
+  kcal              Float?
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+
+  family Family @relation(fields: [familyId], references: [id], onDelete: Cascade)
+
+  @@unique([familyId, nameKey])
+  @@index([familyId])
 }
 
 model FamilyAchievementUnlock {
@@ -547,8 +573,7 @@ model RecipeMarket {
 model RecipeMarketIngredient {
   id             String       @id @default(cuid())
   name           String
-  amount         String
-  unit           String?
+  quantity       String       @default("")
   recipeMarketId String
 
   recipeMarket   RecipeMarket @relation(fields: [recipeMarketId], references: [id], onDelete: Cascade)
@@ -564,11 +589,23 @@ model Admin {
 }
 
 model Ingredient {
-  id       String  @id @default(cuid())
-  name     String
-  amount   String
-  unit     String?
-  recipeId String
+  id                String  @id @default(cuid())
+  name              String
+  quantity          String  @default("")
+  recipeId          String
+  /// Amount for nutrition label (e.g. "100", "1", "250")
+  referenceAmount   String?
+  /// Unit for nutrition label (e.g. "g", "ml", "pack")
+  referenceUnit     String?
+  /// Grams per referenceAmount + referenceUnit (same basis for all macros below)
+  protein           Float?
+  fat               Float?
+  saturatedFat      Float?
+  carbs             Float?
+  sugar             Float?
+  salt              Float?
+  /// Energy for the same reference portion as macros (kcal)
+  kcal              Float?
 
   recipe Recipe @relation(fields: [recipeId], references: [id], onDelete: Cascade)
 }
@@ -785,7 +822,6 @@ model ShoppingItem {
   id         String   @id @default(cuid())
   name       String
   quantity   String?
-  unit       String?
   checked    Boolean  @default(false)
   category   String?
   listId     String

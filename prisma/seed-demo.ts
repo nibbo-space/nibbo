@@ -449,10 +449,10 @@ async function main() {
       emoji: "🍝", prepTime: 15, cookTime: 45, servings: 4, category: "Dinner", calories: 520,
       familyId: family.id,
       ingredients: { create: [
-        { name: "Spaghetti", amount: "400", unit: "g" }, { name: "Ground beef", amount: "500", unit: "g" },
-        { name: "Tomato sauce", amount: "400", unit: "ml" }, { name: "Onion", amount: "1", unit: "large" },
-        { name: "Garlic cloves", amount: "3" }, { name: "Olive oil", amount: "2", unit: "tbsp" },
-        { name: "Parmesan", amount: "50", unit: "g" },
+        { name: "Spaghetti", quantity: "400 g" }, { name: "Ground beef", quantity: "500 g" },
+        { name: "Tomato sauce", quantity: "400 ml" }, { name: "Onion", quantity: "1 large" },
+        { name: "Garlic cloves", quantity: "3" }, { name: "Olive oil", quantity: "2 tbsp" },
+        { name: "Parmesan", quantity: "50 g" },
       ]},
     },
   });
@@ -463,9 +463,9 @@ async function main() {
       emoji: "🥢", prepTime: 10, cookTime: 15, servings: 4, category: "Dinner", calories: 380,
       familyId: family.id,
       ingredients: { create: [
-        { name: "Chicken breast", amount: "600", unit: "g" }, { name: "Mixed vegetables", amount: "300", unit: "g" },
-        { name: "Soy sauce", amount: "3", unit: "tbsp" }, { name: "Ginger", amount: "1", unit: "tsp" },
-        { name: "Sesame oil", amount: "1", unit: "tbsp" }, { name: "Rice", amount: "2", unit: "cups" },
+        { name: "Chicken breast", quantity: "600 g" }, { name: "Mixed vegetables", quantity: "300 g" },
+        { name: "Soy sauce", quantity: "3 tbsp" }, { name: "Ginger", quantity: "1 tsp" },
+        { name: "Sesame oil", quantity: "1 tbsp" }, { name: "Rice", quantity: "2 cups" },
       ]},
     },
   });
@@ -476,10 +476,10 @@ async function main() {
       emoji: "🥞", prepTime: 5, cookTime: 20, servings: 4, category: "Breakfast", calories: 290,
       familyId: family.id,
       ingredients: { create: [
-        { name: "Flour", amount: "2", unit: "cups" }, { name: "Eggs", amount: "2" },
-        { name: "Milk", amount: "1.5", unit: "cups" }, { name: "Blueberries", amount: "1", unit: "cup" },
-        { name: "Baking powder", amount: "2", unit: "tsp" }, { name: "Butter", amount: "2", unit: "tbsp" },
-        { name: "Maple syrup", amount: "4", unit: "tbsp" },
+        { name: "Flour", quantity: "2 cups" }, { name: "Eggs", quantity: "2" },
+        { name: "Milk", quantity: "1.5 cups" }, { name: "Blueberries", quantity: "1 cup" },
+        { name: "Baking powder", quantity: "2 tsp" }, { name: "Butter", quantity: "2 tbsp" },
+        { name: "Maple syrup", quantity: "4 tbsp" },
       ]},
     },
   });
@@ -490,10 +490,10 @@ async function main() {
       emoji: "🌮", prepTime: 10, cookTime: 20, servings: 4, category: "Dinner", calories: 450,
       familyId: family.id,
       ingredients: { create: [
-        { name: "Ground beef", amount: "500", unit: "g" }, { name: "Taco shells", amount: "12" },
-        { name: "Cheddar cheese", amount: "150", unit: "g" }, { name: "Lettuce", amount: "1", unit: "head" },
-        { name: "Tomatoes", amount: "2" }, { name: "Sour cream", amount: "100", unit: "ml" },
-        { name: "Taco seasoning", amount: "1", unit: "pack" },
+        { name: "Ground beef", quantity: "500 g" }, { name: "Taco shells", quantity: "12" },
+        { name: "Cheddar cheese", quantity: "150 g" }, { name: "Lettuce", quantity: "1 head" },
+        { name: "Tomatoes", quantity: "2" }, { name: "Sour cream", quantity: "100 ml" },
+        { name: "Taco seasoning", quantity: "1 pack" },
       ]},
     },
   });
@@ -504,10 +504,10 @@ async function main() {
       emoji: "🥗", prepTime: 10, cookTime: 0, servings: 4, category: "Lunch", calories: 220,
       familyId: family.id,
       ingredients: { create: [
-        { name: "Cucumber", amount: "1", unit: "large" }, { name: "Tomatoes", amount: "3" },
-        { name: "Feta cheese", amount: "200", unit: "g" }, { name: "Olives", amount: "80", unit: "g" },
-        { name: "Red onion", amount: "0.5" }, { name: "Olive oil", amount: "3", unit: "tbsp" },
-        { name: "Oregano", amount: "1", unit: "tsp" },
+        { name: "Cucumber", quantity: "1 large" }, { name: "Tomatoes", quantity: "3" },
+        { name: "Feta cheese", quantity: "200 g" }, { name: "Olives", quantity: "80 g" },
+        { name: "Red onion", quantity: "0.5" }, { name: "Olive oil", quantity: "3 tbsp" },
+        { name: "Oregano", quantity: "1 tsp" },
       ]},
     },
   });
@@ -630,17 +630,17 @@ async function main() {
     data: { name: "Weekly Groceries", emoji: "🛒", sortOrder: 0, familyId: family.id },
   });
   const groceryItems = [
-    { name: "Whole milk", quantity: "1", unit: "gallon", category: "Dairy", checked: false },
-    { name: "Eggs", quantity: "12", unit: "pack", category: "Dairy", checked: true },
-    { name: "Sourdough bread", quantity: "1", unit: "loaf", category: "Bakery", checked: false },
-    { name: "Chicken breast", quantity: "2", unit: "lbs", category: "Meat", checked: false },
-    { name: "Blueberries", quantity: "1", unit: "pint", category: "Fruit", checked: false },
-    { name: "Greek yogurt", quantity: "4", unit: "cups", category: "Dairy", checked: false },
-    { name: "Pasta", quantity: "2", unit: "boxes", category: "Pantry", checked: false },
-    { name: "Tomato sauce", quantity: "2", unit: "jars", category: "Pantry", checked: true },
-    { name: "Olive oil", quantity: "1", unit: "bottle", category: "Pantry", checked: false },
-    { name: "Bananas", quantity: "1", unit: "bunch", category: "Fruit", checked: true },
-    { name: "Orange juice", quantity: "1", unit: "carton", category: "Beverages", checked: false },
+    { name: "Whole milk", quantity: "1 gallon", category: "Dairy", checked: false },
+    { name: "Eggs", quantity: "12 pack", category: "Dairy", checked: true },
+    { name: "Sourdough bread", quantity: "1 loaf", category: "Bakery", checked: false },
+    { name: "Chicken breast", quantity: "2 lbs", category: "Meat", checked: false },
+    { name: "Blueberries", quantity: "1 pint", category: "Fruit", checked: false },
+    { name: "Greek yogurt", quantity: "4 cups", category: "Dairy", checked: false },
+    { name: "Pasta", quantity: "2 boxes", category: "Pantry", checked: false },
+    { name: "Tomato sauce", quantity: "2 jars", category: "Pantry", checked: true },
+    { name: "Olive oil", quantity: "1 bottle", category: "Pantry", checked: false },
+    { name: "Bananas", quantity: "1 bunch", category: "Fruit", checked: true },
+    { name: "Orange juice", quantity: "1 carton", category: "Beverages", checked: false },
   ];
   for (const item of groceryItems) {
     await prisma.shoppingItem.create({ data: { ...item, listId: groceryList.id, addedById: sarah.id } });
@@ -650,10 +650,10 @@ async function main() {
     data: { name: "Hardware Store", emoji: "🔧", sortOrder: 1, familyId: family.id },
   });
   for (const item of [
-    { name: "Faucet repair kit", quantity: "1", unit: undefined, category: "Plumbing", checked: false },
-    { name: "LED bulbs (E26, warm white)", quantity: "6", unit: undefined, category: "Electrical", checked: false },
-    { name: "Paint roller set", quantity: "1", unit: undefined, category: "Painting", checked: true },
-    { name: "WD-40", quantity: "1", unit: "can", category: "Maintenance", checked: false },
+    { name: "Faucet repair kit", quantity: "1", category: "Plumbing", checked: false },
+    { name: "LED bulbs (E26, warm white)", quantity: "6", category: "Electrical", checked: false },
+    { name: "Paint roller set", quantity: "1", category: "Painting", checked: true },
+    { name: "WD-40", quantity: "1 can", category: "Maintenance", checked: false },
   ]) {
     await prisma.shoppingItem.create({ data: { ...item, listId: hardwareList.id, addedById: james.id } });
   }

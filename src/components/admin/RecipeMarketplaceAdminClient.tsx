@@ -12,7 +12,7 @@ import { recipeCaloriesPerServing } from "@/lib/meal-plan-calories";
 import { useAppLanguage } from "@/hooks/useAppLanguage";
 import { messageLocale, I18N } from "@/lib/i18n";
 
-type Ingredient = { id: string; name: string; amount: string; unit: string | null };
+type Ingredient = { id: string; name: string; quantity: string };
 type MarketRow = {
   id: string;
   name: string;
@@ -268,11 +268,7 @@ export default function RecipeMarketplaceAdminClient() {
                               className="rounded-xl border border-warm-100 bg-warm-50 px-3 py-2 text-sm text-warm-700"
                             >
                               <span className="font-medium text-warm-800">{ing.name}</span>
-                              <span className="text-warm-500">
-                                {" "}
-                                — {ing.amount}
-                                {ing.unit ? ` ${ing.unit}` : ""}
-                              </span>
+                              <span className="text-warm-500"> — {ing.quantity}</span>
                             </li>
                           ))}
                         </ul>

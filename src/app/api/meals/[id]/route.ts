@@ -1,6 +1,12 @@
+import { upsertFamilyCatalogFromRecipeIngredient } from "@/lib/family-ingredient-catalog";
 import { auth } from "@/lib/auth";
 import { ensureUserFamily } from "@/lib/family";
+import {
+  parseIngredientFromClient,
+  type RecipeIngredientCreatePayload,
+} from "@/lib/recipe-ingredients";
 import { prisma } from "@/lib/prisma";
+import type { Prisma } from "@prisma/client";
 import { NextRequest, NextResponse } from "next/server";
 
 export async function PATCH(
@@ -26,21 +32,7 @@ export async function PATCH(
     });
     if (!exists)
       return NextResponse.json({ error: "Not found" }, { status: 404 });
-    const data: {
-      name?: string;
-      description?: string | null;
-      emoji?: string;
-      prepTime?: number | null;
-      cookTime?: number | null;
-      calories?: number | null;
-      servings?: number;
-      category?: string;
-      imageUrl?: string | null;
-      ingredients?: {
-        deleteMany: Record<string, never>;
-        create: { name: string; amount: string; unit?: string | null }[];
-      };
-    } = {};
+    const data: Prisma.RecipeUpdateInput = {};
 
     if (body.name !== undefined) data.name = body.name;
     if (body.description !== undefined) data.description = body.description;
@@ -57,15 +49,12 @@ export async function PATCH(
           : String(body.imageUrl);
     }
     if (Array.isArray(body.ingredients)) {
+      const rows = (body.ingredients as unknown[])
+        .map((i: unknown) => parseIngredientFromClient(i))
+        .filter((x): x is RecipeIngredientCreatePayload => x != null);
       data.ingredients = {
         deleteMany: {},
-        create: body.ingredients.map(
-          (i: { name: string; amount: string; unit?: string | null }) => ({
-            name: i.name,
-            amount: i.amount,
-            unit: i.unit ?? null,
-          }),
-        ),
+        create: rows,
       };
     }
 
@@ -155,16 +144,22 @@ export async function DELETE(
   const type = searchParams.get("type");
 
   if (type === "recipe") {
+    const recipe = await prisma.recipe.findFirst({
+      where: { id, familyId },
+      include: { ingredients: true },
+    });
+    if (!recipe)
+      return NextResponse.json({ error: "Not found" }, { status: 404 });
+
     await prisma.mealPlan.updateMany({
       where: { familyId, recipeId: id },
       data: { recipeId: null },
     });
-    const exists = await prisma.recipe.findFirst({
-      where: { id, familyId },
-      select: { id: true },
-    });
-    if (!exists)
-      return NextResponse.json({ error: "Not found" }, { status: 404 });
+    await Promise.all(
+      recipe.ingredients.map((ingredient) =>
+        upsertFamilyCatalogFromRecipeIngredient(familyId, ingredient),
+      ),
+    );
     await prisma.recipe.delete({ where: { id } });
   } else {
     const exists = await prisma.mealPlan.findFirst({
