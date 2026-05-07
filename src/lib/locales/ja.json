@@ -89,6 +89,7 @@
     "pageTitle": "お知らせ",
     "pageSubtitle": "公開したお知らせは、各ユーザーにログイン後1回だけ表示されます。",
     "backToAdmin": "管理ホームへ",
+    "backToList": "一覧に戻る",
     "newAnnouncement": "新しいお知らせ",
     "editAnnouncement": "お知らせを編集",
     "listEmpty": "お知らせはまだありません。",

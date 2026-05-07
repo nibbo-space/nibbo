@@ -89,6 +89,7 @@
     "pageTitle": "Announcements",
     "pageSubtitle": "Create one-time news shown to every user once after login.",
     "backToAdmin": "Admin home",
+    "backToList": "Back to list",
     "newAnnouncement": "New announcement",
     "editAnnouncement": "Edit announcement",
     "listEmpty": "No announcements yet.",

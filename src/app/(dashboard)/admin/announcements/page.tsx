@@ -6,7 +6,6 @@ import { redirect } from "next/navigation";
 import AnnouncementAdminClient, {
   type AnnouncementAdminRow,
 } from "@/components/admin/AnnouncementAdminClient";
-import { getActiveLanguages } from "@/lib/languages";
 
 export const metadata: Metadata = {
   title: "Admin — announcements",
@@ -39,8 +38,6 @@ export default async function AdminAnnouncementsPage() {
       },
     },
   });
-  const languages = await getActiveLanguages();
-
   const initialRows: AnnouncementAdminRow[] = rows.map((row) => ({
     ...row,
     publishedAt: row.publishedAt?.toISOString() ?? null,
@@ -48,5 +45,5 @@ export default async function AdminAnnouncementsPage() {
     updatedAt: row.updatedAt.toISOString(),
   }));
 
-  return <AnnouncementAdminClient initialRows={initialRows} languages={languages} />;
+  return <AnnouncementAdminClient initialRows={initialRows} />;
 }
