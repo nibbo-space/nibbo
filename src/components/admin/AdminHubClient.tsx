@@ -6,6 +6,7 @@ import {
   FlaskConical,
   Medal,
   Languages,
+  Megaphone,
   Newspaper,
   Store,
   ChevronRight,
@@ -51,6 +52,15 @@ const MODULES: {
     card: "border-sky-200/90 bg-gradient-to-br from-sky-50 to-white text-sky-950 shadow-sm hover:border-sky-300",
     iconWrap: "border-sky-200/80 bg-white text-sky-700",
     chevron: "text-sky-600",
+  },
+  {
+    href: "/admin/announcements",
+    titleNavKey: "adminAnnouncements",
+    descKey: "announcements",
+    Icon: Megaphone,
+    card: "border-rose-200/90 bg-gradient-to-br from-rose-50 to-white text-rose-950 shadow-sm hover:border-rose-300",
+    iconWrap: "border-rose-200/80 bg-white text-rose-700",
+    chevron: "text-rose-600",
   },
   {
     href: "/admin/blog",

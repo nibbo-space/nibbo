@@ -53,6 +53,7 @@
     "adminBlog": "Блог",
     "adminLanguages": "Мови",
     "adminLocalization": "Локалізація",
+    "adminAnnouncements": "Оголошення",
     "adminRecipeMarketplace": "Маркет рецептів",
     "adminPanel": "Адмін-панель"
   },
@@ -65,6 +66,7 @@
       "achievementsLab": "Скидання лічильників, превʼю ачівок",
       "languages": "Мови інтерфейсу та блогу",
       "localization": "Ключі та рядки перекладів",
+      "announcements": "Разовий показ новин користувачам",
       "blog": "Публікації та переклади постів",
       "recipeMarketplace": "Спільний каталог рецептів для імпорту в сімʼї"
     }
@@ -82,6 +84,36 @@
     "removedToast": "Рецепт прибрано з маркету",
     "removeFailedToast": "Не вдалося прибрати рецепт",
     "removeFromCatalog": "Прибрати з каталогу"
+  },
+  "adminAnnouncements": {
+    "pageTitle": "Оголошення",
+    "pageSubtitle": "Створюй новини, які кожен користувач побачить один раз після входу.",
+    "backToAdmin": "До адмін-панелі",
+    "newAnnouncement": "Нове оголошення",
+    "editAnnouncement": "Редагувати оголошення",
+    "listEmpty": "Оголошень поки немає.",
+    "titleLabel": "Заголовок (UK)",
+    "bodyLabel": "Текст (UK)",
+    "titleEnLabel": "Заголовок (EN)",
+    "bodyEnLabel": "Текст (EN)",
+    "titleNamed": "Заголовок ({name})",
+    "bodyNamed": "Текст ({name})",
+    "publishNow": "Опублікувати зараз",
+    "published": "Опубліковано",
+    "draft": "Чернетка",
+    "publishedAt": "Опубліковано",
+    "updatedAt": "Оновлено",
+    "save": "Зберегти",
+    "saving": "Збереження...",
+    "saved": "Збережено",
+    "cancel": "Скасувати",
+    "edit": "Редагувати",
+    "delete": "Видалити",
+    "deleted": "Видалено",
+    "deleteConfirm": "Видалити це оголошення безповоротно?",
+    "saveFailed": "Не вдалося зберегти оголошення",
+    "deleteFailed": "Не вдалося видалити оголошення",
+    "validation": "Потрібні заголовок і текст для UK та EN"
   },
   "adminNibbyLab": {
     "badge": "Адмін",
@@ -285,10 +317,19 @@
   "notificationBell": {
     "title": "Призначення",
     "markAllRead": "Усі прочитані",
+    "assignmentsTab": "Призначення",
+    "newsTab": "Новини",
     "loading": "Завантаження…",
     "empty": "Немає нових призначень на вас",
+    "newsEmpty": "Поки немає новин",
     "someone": "Хтось",
     "assignedYou": "призначив вас"
+  },
+  "announcementGate": {
+    "badge": "Нове оновлення",
+    "publishedAt": "Опубліковано",
+    "confirm": "Зрозуміло",
+    "close": "Закрити"
   },
   "pushNotifications": {
     "taskAssignedTitle": "Вам призначили задачу",

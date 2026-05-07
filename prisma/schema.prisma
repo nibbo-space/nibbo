@@ -87,6 +87,7 @@ model User {
   mobilePushTokens     MobilePushToken[]
   medications          Medication[]
   blogPosts                 BlogPost[]
+  announcementViews         UserAnnouncementView[]
 }
 
 model BlogPost {
@@ -122,6 +123,7 @@ model Language {
   updatedAt DateTime @updatedAt
 
   blogTranslations BlogPostTranslation[]
+  announcementTranslations AnnouncementTranslation[]
   i18nValues       I18nValue[]
 
   @@index([isActive, sortOrder])
@@ -586,6 +588,55 @@ model Admin {
 
   user      User           @relation(fields: [userId], references: [id], onDelete: Cascade)
   markets   RecipeMarket[]
+  announcements Announcement[]
+}
+
+model Announcement {
+  id            String   @id @default(cuid())
+  titleUk       String
+  titleEn       String
+  bodyUk        String   @db.Text
+  bodyEn        String   @db.Text
+  published     Boolean  @default(false)
+  publishedAt   DateTime?
+  authorAdminId String
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  author       Admin                    @relation(fields: [authorAdminId], references: [id], onDelete: Cascade)
+  views        UserAnnouncementView[]
+  translations AnnouncementTranslation[]
+
+  @@index([published, publishedAt])
+  @@index([authorAdminId, createdAt])
+}
+
+model AnnouncementTranslation {
+  id             String @id @default(cuid())
+  announcementId String
+  languageId     String
+  title          String
+  body           String @db.Text
+
+  announcement Announcement @relation(fields: [announcementId], references: [id], onDelete: Cascade)
+  language     Language     @relation(fields: [languageId], references: [id], onDelete: Cascade)
+
+  @@unique([announcementId, languageId])
+  @@index([languageId])
+}
+
+model UserAnnouncementView {
+  id             String   @id @default(cuid())
+  userId         String
+  announcementId String
+  viewedAt       DateTime @default(now())
+
+  user         User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  announcement Announcement @relation(fields: [announcementId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, announcementId])
+  @@index([announcementId])
+  @@index([userId, viewedAt])
 }
 
 model Ingredient {

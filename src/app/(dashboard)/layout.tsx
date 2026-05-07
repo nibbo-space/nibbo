@@ -3,6 +3,7 @@ import OnboardingTour from "@/components/shared/OnboardingTour";
 import ReminderHeartbeat from "@/components/shared/ReminderHeartbeat";
 import Sidebar from "@/components/shared/Sidebar";
 import DashboardRouteGates from "@/components/shared/DashboardRouteGates";
+import AnnouncementGate from "@/components/shared/AnnouncementGate";
 import { DisabledAppModulesProvider } from "@/components/shared/DisabledAppModulesProvider";
 import { AchievementUnlockProvider } from "@/components/achievements/AchievementUnlockProvider";
 import { AssistantBuddyProvider } from "@/components/shared/AssistantBuddyProvider";
@@ -147,6 +148,7 @@ export default async function DashboardLayout({
                 <Sidebar user={user} isAdmin={Boolean(session.user.isAdmin)} />
                 <div className="flex-1 flex flex-col md:overflow-hidden">
                   <ReminderHeartbeat />
+                  <AnnouncementGate enabled={Boolean(user.onboardingCompletedAt)} />
                   <OnboardingTour shouldRun={!user.onboardingCompletedAt} userId={user.id} />
                   <Header user={user} initialPoints={0} isAdmin={Boolean(session.user.isAdmin)} />
                   <DashboardRouteGates />

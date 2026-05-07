@@ -53,6 +53,7 @@
     "adminBlog": "ブログ（管理）",
     "adminLanguages": "Languages",
     "adminLocalization": "Localization",
+    "adminAnnouncements": "お知らせ",
     "adminRecipeMarketplace": "レシピマーケット",
     "adminPanel": "Admin panel"
   },
@@ -65,6 +66,7 @@
       "achievementsLab": "Reset counters, achievement previews",
       "languages": "App and blog languages",
       "localization": "Translation keys and strings",
+      "announcements": "ログイン時に一度だけ表示するニュース",
       "blog": "Posts and translations",
       "recipeMarketplace": "共有レシピカタログの管理"
     }
@@ -82,6 +84,36 @@
     "removedToast": "マーケットから削除しました",
     "removeFailedToast": "削除に失敗しました",
     "removeFromCatalog": "カタログから削除"
+  },
+  "adminAnnouncements": {
+    "pageTitle": "お知らせ",
+    "pageSubtitle": "公開したお知らせは、各ユーザーにログイン後1回だけ表示されます。",
+    "backToAdmin": "管理ホームへ",
+    "newAnnouncement": "新しいお知らせ",
+    "editAnnouncement": "お知らせを編集",
+    "listEmpty": "お知らせはまだありません。",
+    "titleLabel": "タイトル（UK）",
+    "bodyLabel": "本文（UK）",
+    "titleEnLabel": "タイトル（EN）",
+    "bodyEnLabel": "本文（EN）",
+    "titleNamed": "タイトル（{name}）",
+    "bodyNamed": "本文（{name}）",
+    "publishNow": "今すぐ公開",
+    "published": "公開中",
+    "draft": "下書き",
+    "publishedAt": "公開日",
+    "updatedAt": "更新日",
+    "save": "保存",
+    "saving": "保存中...",
+    "saved": "保存しました",
+    "cancel": "キャンセル",
+    "edit": "編集",
+    "delete": "削除",
+    "deleted": "削除しました",
+    "deleteConfirm": "このお知らせを完全に削除しますか？",
+    "saveFailed": "お知らせを保存できませんでした",
+    "deleteFailed": "お知らせを削除できませんでした",
+    "validation": "UK と EN のタイトル・本文は必須です"
   },
   "adminNibbyLab": {
     "badge": "管理",
@@ -285,10 +317,19 @@
   "notificationBell": {
     "title": "割り当て",
     "markAllRead": "すべて既読にする",
+    "assignmentsTab": "割り当て",
+    "newsTab": "ニュース",
     "loading": "読み込み中…",
     "empty": "新しい割り当てはありません",
+    "newsEmpty": "ニュースはまだありません",
     "someone": "誰か",
     "assignedYou": "あなたに割り当てられました"
+  },
+  "announcementGate": {
+    "badge": "新着アップデート",
+    "publishedAt": "公開日",
+    "confirm": "了解",
+    "close": "閉じる"
   },
   "pushNotifications": {
     "taskAssignedTitle": "タスクが割り当てられました",
