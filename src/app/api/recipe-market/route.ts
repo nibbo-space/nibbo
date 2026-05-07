@@ -50,8 +50,7 @@ export async function POST(req: NextRequest) {
         ingredients: {
           create: market.ingredients.map((i) => ({
             name: i.name,
-            amount: i.amount,
-            unit: i.unit,
+            quantity: i.quantity,
           })),
         },
       },
@@ -94,8 +93,7 @@ export async function POST(req: NextRequest) {
         ingredients: {
           create: recipe.ingredients.map((i) => ({
             name: i.name,
-            amount: i.amount,
-            unit: i.unit,
+            quantity: i.quantity,
           })),
         },
       },
@@ -123,12 +121,10 @@ export async function POST(req: NextRequest) {
             ? body.ingredients.map(
                 (i: {
                   name: string;
-                  amount: string;
-                  unit?: string | null;
+                  quantity: string;
                 }) => ({
                   name: i.name,
-                  amount: i.amount,
-                  unit: i.unit ?? null,
+                  quantity: i.quantity,
                 }),
               )
             : [],

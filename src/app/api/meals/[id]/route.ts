@@ -155,6 +155,11 @@ export async function DELETE(
       where: { familyId, recipeId: id },
       data: { recipeId: null },
     });
+    await Promise.all(
+      recipe.ingredients.map((ingredient) =>
+        upsertFamilyCatalogFromRecipeIngredient(familyId, ingredient),
+      ),
+    );
     await prisma.recipe.delete({ where: { id } });
   } else {
     const exists = await prisma.mealPlan.findFirst({

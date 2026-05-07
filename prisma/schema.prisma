@@ -271,8 +271,7 @@ model FamilyIngredientCatalog {
   familyId          String
   name              String
   nameKey           String
-  amount            String   @default("")
-  unit              String?
+  quantity          String   @default("")
   referenceAmount   String?
   referenceUnit     String?
   protein           Float?
@@ -561,8 +560,7 @@ model RecipeMarket {
 model RecipeMarketIngredient {
   id             String       @id @default(cuid())
   name           String
-  amount         String
-  unit           String?
+  quantity       String       @default("")
   recipeMarketId String
 
   recipeMarket   RecipeMarket @relation(fields: [recipeMarketId], references: [id], onDelete: Cascade)
@@ -580,8 +578,7 @@ model Admin {
 model Ingredient {
   id                String  @id @default(cuid())
   name              String
-  amount            String
-  unit              String?
+  quantity          String  @default("")
   recipeId          String
   /// Amount for nutrition label (e.g. "100", "1", "250")
   referenceAmount   String?
@@ -812,7 +809,6 @@ model ShoppingItem {
   id         String   @id @default(cuid())
   name       String
   quantity   String?
-  unit       String?
   checked    Boolean  @default(false)
   category   String?
   listId     String

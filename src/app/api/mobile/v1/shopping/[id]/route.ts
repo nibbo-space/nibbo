@@ -34,7 +34,6 @@ export const PATCH = withMobileAuthParams<Params>(async (req: NextRequest, param
     if (body.checked !== undefined) data.checked = Boolean(body.checked);
     if (body.name !== undefined) data.name = String(body.name);
     if (body.quantity !== undefined) data.quantity = body.quantity ? String(body.quantity) : null;
-    if (body.unit !== undefined) data.unit = body.unit ? String(body.unit) : null;
     if (body.isPrivate !== undefined) {
       if (existing.addedById !== ctx.userId) return NextResponse.json({ error: "FORBIDDEN" }, { status: 403 });
       data.isPrivate = Boolean(body.isPrivate);

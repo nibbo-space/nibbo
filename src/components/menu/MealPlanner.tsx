@@ -61,8 +61,8 @@ interface MealPlan {
   eaterIds: string[];
 }
 
-function ingredientLineText(i: { name: string; amount: string; unit: string | null }): string {
-  return `${i.name.trim()} — ${i.amount}${i.unit ? " " + i.unit : ""}`.trim();
+function ingredientLineText(i: { name: string; quantity: string }): string {
+  return `${i.name.trim()} — ${i.quantity.trim()}`.trim();
 }
 
 /** Rough kcal from macros when `kcal` is not stored (legacy / estimate). */
@@ -108,8 +108,7 @@ function formRowToRecordForNutritionScore(row: IngredientFormRow): RecipeIngredi
   return {
     id: "",
     name: p.name,
-    amount: p.amount,
-    unit: p.unit,
+    quantity: p.quantity,
     referenceAmount: p.referenceAmount,
     referenceUnit: p.referenceUnit,
     protein: p.protein,
@@ -203,8 +202,9 @@ function IngredientMacroFields({
       <label className="block space-y-0.5">
         <span className="text-[10px] font-medium text-warm-500">{t.ingredientCaloriesKcal}</span>
         <input
-          type="text"
-          inputMode="decimal"
+          type="number"
+          inputMode="numeric"
+          step={1}
           value={row.kcal}
           onChange={(e) => onPatch({ kcal: e.target.value })}
           placeholder={t.ingredientKcalPlaceholder}
@@ -215,8 +215,9 @@ function IngredientMacroFields({
         <label className="block space-y-0.5">
           <span className="text-[10px] font-medium text-warm-500">{t.macroProtein}</span>
           <input
-            type="text"
-            inputMode="decimal"
+            type="number"
+            inputMode="numeric"
+            step={1}
             value={row.protein}
             onChange={(e) => onPatch({ protein: e.target.value })}
             className="w-full bg-warm-50 rounded-xl px-2 py-1.5 text-xs outline-none border border-warm-200 focus:border-peach-400"
@@ -225,8 +226,9 @@ function IngredientMacroFields({
         <label className="block space-y-0.5">
           <span className="text-[10px] font-medium text-warm-500">{t.macroFat}</span>
           <input
-            type="text"
-            inputMode="decimal"
+            type="number"
+            inputMode="numeric"
+            step={1}
             value={row.fat}
             onChange={(e) => onPatch({ fat: e.target.value })}
             className="w-full bg-warm-50 rounded-xl px-2 py-1.5 text-xs outline-none border border-warm-200 focus:border-peach-400"
@@ -235,8 +237,9 @@ function IngredientMacroFields({
         <label className="block space-y-0.5">
           <span className="text-[10px] font-medium text-warm-500">{t.macroSaturatedFat}</span>
           <input
-            type="text"
-            inputMode="decimal"
+            type="number"
+            inputMode="numeric"
+            step={1}
             value={row.saturatedFat}
             onChange={(e) => onPatch({ saturatedFat: e.target.value })}
             className="w-full bg-warm-50 rounded-xl px-2 py-1.5 text-xs outline-none border border-warm-200 focus:border-peach-400"
@@ -245,8 +248,9 @@ function IngredientMacroFields({
         <label className="block space-y-0.5">
           <span className="text-[10px] font-medium text-warm-500">{t.macroCarbs}</span>
           <input
-            type="text"
-            inputMode="decimal"
+            type="number"
+            inputMode="numeric"
+            step={1}
             value={row.carbs}
             onChange={(e) => onPatch({ carbs: e.target.value })}
             className="w-full bg-warm-50 rounded-xl px-2 py-1.5 text-xs outline-none border border-warm-200 focus:border-peach-400"
@@ -255,8 +259,9 @@ function IngredientMacroFields({
         <label className="block space-y-0.5">
           <span className="text-[10px] font-medium text-warm-500">{t.macroSugar}</span>
           <input
-            type="text"
-            inputMode="decimal"
+            type="number"
+            inputMode="numeric"
+            step={1}
             value={row.sugar}
             onChange={(e) => onPatch({ sugar: e.target.value })}
             className="w-full bg-warm-50 rounded-xl px-2 py-1.5 text-xs outline-none border border-warm-200 focus:border-peach-400"
@@ -265,8 +270,9 @@ function IngredientMacroFields({
         <label className="block space-y-0.5">
           <span className="text-[10px] font-medium text-warm-500">{t.macroSalt}</span>
           <input
-            type="text"
-            inputMode="decimal"
+            type="number"
+            inputMode="numeric"
+            step={1}
             value={row.salt}
             onChange={(e) => onPatch({ salt: e.target.value })}
             className="w-full bg-warm-50 rounded-xl px-2 py-1.5 text-xs outline-none border border-warm-200 focus:border-peach-400"
@@ -365,12 +371,8 @@ export default function MealPlanner({
   };
 
   const catalogIngredientsByName = useMemo(
-    () => familyCatalogIngredients,
-    [familyCatalogIngredients],
-  );
-  const recipeCatalogIngredientLines = useMemo(
-    () => catalogIngredientsByName.map((i) => i.name.trim()).filter(Boolean),
-    [catalogIngredientsByName],
+    () => mergeRecipeAndFamilyCatalog(recipes, familyCatalogIngredients),
+    [recipes, familyCatalogIngredients],
   );
   const recipeCatalogCopyBlocks = useMemo(
     () =>
@@ -391,8 +393,8 @@ export default function MealPlanner({
     [catalogIngredientsByName, t],
   );
   const ingredientPickerData = useMemo(
-    () => buildIngredientPickerData(familyCatalogIngredients),
-    [familyCatalogIngredients],
+    () => buildIngredientPickerData(catalogIngredientsByName),
+    [catalogIngredientsByName],
   );
 
   const [weekStart, setWeekStart] = useState(() => {
@@ -449,7 +451,7 @@ export default function MealPlanner({
     setNewRecipe((p) => {
       const next = [...p.ingredients];
       const last = next[next.length - 1];
-      if (last && !last.name && !last.amount && !last.unit) {
+      if (last && !last.name && !last.quantity) {
         next[next.length - 1] = newIng;
       } else {
         next.push(newIng);
@@ -463,8 +465,7 @@ export default function MealPlanner({
     setCatalogIngredientKey(ing.name.trim().toLowerCase());
     setCatalogIngredientForm({
       ...recipeIngredientToFormRow(ing),
-      amount: "",
-      unit: "",
+      quantity: "",
     });
   };
 
@@ -1286,7 +1287,7 @@ export default function MealPlanner({
                   <div className="space-y-1">
                     {recipe.ingredients.slice(0, 3).map((ing) => (
                       <p key={ing.id} className="text-xs text-warm-500">
-                        • {ing.name} — {ing.amount}{ing.unit ? " " + ing.unit : ""}
+                        • {ing.name} — {ing.quantity}
                       </p>
                     ))}
                     {recipe.ingredients.length > 3 && (
@@ -1447,17 +1448,6 @@ export default function MealPlanner({
                   );
                 })}
               </ul>
-              <div className="p-4 border-t border-warm-100 shrink-0 bg-cream-50/50">
-                <motion.button
-                  type="button"
-                  whileTap={{ scale: 0.98 }}
-                  disabled={shopLoading}
-                  onClick={() => void addLinesToShoppingLists(recipeCatalogIngredientLines)}
-                  className="w-full flex items-center justify-center gap-2 py-3 rounded-2xl bg-sage-500 text-white font-medium text-sm disabled:opacity-60"
-                >
-                  {shopLoading ? "…" : t.toShoppingList}
-                </motion.button>
-              </div>
             </>
           )}
         </div>
@@ -1653,8 +1643,7 @@ export default function MealPlanner({
                             <span className="font-medium text-warm-800">{ing.name}</span>
                             <span className="text-warm-500">
                               {" "}
-                              — {ing.amount}
-                              {ing.unit ? ` ${ing.unit}` : ""}
+                              — {ing.quantity}
                             </span>
                           </p>
                           {recipeIngredientHasNutrition(ing) && (
@@ -1983,19 +1972,19 @@ export default function MealPlanner({
                   <textarea value={newRecipe.description} onChange={(e) => setNewRecipe((p) => ({ ...p, description: e.target.value }))}
                     placeholder={t.descriptionPlaceholder} rows={2}
                     className="w-full bg-warm-50 rounded-xl px-4 py-3 text-sm outline-none border border-warm-200 focus:border-peach-400 resize-none" />
-                  <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
+                  <div className="grid grid-cols-2 gap-3">
                     <select value={newRecipe.category} onChange={(e) => setNewRecipe((p) => ({ ...p, category: e.target.value }))}
-                      className="bg-warm-50 rounded-xl px-3 py-3 text-sm outline-none border border-warm-200 focus:border-peach-400">
+                      className="col-span-2 w-full min-w-0 bg-warm-50 rounded-xl px-3 py-3 text-sm outline-none border border-warm-200 focus:border-peach-400">
                       {CATEGORIES.map((c) => <option key={c}>{c}</option>)}
                     </select>
                     <input type="number" value={newRecipe.prepTime} onChange={(e) => setNewRecipe((p) => ({ ...p, prepTime: e.target.value }))}
-                      placeholder={t.prepPlaceholder} className="bg-warm-50 rounded-xl px-3 py-3 text-sm outline-none border border-warm-200 focus:border-peach-400" />
+                      placeholder={t.prepPlaceholder} className="w-full min-w-0 bg-warm-50 rounded-xl px-3 py-3 text-sm outline-none border border-warm-200 focus:border-peach-400" />
                     <input type="number" value={newRecipe.cookTime} onChange={(e) => setNewRecipe((p) => ({ ...p, cookTime: e.target.value }))}
-                      placeholder={t.cookPlaceholder} className="bg-warm-50 rounded-xl px-3 py-3 text-sm outline-none border border-warm-200 focus:border-peach-400" />
+                      placeholder={t.cookPlaceholder} className="w-full min-w-0 bg-warm-50 rounded-xl px-3 py-3 text-sm outline-none border border-warm-200 focus:border-peach-400" />
                     <input type="number" value={newRecipe.calories} onChange={(e) => setNewRecipe((p) => ({ ...p, calories: e.target.value }))}
-                      placeholder={t.caloriesPlaceholder} className="bg-warm-50 rounded-xl px-3 py-3 text-sm outline-none border border-warm-200 focus:border-peach-400" />
+                      placeholder={t.caloriesPlaceholder} className="w-full min-w-0 bg-warm-50 rounded-xl px-3 py-3 text-sm outline-none border border-warm-200 focus:border-peach-400" />
                     <input type="number" value={newRecipe.servings} onChange={(e) => setNewRecipe((p) => ({ ...p, servings: e.target.value }))}
-                      placeholder={t.servingsPlaceholder} className="bg-warm-50 rounded-xl px-3 py-3 text-sm outline-none border border-warm-200 focus:border-peach-400" />
+                      placeholder={t.servingsPlaceholder} className="w-full min-w-0 bg-warm-50 rounded-xl px-3 py-3 text-sm outline-none border border-warm-200 focus:border-peach-400" />
                   </div>
                   <p className="text-[11px] text-warm-400 -mt-1">{t.caloriesTotalHint}</p>
 
@@ -2024,7 +2013,7 @@ export default function MealPlanner({
                                           j === i ? { ...x, name: e.target.value } : x
                                         );
                                         const last = next[next.length - 1];
-                                        if (last && (last.name || last.amount || last.unit)) next.push(emptyIngredientFormRow());
+                                        if (last && (last.name || last.quantity)) next.push(emptyIngredientFormRow());
                                         return { ...p, ingredients: next };
                                       })
                                     }
@@ -2032,34 +2021,19 @@ export default function MealPlanner({
                                     className="flex-1 min-w-[8rem] bg-warm-50 rounded-xl px-3 py-2 text-sm outline-none border border-warm-200 focus:border-peach-400"
                                   />
                                   <input
-                                    value={ing.amount}
+                                    value={ing.quantity}
                                     onChange={(e) =>
                                       setNewRecipe((p) => {
                                         const next = p.ingredients.map((x, j) =>
-                                          j === i ? { ...x, amount: e.target.value } : x
+                                          j === i ? { ...x, quantity: e.target.value } : x
                                         );
                                         const last = next[next.length - 1];
-                                        if (last && (last.name || last.amount || last.unit)) next.push(emptyIngredientFormRow());
+                                        if (last && (last.name || last.quantity)) next.push(emptyIngredientFormRow());
                                         return { ...p, ingredients: next };
                                       })
                                     }
                                     placeholder={t.ingredientAmount}
-                                    className="w-20 shrink-0 bg-warm-50 rounded-xl px-2 py-2 text-sm outline-none border border-warm-200 focus:border-peach-400"
-                                  />
-                                  <input
-                                    value={ing.unit}
-                                    onChange={(e) =>
-                                      setNewRecipe((p) => {
-                                        const next = p.ingredients.map((x, j) =>
-                                          j === i ? { ...x, unit: e.target.value } : x
-                                        );
-                                        const last = next[next.length - 1];
-                                        if (last && (last.name || last.amount || last.unit)) next.push(emptyIngredientFormRow());
-                                        return { ...p, ingredients: next };
-                                      })
-                                    }
-                                    placeholder={t.unitShort}
-                                    className="w-16 shrink-0 bg-warm-50 rounded-xl px-2 py-2 text-sm outline-none border border-warm-200 focus:border-peach-400"
+                                    className="w-36 shrink-0 bg-warm-50 rounded-xl px-2 py-2 text-sm outline-none border border-warm-200 focus:border-peach-400"
                                   />
                                 </div>
                               </div>
@@ -2070,7 +2044,7 @@ export default function MealPlanner({
                                     setNewRecipe((p) => {
                                       const next = p.ingredients.filter((_, j) => j !== i);
                                       const last = next[next.length - 1];
-                                      if (!last || last.name || last.amount || last.unit) next.push(emptyIngredientFormRow());
+                                      if (!last || last.name || last.quantity) next.push(emptyIngredientFormRow());
                                       return { ...p, ingredients: next };
                                     });
                                   }}

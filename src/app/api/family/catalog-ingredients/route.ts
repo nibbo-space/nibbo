@@ -49,8 +49,7 @@ export async function POST(req: NextRequest) {
   const incoming: RecipeIngredientRecord = {
     id: "",
     name: payload.name,
-    amount: payload.amount,
-    unit: payload.unit,
+    quantity: payload.quantity,
     referenceAmount: payload.referenceAmount,
     referenceUnit: payload.referenceUnit,
     protein: payload.protein,
@@ -77,8 +76,7 @@ export async function POST(req: NextRequest) {
     create: { familyId, ...data },
     update: {
       name: data.name,
-      amount: data.amount,
-      unit: data.unit,
+      quantity: data.quantity,
       referenceAmount: data.referenceAmount,
       referenceUnit: data.referenceUnit,
       protein: data.protein,
@@ -116,8 +114,7 @@ export async function PUT(req: NextRequest) {
   const incoming: RecipeIngredientRecord = {
     id: "",
     name: payload.name,
-    amount: payload.amount,
-    unit: payload.unit,
+    quantity: payload.quantity,
     referenceAmount: payload.referenceAmount,
     referenceUnit: payload.referenceUnit,
     protein: payload.protein,

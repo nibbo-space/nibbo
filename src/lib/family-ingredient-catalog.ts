@@ -6,8 +6,7 @@ export function prismaRecipeIngredientToRecord(ing: Ingredient): RecipeIngredien
   return {
     id: ing.id,
     name: ing.name,
-    amount: ing.amount,
-    unit: ing.unit,
+    quantity: ing.quantity,
     referenceAmount: ing.referenceAmount,
     referenceUnit: ing.referenceUnit,
     protein: ing.protein,
@@ -24,8 +23,7 @@ export function prismaFamilyCatalogToRecord(row: FamilyIngredientCatalog): Recip
   return {
     id: row.id,
     name: row.name,
-    amount: row.amount,
-    unit: row.unit,
+    quantity: row.quantity,
     referenceAmount: row.referenceAmount,
     referenceUnit: row.referenceUnit,
     protein: row.protein,
@@ -49,8 +47,7 @@ export function catalogDbUpsertDataFromRecord(
   return {
     nameKey,
     name: winner.name.trim() || winner.name,
-    amount: winner.amount.trim(),
-    unit: winner.unit,
+    quantity: winner.quantity.trim(),
     referenceAmount: winner.referenceAmount,
     referenceUnit: winner.referenceUnit,
     protein: winner.protein,
@@ -87,8 +84,7 @@ export async function upsertFamilyCatalogFromRecipeIngredient(
     create: { familyId, ...data },
     update: {
       name: data.name,
-      amount: data.amount,
-      unit: data.unit,
+      quantity: data.quantity,
       referenceAmount: data.referenceAmount,
       referenceUnit: data.referenceUnit,
       protein: data.protein,

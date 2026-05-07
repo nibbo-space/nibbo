@@ -69,7 +69,6 @@ export async function POST(req: NextRequest) {
     data: {
       name: body.name,
       quantity: body.quantity,
-      unit: body.unit,
       category: body.category,
       listId: body.listId,
       addedById: session.user.id,

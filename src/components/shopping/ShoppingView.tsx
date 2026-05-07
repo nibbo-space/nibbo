@@ -21,7 +21,6 @@ interface ShoppingItem {
   id: string;
   name: string;
   quantity: string | null;
-  unit: string | null;
   checked: boolean;
   category: string | null;
   isPrivate?: boolean;
@@ -81,7 +80,7 @@ export default function ShoppingView({
   const [newListName, setNewListName] = useState("");
   const [newListEmoji, setNewListEmoji] = useState("🛒");
   const [newListPrivate, setNewListPrivate] = useState(false);
-  const [newItem, setNewItem] = useState({ name: "", quantity: "", unit: "", category: "" });
+  const [newItem, setNewItem] = useState({ name: "", quantity: "", category: "" });
   const [newItemPrivate, setNewItemPrivate] = useState(false);
 
   const currentList = lists.find((l) => l.id === activeList);
@@ -139,7 +138,6 @@ export default function ShoppingView({
       body: JSON.stringify({
         name: newItem.name,
         quantity: newItem.quantity || undefined,
-        unit: newItem.unit || undefined,
         category: catTrim || undefined,
         listId: activeList,
         isPrivate: newItemPrivate,
@@ -147,7 +145,7 @@ export default function ShoppingView({
     });
     const item = await res.json();
     setLists((prev) => prev.map((l) => (l.id === activeList ? { ...l, items: [...l.items, item] } : l)));
-    setNewItem({ name: "", quantity: "", unit: "", category: "" });
+    setNewItem({ name: "", quantity: "", category: "" });
     setNewItemPrivate(false);
     toast.success(t.toastItemAdded);
   };
@@ -351,12 +349,6 @@ export default function ShoppingView({
                   placeholder={t.quantityShort}
                   className="w-full sm:w-20 bg-warm-50 rounded-xl px-3 py-2.5 text-sm outline-none border border-warm-200 focus:border-rose-300"
                 />
-                <input
-                  value={newItem.unit}
-                  onChange={(e) => setNewItem((p) => ({ ...p, unit: e.target.value }))}
-                  placeholder={t.unitShort}
-                  className="w-full sm:w-16 bg-warm-50 rounded-xl px-3 py-2.5 text-sm outline-none border border-warm-200 focus:border-rose-300"
-                />
                 <motion.button
                   whileHover={{ scale: 1.05 }}
                   whileTap={{ scale: 0.95 }}
@@ -436,9 +428,9 @@ export default function ShoppingView({
                             )}
                             <span>{item.name}</span>
                           </p>
-                          {(item.quantity || item.unit) && (
+                          {item.quantity && (
                             <span className="text-xs text-warm-400">
-                              {item.quantity} {item.unit}
+                              {item.quantity}
                             </span>
                           )}
                         </div>
@@ -520,9 +512,9 @@ export default function ShoppingView({
                               )}
                               <span>{item.name}</span>
                             </p>
-                            {(item.quantity || item.unit) && (
+                            {item.quantity && (
                               <span className="text-xs text-warm-400">
-                                {item.quantity} {item.unit}
+                                {item.quantity}
                               </span>
                             )}
                           </div>

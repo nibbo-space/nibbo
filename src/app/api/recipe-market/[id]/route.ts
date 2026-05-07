@@ -40,10 +40,9 @@ export async function PATCH(
         ? {
             deleteMany: {},
             create: body.ingredients.map(
-              (i: { name: string; amount: string; unit?: string | null }) => ({
+              (i: { name: string; quantity: string }) => ({
                 name: i.name,
-                amount: i.amount,
-                unit: i.unit ?? null,
+                quantity: i.quantity,
               }),
             ),
           }

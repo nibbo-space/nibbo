@@ -3,8 +3,7 @@
 export type RecipeIngredientRecord = {
   id: string;
   name: string;
-  amount: string;
-  unit: string | null;
+  quantity: string;
   referenceAmount: string | null;
   referenceUnit: string | null;
   protein: number | null;
@@ -18,8 +17,7 @@ export type RecipeIngredientRecord = {
 
 export type IngredientFormRow = {
   name: string;
-  amount: string;
-  unit: string;
+  quantity: string;
   referenceAmount: string;
   referenceUnit: string;
   kcal: string;
@@ -34,8 +32,7 @@ export type IngredientFormRow = {
 export function emptyIngredientFormRow(): IngredientFormRow {
   return {
     name: "",
-    amount: "",
-    unit: "",
+    quantity: "",
     referenceAmount: "",
     referenceUnit: "",
     kcal: "",
@@ -56,8 +53,7 @@ function numToForm(n: number | null | undefined): string {
 export function recipeIngredientToFormRow(i: RecipeIngredientRecord): IngredientFormRow {
   return {
     name: i.name,
-    amount: i.amount,
-    unit: i.unit ?? "",
+    quantity: i.quantity,
     referenceAmount: i.referenceAmount ?? "",
     referenceUnit: i.referenceUnit ?? "",
     kcal: numToForm(i.kcal),
@@ -70,18 +66,18 @@ export function recipeIngredientToFormRow(i: RecipeIngredientRecord): Ingredient
   };
 }
 
-export function parseOptionalMacro(s: string): number | null {
-  const t = s.trim().replace(",", ".");
+export function parseOptionalInt(s: string): number | null {
+  const t = s.trim();
   if (!t) return null;
-  const n = Number(t);
-  return Number.isFinite(n) ? n : null;
+  if (!/^-?\d+$/.test(t)) return null;
+  const n = Number.parseInt(t, 10);
+  return Number.isInteger(n) ? n : null;
 }
 
 /** Payload for Prisma nested create / API body */
 export type RecipeIngredientCreatePayload = {
   name: string;
-  amount: string;
-  unit: string | null;
+  quantity: string;
   referenceAmount: string | null;
   referenceUnit: string | null;
   protein: number | null;
@@ -96,17 +92,16 @@ export type RecipeIngredientCreatePayload = {
 export function formRowToApiPayload(row: IngredientFormRow): RecipeIngredientCreatePayload {
   return {
     name: row.name.trim(),
-    amount: row.amount.trim(),
-    unit: row.unit.trim() ? row.unit.trim() : null,
+    quantity: row.quantity.trim(),
     referenceAmount: row.referenceAmount.trim() ? row.referenceAmount.trim() : null,
     referenceUnit: row.referenceUnit.trim() ? row.referenceUnit.trim() : null,
-    protein: parseOptionalMacro(row.protein),
-    fat: parseOptionalMacro(row.fat),
-    saturatedFat: parseOptionalMacro(row.saturatedFat),
-    carbs: parseOptionalMacro(row.carbs),
-    sugar: parseOptionalMacro(row.sugar),
-    salt: parseOptionalMacro(row.salt),
-    kcal: parseOptionalMacro(row.kcal),
+    protein: parseOptionalInt(row.protein),
+    fat: parseOptionalInt(row.fat),
+    saturatedFat: parseOptionalInt(row.saturatedFat),
+    carbs: parseOptionalInt(row.carbs),
+    sugar: parseOptionalInt(row.sugar),
+    salt: parseOptionalInt(row.salt),
+    kcal: parseOptionalInt(row.kcal),
   };
 }
 
@@ -165,7 +160,7 @@ export function mergeRecipeAndFamilyCatalog(
 }
 
 export function formatCatalogIngredientCopyLine(i: RecipeIngredientRecord): string {
-  const base = `${i.name.trim()} — ${i.amount}${i.unit ? ` ${i.unit}` : ""}`.trim();
+  const base = `${i.name.trim()} — ${i.quantity.trim()}`.trim();
   const refParts = [i.referenceAmount?.trim(), i.referenceUnit?.trim()].filter(Boolean);
   const ref = refParts.length ? `\n  ref: ${refParts.join(" ")}` : "";
   const macros: string[] = [];
@@ -187,9 +182,8 @@ export function parseIngredientFromClient(raw: unknown): RecipeIngredientCreateP
   if (!raw || typeof raw !== "object") return null;
   const r = raw as Record<string, unknown>;
   const name = String(r.name ?? "").trim();
-  const amount = String(r.amount ?? "").trim();
+  const quantity = String(r.quantity ?? "").trim();
   if (!name) return null;
-  const unit = r.unit == null || String(r.unit).trim() === "" ? null : String(r.unit).trim();
   const referenceAmount =
     r.referenceAmount == null || String(r.referenceAmount).trim() === ""
       ? null
@@ -201,14 +195,12 @@ export function parseIngredientFromClient(raw: unknown): RecipeIngredientCreateP
   const num = (k: string) => {
     const v = r[k];
     if (v == null || v === "") return null;
-    if (typeof v === "number" && Number.isFinite(v)) return v;
-    if (typeof v === "string") return parseOptionalMacro(v);
+    if (typeof v === "number" && Number.isInteger(v)) return v;
     return null;
   };
   return {
     name,
-    amount,
-    unit,
+    quantity,
     referenceAmount,
     referenceUnit,
     protein: num("protein"),
