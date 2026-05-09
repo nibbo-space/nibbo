@@ -1,5 +1,6 @@
 "use client";
 
+import type { KeyboardEvent } from "react";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { formatInTimeZone } from "date-fns-tz";
 import { motion, AnimatePresence } from "framer-motion";
@@ -29,6 +30,7 @@ import { createPortal } from "react-dom";
 import { useAppLanguage } from "@/hooks/useAppLanguage";
 import { intlLocaleForUi, messageLocale, I18N } from "@/lib/i18n";
 import { dispatchXpAndAchievementEvents } from "@/lib/xp-client-events";
+import { evaluateSimpleAmountExpression, formatAmountInputString } from "@/lib/amount-expression";
 
 interface User { id: string; name: string | null; image: string | null; color: string; emoji: string; }
 interface Category {
@@ -55,6 +57,19 @@ interface Credit {
 
 function cmpExpenseCategory(a: Category, b: Category) {
   return a.sortOrder - b.sortOrder || a.name.localeCompare(b.name);
+}
+
+function commitAmountExpressionOnEnter(
+  e: KeyboardEvent<HTMLInputElement>,
+  raw: string,
+  integerOnly: boolean,
+  apply: (formatted: string) => void
+) {
+  if (e.key !== "Enter") return;
+  e.preventDefault();
+  const v = evaluateSimpleAmountExpression(raw);
+  if (v === null || !Number.isFinite(v)) return;
+  apply(formatAmountInputString(v, integerOnly));
 }
 
 const CAT_EMOJIS = ["💳", "🛒", "🏠", "☕", "🎯", "🎁"];
@@ -271,8 +286,8 @@ export default function BudgetView({
 
   const handleAddExpense = async () => {
     if (!newExpense.title || !newExpense.amount) return;
-    const parsed = parseFloat(newExpense.amount);
-    if (!Number.isFinite(parsed) || parsed <= 0) return;
+    const parsed = evaluateSimpleAmountExpression(newExpense.amount);
+    if (parsed === null || parsed <= 0) return;
     const amountUah = displayAmountToUah(parsed, newExpense.amountCurrency, exchangeRates);
     const res = await fetch("/api/budget", {
       method: "POST",
@@ -330,8 +345,8 @@ export default function BudgetView({
 
   const handleAddIncome = async () => {
     if (!newIncome.title || !newIncome.amount) return;
-    const parsed = parseFloat(newIncome.amount);
-    if (!Number.isFinite(parsed) || parsed <= 0) return;
+    const parsed = evaluateSimpleAmountExpression(newIncome.amount);
+    if (parsed === null || parsed <= 0) return;
     const amountUah = displayAmountToUah(parsed, newIncome.amountCurrency, exchangeRates);
     const res = await fetch("/api/budget", {
       method: "POST",
@@ -413,8 +428,8 @@ export default function BudgetView({
 
   const handleSaveCredit = async () => {
     if (!newCredit.title || !newCredit.monthlyAmount || !newCredit.paymentDay) return;
-    const parsed = parseFloat(newCredit.monthlyAmount);
-    if (!Number.isFinite(parsed) || parsed <= 0) return;
+    const parsed = evaluateSimpleAmountExpression(newCredit.monthlyAmount);
+    if (parsed === null || parsed <= 0) return;
     const monthlyAmountUah = displayAmountToUah(parsed, newCredit.monthlyAmountCurrency, exchangeRates);
     const payload = {
       title: newCredit.title,
@@ -1093,11 +1108,18 @@ export default function BudgetView({
                     )}
                     <div className="flex flex-col gap-2 sm:flex-row sm:items-stretch">
                       <input
-                        type="number"
-                        min="0"
-                        step={newCredit.monthlyAmountCurrency === "JPY" ? "1" : "0.01"}
+                        type="text"
+                        inputMode="decimal"
                         value={newCredit.monthlyAmount}
                         onChange={(e) => setNewCredit((p) => ({ ...p, monthlyAmount: e.target.value }))}
+                        onKeyDown={(e) =>
+                          commitAmountExpressionOnEnter(
+                            e,
+                            newCredit.monthlyAmount,
+                            newCredit.monthlyAmountCurrency === "JPY",
+                            (formatted) => setNewCredit((p) => ({ ...p, monthlyAmount: formatted }))
+                          )
+                        }
                         placeholder={t.amountInInputCurrency.replace("{currency}", newCredit.monthlyAmountCurrency)}
                         className="min-w-0 flex-1 bg-warm-50 rounded-xl px-4 py-3 text-sm outline-none border border-warm-200 focus:border-lavender-400"
                       />
@@ -1225,11 +1247,18 @@ export default function BudgetView({
                     placeholder={t.incomeTitlePlaceholder} className="w-full bg-warm-50 rounded-xl px-4 py-3 text-sm outline-none border border-warm-200 focus:border-sky-400" />
                   <div className="flex flex-col gap-2 sm:flex-row sm:items-stretch">
                     <input
-                      type="number"
-                      min="0"
-                      step={newIncome.amountCurrency === "JPY" ? "1" : "0.01"}
+                      type="text"
+                      inputMode="decimal"
                       value={newIncome.amount}
                       onChange={(e) => setNewIncome((p) => ({ ...p, amount: e.target.value }))}
+                      onKeyDown={(e) =>
+                        commitAmountExpressionOnEnter(
+                          e,
+                          newIncome.amount,
+                          newIncome.amountCurrency === "JPY",
+                          (formatted) => setNewIncome((p) => ({ ...p, amount: formatted }))
+                        )
+                      }
                       placeholder={t.amountInInputCurrency.replace("{currency}", newIncome.amountCurrency)}
                       className="min-w-0 flex-1 bg-warm-50 rounded-xl px-4 py-3 text-sm outline-none border border-warm-200 focus:border-sky-400"
                     />
@@ -1280,11 +1309,18 @@ export default function BudgetView({
                     placeholder={t.expenseTitlePlaceholder} className="w-full bg-warm-50 rounded-xl px-4 py-3 text-sm outline-none border border-warm-200 focus:border-sage-400" />
                   <div className="flex flex-col gap-2 sm:flex-row sm:items-stretch">
                     <input
-                      type="number"
-                      min="0"
-                      step={newExpense.amountCurrency === "JPY" ? "1" : "0.01"}
+                      type="text"
+                      inputMode="decimal"
                       value={newExpense.amount}
                       onChange={(e) => setNewExpense((p) => ({ ...p, amount: e.target.value }))}
+                      onKeyDown={(e) =>
+                        commitAmountExpressionOnEnter(
+                          e,
+                          newExpense.amount,
+                          newExpense.amountCurrency === "JPY",
+                          (formatted) => setNewExpense((p) => ({ ...p, amount: formatted }))
+                        )
+                      }
                       placeholder={t.amountInInputCurrency.replace("{currency}", newExpense.amountCurrency)}
                       className="min-w-0 flex-1 bg-warm-50 rounded-xl px-4 py-3 text-sm outline-none border border-warm-200 focus:border-sage-400"
                     />
