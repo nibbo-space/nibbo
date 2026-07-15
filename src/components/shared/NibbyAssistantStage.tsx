@@ -135,18 +135,25 @@ export default function NibbyAssistantStage({
   chargeStage,
   battleOutcome = null,
   reportBlobTaps = true,
+  className,
+  viewDistance = 1,
+  transparentBg = false,
 }: {
   familyId: string;
   driveRef: React.MutableRefObject<NibbyChatDrive>;
   chargeStage?: NibbyChargeStage;
   battleOutcome?: "won" | "lost" | null;
   reportBlobTaps?: boolean;
+  className?: string;
+  viewDistance?: number;
+  transparentBg?: boolean;
 }) {
   const { config } = useCozyConfig();
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
   const mascotDna = useMemo(() => createMascotDNA(familyId), [familyId]);
   const chargeStageRef = useRef(chargeStage);
   const battleOutcomeRef = useRef<"won" | "lost" | null>(battleOutcome ?? null);
+  const transparentBgRef = useRef(transparentBg);
   const activityRef = useRef(0.48);
   const configRef = useRef(config);
   const tapLipTimerRef = useRef<number | null>(null);
@@ -159,6 +166,9 @@ export default function NibbyAssistantStage({
   useEffect(() => {
     battleOutcomeRef.current = battleOutcome ?? null;
   }, [battleOutcome]);
+  useEffect(() => {
+    transparentBgRef.current = transparentBg;
+  }, [transparentBg]);
 
   const canvasBg = useMemo(
     () => nibbyAssistantCanvasBg(chargeStage, battleOutcome ?? null),
@@ -185,8 +195,9 @@ export default function NibbyAssistantStage({
 
     const scene = new THREE.Scene();
     const camera = new THREE.PerspectiveCamera(38, 1, 0.1, 100);
-    camera.position.set(0, 0.12, 3.85);
-    camera.lookAt(0, 0.04, 0);
+    const camZ = 3.85 * Math.max(0.85, viewDistance);
+    camera.position.set(0, 0.08, camZ);
+    camera.lookAt(0, 0.02, 0);
 
     const ambient = new THREE.AmbientLight(new THREE.Color("#fff7ed"), 0.72);
     const key = new THREE.DirectionalLight(new THREE.Color("#ffffff"), 1.4);
@@ -686,6 +697,10 @@ export default function NibbyAssistantStage({
         mascot.footRMesh.rotation.set(0, 0, 0);
       }
 
+      const clearStage = transparentBgRef.current;
+      ground.visible = !clearStage;
+      floorGlow.visible = !clearStage;
+      sparkles.visible = !clearStage;
       renderer.render(scene, camera);
       frameId = requestAnimationFrame(animate);
     };
@@ -715,13 +730,20 @@ export default function NibbyAssistantStage({
       floorGlow.geometry.dispose();
       floorGlowMat.dispose();
     };
-  }, [mascotDna, familyId, reportBlobTaps]);
+  }, [mascotDna, familyId, reportBlobTaps, viewDistance]);
 
   return (
     <div
-      className="relative h-full min-h-0 w-full overflow-hidden rounded-3xl border border-warm-100/80"
+      className={[
+        "relative h-full min-h-0 w-full overflow-hidden rounded-3xl border border-warm-100/80",
+        className,
+      ]
+        .filter(Boolean)
+        .join(" ")}
       style={{
-        background: `linear-gradient(180deg, ${canvasBg.from}, ${canvasBg.to})`,
+        background: transparentBg
+          ? "transparent"
+          : `linear-gradient(180deg, ${canvasBg.from}, ${canvasBg.to})`,
       }}
     >
       <canvas ref={canvasRef} className="block h-full min-h-0 w-full" />

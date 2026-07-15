@@ -77,6 +77,34 @@ const config: Config = {
           900: "#1c1917",
           950: "#0c0a09",
         },
+        mist: {
+          50: "#f7fafc",
+          100: "#f4f7fb",
+          200: "#e8eef6",
+          300: "#d6e8f5",
+        },
+        coral: {
+          50: "#fff5f6",
+          100: "#ffe8eb",
+          200: "#ffc9d0",
+          300: "#ff9aa6",
+          400: "#ff5a6a",
+          500: "#f04456",
+          600: "#e83d50",
+          700: "#c42a3b",
+        },
+        ink: {
+          50: "#f4f5f6",
+          100: "#e6e8eb",
+          200: "#d1d5db",
+          300: "#9ca3af",
+          400: "#6b7280",
+          500: "#4b5563",
+          600: "#374151",
+          700: "#2d3340",
+          900: "#1a1d23",
+          950: "#12141a",
+        },
         background: "hsl(var(--background))",
         foreground: "hsl(var(--foreground))",
         card: {
@@ -111,6 +139,13 @@ const config: Config = {
       fontFamily: {
         sans: ["var(--font-sans)", "system-ui", "sans-serif"],
         display: ["var(--font-heading)", "var(--font-sans)", "system-ui", "sans-serif"],
+        landing: ["var(--font-landing-body)", "var(--font-sans)", "system-ui", "sans-serif"],
+        "landing-display": [
+          "var(--font-landing-display)",
+          "var(--font-landing-body)",
+          "system-ui",
+          "sans-serif",
+        ],
         mono: ["ui-monospace", "Cascadia Code", "monospace"],
       },
       boxShadow: {

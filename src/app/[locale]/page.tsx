@@ -1,3 +1,4 @@
+import { landingBody, landingDisplay } from "@/components/landing/LandingFonts";
 import { LandingPageClient } from "@/components/landing/LandingPageClient";
 import { auth } from "@/lib/auth";
 import { I18N, messageLocale } from "@/lib/i18n";
@@ -8,6 +9,7 @@ import {
   localeHref,
 } from "@/lib/public-locales";
 import { getMetadataBaseUrl } from "@/lib/site-url";
+import { cn } from "@/lib/utils";
 import type { Metadata } from "next";
 import { notFound, redirect } from "next/navigation";
 
@@ -45,5 +47,7 @@ export default async function LandingPage({ params }: Props) {
   if (!isPublicLocale(locale)) notFound();
   const session = await auth();
   if (session) redirect("/dashboard");
-  return <LandingPageClient />;
+  return (
+    <LandingPageClient className={cn(landingDisplay.variable, landingBody.variable)} />
+  );
 }
