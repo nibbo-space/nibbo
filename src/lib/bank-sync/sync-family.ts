@@ -70,19 +70,19 @@ export async function syncFamilyMonobank(
   }
 
   try {
-    const client = await fetchMonobankClientInfo(token);
     let accountIds = connection.accountIds.filter(Boolean);
+
     if (accountIds.length === 0) {
+      const client = await fetchMonobankClientInfo(token);
       accountIds = defaultSelectableAccountIds(client.accounts);
-    }
-    accountIds = accountIds.filter((id) => client.accounts.some((a) => a.id === id));
-    if (accountIds.length === 0) {
-      await prisma.bankConnection.update({
-        where: { id: connection.id },
-        data: { lastSyncAt: now, lastError: "empty_accounts" },
-      });
-      result.error = "empty_accounts";
-      return result;
+      if (accountIds.length === 0) {
+        await prisma.bankConnection.update({
+          where: { id: connection.id },
+          data: { lastSyncAt: now, lastError: "empty_accounts" },
+        });
+        result.error = "empty_accounts";
+        return result;
+      }
     }
 
     const nowSec = Math.floor(now.getTime() / 1000);
@@ -199,7 +199,11 @@ export async function syncFamilyMonobank(
     }
     await prisma.bankConnection.update({
       where: { id: connection.id },
-      data: { lastSyncAt: now, lastError: message },
+      data: {
+        lastError: message,
+        ...(message === "rate_limited" ? {} : { lastSyncAt: now }),
+        ...(message === "rate_limited" ? { lastStatementAt: now } : {}),
+      },
     });
     result.error = message;
     return result;
