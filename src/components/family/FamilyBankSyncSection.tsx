@@ -25,6 +25,8 @@ type AccountPreview = {
   selectedByDefault: boolean;
 };
 
+type BankCardId = "MONOBANK" | "PRIVAT24" | "PUMB";
+
 export function FamilyBankSyncSection({ owner }: { owner: boolean }) {
   const { language } = useAppLanguage();
   const t = I18N[messageLocale(language)].family;
@@ -34,6 +36,7 @@ export function FamilyBankSyncSection({ owner }: { owner: boolean }) {
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
   const [loading, setLoading] = useState(true);
   const [busy, setBusy] = useState(false);
+  const [activeBank, setActiveBank] = useState<BankCardId>("MONOBANK");
 
   const errorMessage = (code: string | null | undefined) => {
     if (!code) return null;
@@ -191,6 +194,26 @@ export function FamilyBankSyncSection({ owner }: { owner: boolean }) {
     }
   };
 
+  const banks: Array<{
+    id: BankCardId;
+    name: string;
+    available: boolean;
+    status?: string;
+  }> = [
+    {
+      id: "MONOBANK",
+      name: t.bankNameMonobank,
+      available: true,
+      status: connection?.configured
+        ? connection.enabled
+          ? t.bankStatusConnected
+          : t.bankStatusPaused
+        : t.bankStatusAvailable,
+    },
+    { id: "PRIVAT24", name: t.bankNamePrivat24, available: false },
+    { id: "PUMB", name: t.bankNamePumb, available: false },
+  ];
+
   if (!owner) {
     return (
       <div className="rounded-3xl border border-warm-100 bg-white/80 p-5">
@@ -205,20 +228,60 @@ export function FamilyBankSyncSection({ owner }: { owner: boolean }) {
       <div>
         <h3 className="text-sm font-semibold text-warm-800">{t.bankSectionTitle}</h3>
         <p className="mt-1 text-xs leading-relaxed text-warm-500">{t.bankSectionHint}</p>
-        <a
-          href="https://api.monobank.ua/"
-          target="_blank"
-          rel="noreferrer"
-          className="mt-2 inline-block text-xs font-semibold text-rose-600 hover:text-rose-700"
-        >
-          {t.bankTokenLink}
-        </a>
       </div>
 
-      {loading ? (
+      <div className="grid gap-2 sm:grid-cols-3">
+        {banks.map((bank) => {
+          const selected = activeBank === bank.id;
+          return (
+            <button
+              key={bank.id}
+              type="button"
+              onClick={() => setActiveBank(bank.id)}
+              className={cn(
+                "rounded-2xl border px-3 py-3 text-left transition",
+                selected
+                  ? "border-rose-300 bg-rose-50/80 ring-1 ring-rose-200"
+                  : "border-warm-100 bg-warm-50/50 hover:border-warm-200",
+                !bank.available && "opacity-80",
+              )}
+            >
+              <div className="flex items-start justify-between gap-2">
+                <p className="text-sm font-bold text-warm-800">{bank.name}</p>
+                {!bank.available && (
+                  <span className="shrink-0 rounded-full bg-warm-200/80 px-2 py-0.5 text-[9px] font-bold uppercase tracking-wide text-warm-600">
+                    {t.bankComingSoon}
+                  </span>
+                )}
+              </div>
+              <p className="mt-1 text-[11px] text-warm-500">
+                {bank.available ? bank.status : t.bankComingSoonHint}
+              </p>
+            </button>
+          );
+        })}
+      </div>
+
+      {activeBank !== "MONOBANK" ? (
+        <div className="rounded-2xl border border-dashed border-warm-200 bg-warm-50/40 px-4 py-6 text-center">
+          <p className="text-sm font-semibold text-warm-700">
+            {activeBank === "PRIVAT24" ? t.bankNamePrivat24 : t.bankNamePumb}
+          </p>
+          <p className="mt-1 text-xs text-warm-500">{t.bankComingSoonBody}</p>
+        </div>
+      ) : loading ? (
         <p className="text-xs text-warm-400">{t.loading}</p>
       ) : (
         <>
+          <a
+            href="https://api.monobank.ua/"
+            target="_blank"
+            rel="noreferrer"
+            className="inline-block text-xs font-semibold text-rose-600 hover:text-rose-700"
+          >
+            {t.bankTokenLink}
+          </a>
+
           <div className="space-y-1">
             <p className="text-xs text-warm-500">{t.bankTokenLabel}</p>
             <input

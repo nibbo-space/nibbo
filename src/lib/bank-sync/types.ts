@@ -30,7 +30,7 @@ export type SyncFamilyResult = {
 };
 
 export const MONO_STATEMENT_MIN_INTERVAL_MS = 60_000;
-export const BANK_SYNC_INTERVAL_MS = 10 * 60_000;
+export const BANK_SYNC_INTERVAL_MS = 60 * 60_000;
 export const MONO_MAX_STATEMENT_WINDOW_SEC = 2_682_000;
 export const MONO_SYNC_OVERLAP_SEC = 2 * 60 * 60;
 export const MONO_INITIAL_LOOKBACK_SEC = 7 * 24 * 60 * 60;
