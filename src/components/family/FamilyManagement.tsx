@@ -18,6 +18,7 @@ import { useAppLanguage } from "@/hooks/useAppLanguage";
 import { messageLocale, I18N } from "@/lib/i18n";
 import { FAMILY_MODULE_CARD_ORDER, type AppModuleKey } from "@/lib/family-app-modules";
 import { useDisabledAppModules } from "@/components/shared/DisabledAppModulesProvider";
+import { FamilyBankSyncSection } from "@/components/family/FamilyBankSyncSection";
 import { cn } from "@/lib/utils";
 
 type Member = {
@@ -429,6 +430,8 @@ export default function FamilyManagement() {
           {!owner && <p className="text-xs text-warm-400">{t.ownerOnlySettings}</p>}
         </div>
       </div>
+
+      <FamilyBankSyncSection owner={owner} />
 
       <div className="bg-white/80 rounded-3xl border border-warm-100 p-5 space-y-4">
         <div>

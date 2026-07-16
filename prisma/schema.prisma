@@ -88,6 +88,7 @@ model User {
   medications          Medication[]
   blogPosts                 BlogPost[]
   announcementViews         UserAnnouncementView[]
+  bankConnectionsConnected  BankConnection[] @relation("BankConnectionConnectedBy")
 }
 
 model BlogPost {
@@ -278,6 +279,56 @@ model Family {
   xpLedgerEntries    XpLedgerEntry[]
   medications         Medication[]
   ingredientCatalog   FamilyIngredientCatalog[]
+  bankConnections     BankConnection[]
+  bankCategoryMappings BankCategoryMapping[]
+}
+
+enum BankProvider {
+  MONOBANK
+}
+
+enum ExpenseSource {
+  MANUAL
+  MONOBANK
+}
+
+model BankConnection {
+  id                String       @id @default(cuid())
+  familyId          String
+  provider          BankProvider
+  tokenEnc          String
+  enabled           Boolean      @default(false)
+  accountIds        String[]     @default([])
+  connectedByUserId String
+  lastSyncAt        DateTime?
+  lastSuccessAt     DateTime?
+  lastStatementAt   DateTime?
+  lastError         String?
+  syncFromAt        DateTime?
+  createdAt         DateTime     @default(now())
+  updatedAt         DateTime     @updatedAt
+
+  family      Family @relation(fields: [familyId], references: [id], onDelete: Cascade)
+  connectedBy User   @relation("BankConnectionConnectedBy", fields: [connectedByUserId], references: [id], onDelete: Cascade)
+
+  @@unique([familyId, provider])
+  @@index([enabled, lastSyncAt])
+}
+
+model BankCategoryMapping {
+  id         String       @id @default(cuid())
+  familyId   String
+  provider   BankProvider
+  mcc        Int
+  categoryId String
+  createdAt  DateTime     @default(now())
+  updatedAt  DateTime     @updatedAt
+
+  family   Family          @relation(fields: [familyId], references: [id], onDelete: Cascade)
+  category ExpenseCategory @relation(fields: [categoryId], references: [id], onDelete: Cascade)
+
+  @@unique([familyId, provider, mcc])
+  @@index([familyId, provider])
 }
 
 /// Family-level ingredient entries (survive recipe deletion; merged into Ingredients tab + picker).
@@ -734,38 +785,53 @@ model ExpenseCategory {
   familyId  String?
   family    Family?   @relation(fields: [familyId], references: [id], onDelete: Cascade)
   expenses  Expense[]
+  bankCategoryMappings BankCategoryMapping[]
 
   @@index([familyId, sortOrder])
 }
 
 model Expense {
-  id          String   @id @default(cuid())
+  id          String        @id @default(cuid())
   title       String
   amount      Float
-  date        DateTime @default(now())
+  date        DateTime      @default(now())
   categoryId  String?
   userId      String
   familyId    String?
   note        String?
-  createdAt   DateTime @default(now())
+  source      ExpenseSource @default(MANUAL)
+  externalId  String?
+  mcc         Int?
+  createdAt   DateTime      @default(now())
 
   family   Family?          @relation(fields: [familyId], references: [id], onDelete: Cascade)
   category ExpenseCategory? @relation(fields: [categoryId], references: [id])
   user     User             @relation(fields: [userId], references: [id])
+
+  @@unique([familyId, source, externalId])
+  @@index([familyId, date])
+  @@index([familyId, source])
 }
 
 model Income {
-  id        String   @id @default(cuid())
-  title     String
-  amount    Float
-  date      DateTime @default(now())
-  userId    String
-  familyId  String?
-  note      String?
-  createdAt DateTime @default(now())
+  id         String        @id @default(cuid())
+  title      String
+  amount     Float
+  date       DateTime      @default(now())
+  userId     String
+  familyId   String?
+  note       String?
+  source     ExpenseSource @default(MANUAL)
+  externalId String?
+  mcc        Int?
+  createdAt  DateTime      @default(now())
 
   family Family? @relation(fields: [familyId], references: [id], onDelete: Cascade)
   user   User    @relation(fields: [userId], references: [id])
+
+  @@unique([familyId, source, externalId])
+  @@index([familyId, date])
+  @@index([familyId, source])
 }
 
 model Credit {

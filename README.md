@@ -41,3 +41,15 @@ Create `.env` based on `.env.example` and set:
 - `GOOGLE_CLIENT_ID`
 - `GOOGLE_CLIENT_SECRET`
 - `UPLOAD_DIR` (optional; defaults to `./uploads` under the app root)
+- `CRON_SECRET` (for Monobank budget sync: call `POST /api/cron/bank-sync` with `Authorization: Bearer $CRON_SECRET` every 10 minutes)
+
+## Monobank sync
+
+Family owners can connect a Monobank personal API token under **Family → Banks · Monobank**.  
+Imported expenses/incomes land in the shared budget; category mapping uses MCC + learned overrides when you edit a Mono expense category.
+
+Schedule an external cron (or Docker/k8s job) every 10 minutes:
+
+```bash
+curl -X POST -H "Authorization: Bearer $CRON_SECRET" https://your-host/api/cron/bank-sync
+```

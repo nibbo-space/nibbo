@@ -41,8 +41,25 @@ interface Category {
   budget: number | null;
   sortOrder: number;
 }
-interface Expense { id: string; title: string; amount: number; date: string; note: string | null; category: Category | null; user: User; }
-interface Income { id: string; title: string; amount: number; date: string; note: string | null; user: User; }
+interface Expense {
+  id: string;
+  title: string;
+  amount: number;
+  date: string;
+  note: string | null;
+  source?: "MANUAL" | "MONOBANK";
+  category: Category | null;
+  user: User;
+}
+interface Income {
+  id: string;
+  title: string;
+  amount: number;
+  date: string;
+  note: string | null;
+  source?: "MANUAL" | "MONOBANK";
+  user: User;
+}
 interface Credit {
   id: string;
   title: string;
@@ -936,6 +953,11 @@ export default function BudgetView({
                   <div className="flex-1 min-w-0">
                     <p className="font-semibold text-warm-800 text-sm">{income.title}</p>
                     <div className="flex items-center gap-2 flex-wrap">
+                      {income.source === "MONOBANK" && (
+                        <span className="rounded-full bg-black/90 px-1.5 py-0.5 text-[9px] font-bold uppercase tracking-wide text-white">
+                          {t.monoSourceBadge}
+                        </span>
+                      )}
                       <span className="text-xs text-warm-400">{formatDate(income.date, dateFmtOpts)}</span>
                       <span className="text-xs text-warm-300">•</span>
                       <span className="text-xs text-warm-400">{income.user.name}</span>
@@ -1000,6 +1022,11 @@ export default function BudgetView({
                         <div className="flex-1 min-w-0">
                           <p className="font-semibold text-warm-800 text-sm">{expense.title}</p>
                           <div className="flex items-center gap-2 flex-wrap">
+                            {expense.source === "MONOBANK" && (
+                              <span className="rounded-full bg-black/90 px-1.5 py-0.5 text-[9px] font-bold uppercase tracking-wide text-white">
+                                {t.monoSourceBadge}
+                              </span>
+                            )}
                             {expense.category && (
                               <span className="text-xs text-warm-400">{expense.category.name}</span>
                             )}

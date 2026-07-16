@@ -1,4 +1,5 @@
 import { auth } from "@/lib/auth";
+import { learnBankCategoryMapping } from "@/lib/bank-sync/sync-family";
 import { ensureUserFamily } from "@/lib/family";
 import { prisma } from "@/lib/prisma";
 import { NextRequest, NextResponse } from "next/server";
@@ -15,7 +16,10 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
   const body = await req.json();
 
   if (type === "expense") {
-    const ex = await prisma.expense.findFirst({ where: { id, familyId }, select: { id: true } });
+    const ex = await prisma.expense.findFirst({
+      where: { id, familyId },
+      select: { id: true, source: true, mcc: true },
+    });
     if (!ex) return NextResponse.json({ error: "Not found" }, { status: 404 });
     const data: Parameters<typeof prisma.expense.update>[0]["data"] = {};
     if (body.title !== undefined) data.title = String(body.title).trim().slice(0, 500);
@@ -31,13 +35,17 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
       if (Number.isNaN(d.getTime())) return NextResponse.json({ error: "Invalid date" }, { status: 400 });
       data.date = d;
     }
+    let nextCategoryId: string | null | undefined;
     if ("categoryId" in body) {
-      if (body.categoryId === null || body.categoryId === "") data.categoryId = null;
-      else {
+      if (body.categoryId === null || body.categoryId === "") {
+        data.categoryId = null;
+        nextCategoryId = null;
+      } else {
         const cid = String(body.categoryId);
         const c = await prisma.expenseCategory.findFirst({ where: { id: cid, familyId }, select: { id: true } });
         if (!c) return NextResponse.json({ error: "Category not found" }, { status: 404 });
         data.categoryId = cid;
+        nextCategoryId = cid;
       }
     }
     if (body.note !== undefined) data.note = body.note === null ? null : String(body.note).slice(0, 2000);
@@ -49,6 +57,19 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
         user: { select: { id: true, name: true, image: true, color: true, emoji: true } },
       },
     });
+
+    if (
+      nextCategoryId !== undefined &&
+      ex.source === "MONOBANK" &&
+      typeof ex.mcc === "number"
+    ) {
+      await learnBankCategoryMapping({
+        familyId,
+        mcc: ex.mcc,
+        categoryId: nextCategoryId,
+      });
+    }
+
     return NextResponse.json(updated);
   }
 
