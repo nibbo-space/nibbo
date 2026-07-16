@@ -903,7 +903,7 @@
     "bankToastSaved": "Monobank підключено",
     "bankToastSaveError": "Не вдалося зберегти налаштування банку",
     "bankToastCleared": "Monobank від’єднано",
-    "bankToastSynced": "Імпортовано витрат: {expenses}, надходжень: {incomes}",
+    "bankToastSynced": "Отримано {fetched}: імпортовано витрат {expenses}, надходжень {incomes}",
     "bankErrorInvalidToken": "Невірний токен Monobank",
     "bankErrorRateLimited": "Ліміт Monobank — спробуйте за хвилину",
     "bankErrorEmptyAccounts": "Не вибрано жодного рахунку",

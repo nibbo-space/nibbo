@@ -8,8 +8,11 @@ import {
 import { resolveCategoryId } from "@/lib/bank-sync/map-category";
 import {
   BANK_SYNC_INTERVAL_MS,
+  MONO_FORCE_LOOKBACK_SEC,
+  MONO_INITIAL_LOOKBACK_SEC,
   MONO_MAX_STATEMENT_WINDOW_SEC,
   MONO_STATEMENT_MIN_INTERVAL_MS,
+  MONO_SYNC_OVERLAP_SEC,
   type SyncFamilyResult,
 } from "@/lib/bank-sync/types";
 import { getNbuExchangeRates } from "@/lib/exchange-rates";
@@ -17,12 +20,23 @@ import { prisma } from "@/lib/prisma";
 import { decryptUserSecret } from "@/lib/user-secret-crypto";
 import type { BankConnection } from "@prisma/client";
 
-function clampFromSec(syncFromAt: Date | null | undefined, nowSec: number): number {
+function clampFromSec(preferredFromSec: number, nowSec: number): number {
   const maxWindowStart = nowSec - MONO_MAX_STATEMENT_WINDOW_SEC;
-  const preferred = syncFromAt
-    ? Math.floor(syncFromAt.getTime() / 1000) - 60
-    : nowSec - 7 * 24 * 60 * 60;
-  return Math.max(maxWindowStart, preferred);
+  return Math.max(maxWindowStart, preferredFromSec);
+}
+
+function resolveFromSec(
+  connection: BankConnection,
+  nowSec: number,
+  force: boolean,
+): number {
+  if (force) {
+    return clampFromSec(nowSec - MONO_FORCE_LOOKBACK_SEC, nowSec);
+  }
+  if (connection.syncFromAt) {
+    return clampFromSec(Math.floor(connection.syncFromAt.getTime() / 1000) - MONO_SYNC_OVERLAP_SEC, nowSec);
+  }
+  return clampFromSec(nowSec - MONO_INITIAL_LOOKBACK_SEC, nowSec);
 }
 
 async function loadLearnedMccMap(familyId: string): Promise<Map<number, string>> {
@@ -38,14 +52,16 @@ export async function syncFamilyMonobank(
   opts?: { force?: boolean },
 ): Promise<SyncFamilyResult> {
   const now = new Date();
+  const force = Boolean(opts?.force);
   const result: SyncFamilyResult = {
     familyId: connection.familyId,
     importedExpenses: 0,
     importedIncomes: 0,
     skipped: 0,
+    fetched: 0,
   };
 
-  if (!connection.enabled && !opts?.force) {
+  if (!connection.enabled && !force) {
     result.error = "disabled";
     return result;
   }
@@ -71,9 +87,12 @@ export async function syncFamilyMonobank(
 
   try {
     let accountIds = connection.accountIds.filter(Boolean);
+    let accountCurrencyById = new Map<string, number>();
 
-    if (accountIds.length === 0) {
+    const needsClientInfo = accountIds.length === 0;
+    if (needsClientInfo) {
       const client = await fetchMonobankClientInfo(token);
+      accountCurrencyById = new Map(client.accounts.map((a) => [a.id, a.currencyCode]));
       accountIds = defaultSelectableAccountIds(client.accounts);
       if (accountIds.length === 0) {
         await prisma.bankConnection.update({
@@ -83,10 +102,17 @@ export async function syncFamilyMonobank(
         result.error = "empty_accounts";
         return result;
       }
+    } else {
+      accountCurrencyById = new Map(accountIds.map((id) => [id, 980]));
     }
 
     const nowSec = Math.floor(now.getTime() / 1000);
-    const fromSec = clampFromSec(connection.syncFromAt, nowSec);
+    const fromSec = resolveFromSec(connection, nowSec, force);
+    if (fromSec >= nowSec) {
+      result.error = "invalid_window";
+      return result;
+    }
+
     const rates = await getNbuExchangeRates();
     const categories = await prisma.expenseCategory.findMany({
       where: { familyId: connection.familyId },
@@ -99,12 +125,15 @@ export async function syncFamilyMonobank(
       if (i > 0) {
         await new Promise((r) => setTimeout(r, MONO_STATEMENT_MIN_INTERVAL_MS));
       }
-      const items = await fetchMonobankStatements(token, accountIds[i]!, fromSec, nowSec);
+      const accountId = accountIds[i]!;
+      const items = await fetchMonobankStatements(token, accountId, fromSec, nowSec);
       await prisma.bankConnection.update({
         where: { id: connection.id },
         data: { lastStatementAt: new Date() },
       });
-      const normalized = await normalizeMonobankStatements(items, rates);
+      const accountCurrency = accountCurrencyById.get(accountId) ?? 980;
+      const normalized = normalizeMonobankStatements(items, accountCurrency, rates);
+      result.fetched += normalized.length;
       allTx.push(...normalized);
     }
 
@@ -128,21 +157,25 @@ export async function syncFamilyMonobank(
           result.skipped += 1;
           continue;
         }
-        await prisma.expense.create({
-          data: {
-            title: tx.title,
-            amount: tx.amountUah,
-            date: tx.date,
-            note: tx.note,
-            categoryId,
-            userId: connection.connectedByUserId,
-            familyId: connection.familyId,
-            source: "MONOBANK",
-            externalId: tx.externalId,
-            mcc: tx.mcc,
-          },
-        });
-        result.importedExpenses += 1;
+        try {
+          await prisma.expense.create({
+            data: {
+              title: tx.title,
+              amount: tx.amountUah,
+              date: tx.date,
+              note: tx.note,
+              categoryId,
+              userId: connection.connectedByUserId,
+              familyId: connection.familyId,
+              source: "MONOBANK",
+              externalId: tx.externalId,
+              mcc: tx.mcc,
+            },
+          });
+          result.importedExpenses += 1;
+        } catch {
+          result.skipped += 1;
+        }
       } else {
         const existing = await prisma.income.findFirst({
           where: {
@@ -156,20 +189,24 @@ export async function syncFamilyMonobank(
           result.skipped += 1;
           continue;
         }
-        await prisma.income.create({
-          data: {
-            title: tx.title,
-            amount: tx.amountUah,
-            date: tx.date,
-            note: tx.note,
-            userId: connection.connectedByUserId,
-            familyId: connection.familyId,
-            source: "MONOBANK",
-            externalId: tx.externalId,
-            mcc: tx.mcc,
-          },
-        });
-        result.importedIncomes += 1;
+        try {
+          await prisma.income.create({
+            data: {
+              title: tx.title,
+              amount: tx.amountUah,
+              date: tx.date,
+              note: tx.note,
+              userId: connection.connectedByUserId,
+              familyId: connection.familyId,
+              source: "MONOBANK",
+              externalId: tx.externalId,
+              mcc: tx.mcc,
+            },
+          });
+          result.importedIncomes += 1;
+        } catch {
+          result.skipped += 1;
+        }
       }
     }
 
@@ -201,8 +238,7 @@ export async function syncFamilyMonobank(
       where: { id: connection.id },
       data: {
         lastError: message,
-        ...(message === "rate_limited" ? {} : { lastSyncAt: now }),
-        ...(message === "rate_limited" ? { lastStatementAt: now } : {}),
+        ...(message === "rate_limited" ? { lastStatementAt: now } : { lastSyncAt: now }),
       },
     });
     result.error = message;

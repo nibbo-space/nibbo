@@ -40,6 +40,7 @@ export async function GET(req: NextRequest) {
     amount: e.amount,
     date: e.date.toISOString(),
     note: e.note,
+    source: e.source,
     category: e.category,
     user: e.user,
   }));

@@ -104,6 +104,7 @@ export default async function BudgetPage() {
     amount: e.amount,
     date: e.date.toISOString(),
     note: e.note,
+    source: e.source,
     category: e.category,
     user: e.user,
   }));
@@ -114,6 +115,7 @@ export default async function BudgetPage() {
     amount: i.amount,
     date: i.date.toISOString(),
     note: i.note,
+    source: i.source,
     user: i.user,
   }));
 

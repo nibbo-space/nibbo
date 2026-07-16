@@ -50,12 +50,16 @@ const ISO4217_TO_CURRENCY: Record<number, SupportedCurrency> = {
 };
 
 function minorToMajor(amountMinor: number): number {
-  return Math.round(amountMinor) / 100;
+  return Math.round(Math.abs(amountMinor)) / 100;
 }
 
-async function amountToUah(amountMinor: number, currencyCode: number, rates: ExchangeRates): Promise<number> {
-  const major = Math.abs(minorToMajor(amountMinor));
-  const currency = ISO4217_TO_CURRENCY[currencyCode];
+function accountAmountToUah(
+  amountMinor: number,
+  accountCurrencyCode: number,
+  rates: ExchangeRates,
+): number {
+  const major = minorToMajor(amountMinor);
+  const currency = ISO4217_TO_CURRENCY[accountCurrencyCode];
   if (!currency || currency === "UAH") return major;
   const rate = rates[currency];
   if (!rate || rate <= 0) return major;
@@ -74,7 +78,12 @@ async function monoFetch<T>(path: string, token: string): Promise<T> {
     const text = await res.text().catch(() => "");
     throw new MonobankApiError(text || `Monobank error ${res.status}`, res.status);
   }
-  return (await res.json()) as T;
+  if (res.status === 204) {
+    return [] as T;
+  }
+  const text = await res.text();
+  if (!text) return [] as T;
+  return JSON.parse(text) as T;
 }
 
 export async function fetchMonobankClientInfo(token: string): Promise<{
@@ -98,9 +107,8 @@ export async function fetchMonobankClientInfo(token: string): Promise<{
 }
 
 export function defaultSelectableAccountIds(accounts: MonobankAccountPreview[]): string[] {
-  return accounts
-    .filter((a) => a.currencyCode === 980)
-    .map((a) => a.id);
+  const uah = accounts.filter((a) => a.currencyCode === 980).map((a) => a.id);
+  return uah.length > 0 ? uah : accounts.map((a) => a.id);
 }
 
 export async function fetchMonobankStatements(
@@ -109,20 +117,20 @@ export async function fetchMonobankStatements(
   fromSec: number,
   toSec: number,
 ): Promise<MonoStatementItem[]> {
-  const path = `/personal/statement/${encodeURIComponent(accountId)}/${fromSec}/${toSec}`;
+  const path = `/personal/statement/${accountId}/${fromSec}/${toSec}`;
   return monoFetch<MonoStatementItem[]>(path, token);
 }
 
-export async function normalizeMonobankStatements(
+export function normalizeMonobankStatements(
   items: MonoStatementItem[],
-  rates?: ExchangeRates,
-): Promise<NormalizedBankTx[]> {
-  const exchange = rates ?? (await getNbuExchangeRates());
+  accountCurrencyCode: number,
+  rates: ExchangeRates,
+): NormalizedBankTx[] {
   const out: NormalizedBankTx[] = [];
 
   for (const item of items) {
     if (!item?.id) continue;
-    const amountUah = await amountToUah(item.amount, item.currencyCode, exchange);
+    const amountUah = accountAmountToUah(item.amount, accountCurrencyCode, rates);
     if (!Number.isFinite(amountUah) || amountUah <= 0) continue;
 
     const title = String(item.description || "Monobank").trim().slice(0, 500) || "Monobank";

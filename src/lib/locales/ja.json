@@ -903,7 +903,7 @@
     "bankToastSaved": "Monobankを接続しました",
     "bankToastSaveError": "銀行設定を保存できませんでした",
     "bankToastCleared": "Monobankを切断しました",
-    "bankToastSynced": "支出 {expenses} 件、収入 {incomes} 件を取り込みました",
+    "bankToastSynced": "取得 {fetched} 件：支出 {expenses}、収入 {incomes} を取り込み",
     "bankErrorInvalidToken": "Monobankトークンが無効です",
     "bankErrorRateLimited": "Monobankの制限です — 1分後に再試行",
     "bankErrorEmptyAccounts": "口座が選ばれていません",

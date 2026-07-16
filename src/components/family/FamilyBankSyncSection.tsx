@@ -180,7 +180,8 @@ export function FamilyBankSyncSection({ owner }: { owner: boolean }) {
       toast.success(
         t.bankToastSynced
           .replace("{expenses}", String(payload.importedExpenses ?? 0))
-          .replace("{incomes}", String(payload.importedIncomes ?? 0)),
+          .replace("{incomes}", String(payload.importedIncomes ?? 0))
+          .replace("{fetched}", String(payload.fetched ?? 0)),
       );
       await load();
     } catch {

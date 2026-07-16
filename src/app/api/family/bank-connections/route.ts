@@ -132,6 +132,9 @@ export async function PATCH(req: NextRequest) {
       ...(accountIds !== undefined || tokenRaw ? { accountIds: resolvedAccountIds } : {}),
       connectedByUserId: session.user.id,
       lastError: null,
+      ...(tokenRaw
+        ? { syncFromAt: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000), lastStatementAt: null }
+        : {}),
     },
   });
 

@@ -903,7 +903,7 @@
     "bankToastSaved": "Monobank connected",
     "bankToastSaveError": "Could not save bank settings",
     "bankToastCleared": "Monobank disconnected",
-    "bankToastSynced": "Imported {expenses} expenses, {incomes} incomes",
+    "bankToastSynced": "Fetched {fetched}: imported {expenses} expenses, {incomes} incomes",
     "bankErrorInvalidToken": "Invalid Monobank token",
     "bankErrorRateLimited": "Monobank rate limit — try again in a minute",
     "bankErrorEmptyAccounts": "No accounts selected",
