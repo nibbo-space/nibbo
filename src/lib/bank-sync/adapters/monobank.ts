@@ -1,6 +1,5 @@
 import type { MonobankAccountPreview, NormalizedBankTx } from "@/lib/bank-sync/types";
 import type { ExchangeRates, SupportedCurrency } from "@/lib/exchange-rates";
-import { getNbuExchangeRates } from "@/lib/exchange-rates";
 
 const MONO_BASE = "https://api.monobank.ua";
 
@@ -59,11 +58,16 @@ function accountAmountToUah(
   rates: ExchangeRates,
 ): number {
   const major = minorToMajor(amountMinor);
+  if (accountCurrencyCode === 980) return major;
   const currency = ISO4217_TO_CURRENCY[accountCurrencyCode];
   if (!currency || currency === "UAH") return major;
   const rate = rates[currency];
   if (!rate || rate <= 0) return major;
   return major * rate;
+}
+
+function statementAmountToUah(item: MonoStatementItem, accountCurrencyCode: number, rates: ExchangeRates): number {
+  return accountAmountToUah(item.amount, accountCurrencyCode, rates);
 }
 
 async function monoFetch<T>(path: string, token: string): Promise<T> {
@@ -130,7 +134,7 @@ export function normalizeMonobankStatements(
 
   for (const item of items) {
     if (!item?.id) continue;
-    const amountUah = accountAmountToUah(item.amount, accountCurrencyCode, rates);
+    const amountUah = statementAmountToUah(item, accountCurrencyCode, rates);
     if (!Number.isFinite(amountUah) || amountUah <= 0) continue;
 
     const title = String(item.description || "Monobank").trim().slice(0, 500) || "Monobank";

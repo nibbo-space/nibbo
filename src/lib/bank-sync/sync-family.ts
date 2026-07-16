@@ -151,10 +151,27 @@ export async function syncFamilyMonobank(
             source: "MONOBANK",
             externalId: tx.externalId,
           },
-          select: { id: true },
+          select: { id: true, amount: true, categoryId: true },
         });
         if (existing) {
-          result.skipped += 1;
+          const amountChanged = Math.abs(existing.amount - tx.amountUah) > 0.009;
+          if (amountChanged || existing.categoryId == null) {
+            await prisma.expense.update({
+              where: { id: existing.id },
+              data: {
+                title: tx.title,
+                amount: tx.amountUah,
+                date: tx.date,
+                note: tx.note,
+                mcc: tx.mcc,
+                ...(existing.categoryId == null && categoryId ? { categoryId } : {}),
+              },
+            });
+            if (amountChanged) result.importedExpenses += 1;
+            else result.skipped += 1;
+          } else {
+            result.skipped += 1;
+          }
           continue;
         }
         try {
@@ -183,10 +200,24 @@ export async function syncFamilyMonobank(
             source: "MONOBANK",
             externalId: tx.externalId,
           },
-          select: { id: true },
+          select: { id: true, amount: true },
         });
         if (existing) {
-          result.skipped += 1;
+          if (Math.abs(existing.amount - tx.amountUah) > 0.009) {
+            await prisma.income.update({
+              where: { id: existing.id },
+              data: {
+                title: tx.title,
+                amount: tx.amountUah,
+                date: tx.date,
+                note: tx.note,
+                mcc: tx.mcc,
+              },
+            });
+            result.importedIncomes += 1;
+          } else {
+            result.skipped += 1;
+          }
           continue;
         }
         try {
