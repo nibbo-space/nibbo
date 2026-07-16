@@ -1030,6 +1030,7 @@
     "incomeThisMonth": "今月の収入",
     "balanceThisMonth": "今月の残高",
     "subscriptionsThisMonth": "サブスク（月額）",
+    "subscriptionsInfoOnly": "参考のみ — 支出合計には含めません（実支払いは支出 / Mono）",
     "creditsThisMonth": "今月のクレジット",
     "autoCalculated": "自動",
     "transactions": "取引",

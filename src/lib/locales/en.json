@@ -1030,6 +1030,7 @@
     "incomeThisMonth": "Income this month",
     "balanceThisMonth": "Balance this month",
     "subscriptionsThisMonth": "Subscriptions / month",
+    "subscriptionsInfoOnly": "Info only — not added to spending (real charges come from expenses / Mono)",
     "creditsThisMonth": "Credits this month",
     "autoCalculated": "auto",
     "transactions": "Transactions",

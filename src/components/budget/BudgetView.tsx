@@ -222,7 +222,7 @@ export default function BudgetView({
   const totalIncome = useMemo(() => incomes.reduce((s, i) => s + i.amount, 0), [incomes]);
   const activeCredits = credits.filter((credit) => credit.status === "ACTIVE");
   const creditsAutoTotal = activeCredits.reduce((sum, credit) => sum + credit.monthlyAmount, 0);
-  const totalSpent = monthExpenseTotal + monthlySubscriptionsTotal + creditsAutoTotal;
+  const totalSpent = monthExpenseTotal + creditsAutoTotal;
   const balance = totalIncome - totalSpent;
   const expectedBalance = (plannedIncome ?? 0) - totalSpent;
   const planDelta = plannedIncome !== null ? totalIncome - plannedIncome : null;
@@ -678,14 +678,17 @@ export default function BudgetView({
               <p className="font-bold">{categories.length}</p>
             </div>
           </div>
-          <div className="mt-3 bg-white/15 rounded-2xl px-4 py-2.5 flex items-center justify-between gap-2">
-            <p className="text-xs text-sage-100">
-              {t.subscriptionsThisMonth} · {monthlySubscriptionsCount}
-            </p>
-            <p className="text-sm font-semibold text-white">
-              {formatUah(monthlySubscriptionsTotal)} <span className="text-sage-100 text-xs">({t.autoCalculated})</span>
-            </p>
-          </div>
+          {monthlySubscriptionsCount > 0 && (
+            <div className="mt-3 bg-white/15 rounded-2xl px-4 py-2.5 flex items-center justify-between gap-2">
+              <div>
+                <p className="text-xs text-sage-100">
+                  {t.subscriptionsThisMonth} · {monthlySubscriptionsCount}
+                </p>
+                <p className="text-[10px] text-sage-100/80">{t.subscriptionsInfoOnly}</p>
+              </div>
+              <p className="text-sm font-semibold text-white">{formatUah(monthlySubscriptionsTotal)}</p>
+            </div>
+          )}
           <div className="mt-2 bg-white/15 rounded-2xl px-4 py-2.5 flex items-center justify-between gap-2">
             <p className="text-xs text-sage-100">
               {t.creditsThisMonth} · {activeCredits.length || monthlyCreditsCount}
@@ -1061,13 +1064,8 @@ export default function BudgetView({
             <p className="text-center text-xs text-warm-400 py-3 border-t border-warm-50">{t.expensesEndOfHistory}</p>
           )}
         </div>
-        {monthlySubscriptionsCount > 0 && (
-          <p className="text-xs text-warm-400 mt-2 px-1">
-            + {formatUah(monthlySubscriptionsTotal)} {t.subscriptionsThisMonth} ({t.autoCalculated})
-          </p>
-        )}
         {activeCredits.length > 0 && (
-          <p className="text-xs text-warm-400 mt-1 px-1">
+          <p className="text-xs text-warm-400 mt-2 px-1">
             + {formatUah(creditsAutoTotal)} {t.creditsThisMonth} ({t.autoCalculated})
           </p>
         )}

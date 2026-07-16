@@ -1030,6 +1030,7 @@
     "incomeThisMonth": "Дохід цього місяця",
     "balanceThisMonth": "Баланс місяця",
     "subscriptionsThisMonth": "Підписки / міс",
+    "subscriptionsInfoOnly": "Лише довідка — не входить у витрати (реальні списання вже в витратах / Mono)",
     "creditsThisMonth": "Кредити цього місяця",
     "autoCalculated": "авто",
     "transactions": "Транзакцій",
