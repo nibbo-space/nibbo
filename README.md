@@ -41,15 +41,29 @@ Create `.env` based on `.env.example` and set:
 - `GOOGLE_CLIENT_ID`
 - `GOOGLE_CLIENT_SECRET`
 - `UPLOAD_DIR` (optional; defaults to `./uploads` under the app root)
-- `CRON_SECRET` (for Monobank budget sync: call `POST /api/cron/bank-sync` with `Authorization: Bearer $CRON_SECRET` every hour)
+- `CRON_SECRET` (optional; only for HTTP `/api/cron/bank-sync` — prefer `npm run bank-sync:worker`)
 
 ## Monobank sync
 
 Family owners can connect a Monobank personal API token under **Family → Banks**.  
 Imported expenses/incomes land in the shared budget; category mapping uses MCC + learned overrides when you edit a Mono expense category.
 
-Schedule an external cron (or Docker/k8s job) every hour:
+Run a long-lived worker next to the app (pm2 / systemd / docker):
 
 ```bash
-curl -X POST -H "Authorization: Bearer $CRON_SECRET" https://your-host/api/cron/bank-sync
+npm run bank-sync:worker
+```
+
+It loads due Monobank connections about once an hour (`BANK_SYNC_INTERVAL_MS`, override with `BANK_SYNC_WORKER_INTERVAL_MS`). Needs the same `DATABASE_URL` and `AUTH_SECRET` as the app (token decrypt).
+
+Example pm2:
+
+```bash
+pm2 start "npm run bank-sync:worker" --name nibbo-bank-sync
+```
+
+Optional HTTP fallback (crontab calling the API):
+
+```cron
+0 * * * * curl -fsS -X POST -H "Authorization: Bearer $CRON_SECRET" https://your-host/api/cron/bank-sync
 ```

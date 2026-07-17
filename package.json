@@ -22,7 +22,8 @@
     "docker:export": "docker compose build --progress=plain app && docker save home-crm:latest -o home-crm-latest.tar",
     "docs:dev": "npm run dev --prefix docs",
     "docs:build": "npm run build --prefix docs",
-    "docs:install": "npm install --prefix docs"
+    "docs:install": "npm install --prefix docs",
+    "bank-sync:worker": "tsx scripts/bank-sync-worker.ts"
   },
   "dependencies": {
     "@auth/prisma-adapter": "^2.7.2",
